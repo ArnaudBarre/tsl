@@ -1,3 +1,3 @@
 # type-lint
 
-WIP
+Ongoing work for a TS focused linter

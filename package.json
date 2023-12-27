@@ -1,13 +1,16 @@
 {
   "name": "type-lint",
-  "module": "index.ts",
+  "private": true,
   "type": "module",
   "scripts": {
+    "generate-ast": "bun scripts/generate-ast.ts",
     "prettier-all": "bun prettier-ci --write",
     "prettier-ci": "prettier --cache --check '**/*.{ts,json,md,yml}'"
   },
-  "peerDependencies": {
-    "typescript": "^5.3.3"
+  "prettier": {
+    "plugins": [
+      "@arnaud-barre/prettier-plugin-sort-imports"
+    ]
   },
   "devDependencies": {
     "@arnaud-barre/prettier-plugin-sort-imports": "^0.1.3",
