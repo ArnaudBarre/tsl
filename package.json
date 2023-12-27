@@ -3,9 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "generate-ast": "bun scripts/generate-ast.ts",
+    "codegen": "bun scripts/codegen.ts",
     "prettier-all": "bun prettier-ci --write",
-    "prettier-ci": "prettier --cache --check '**/*.{ts,json,md,yml}'"
+    "prettier-ci": "prettier --cache --check '**/*.{ts,json,md,yml}'",
+    "ci": "bun prettier-ci && bun codegen --check"
   },
   "prettier": {
     "plugins": [

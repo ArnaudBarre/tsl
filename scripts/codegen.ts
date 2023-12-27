@@ -1,5 +1,5 @@
 import assert from "node:assert";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { format } from "prettier";
 import ts from "typescript";
 
@@ -18,9 +18,9 @@ const baseNodeProps = typeChecker
   .getTypeAtLocation(interfaces.find((i) => i.name.text === "Node")!)
   .getApparentProperties();
 const baseKind = baseNodeProps.find((p) => p.name === "kind")!;
-const baseProps = baseNodeProps
-  .map((p) => p.name)
-  .filter((p) => p !== "kind" && p !== "parent");
+const baseProps = baseNodeProps.filter(
+  (p) => p.name !== "kind" && p.name !== "parent",
+);
 
 const importedTypes = [
   "__String",
@@ -28,18 +28,23 @@ const importedTypes = [
   "FileReference",
   "LanguageVariant",
   "LineAndCharacter",
-  "NodeFlags",
-  "ReadonlyTextRange",
+  "Node",
+  "NodeArray",
   "ResolutionMode",
   "ScriptTarget",
   "SyntaxKind",
   "TextChangeRange",
   "Type",
+  "TypeChecker",
 ];
 const outputParts: (
   | string
   | { name: string; kind: string; members?: ts.TypeElement[] }
-)[] = [`import type { ${importedTypes.join(", ")} } from "typescript";\n\n`];
+)[] = [
+  "/** Generated **/",
+  `import type { ${importedTypes.join(", ")} } from "typescript";`,
+  "",
+];
 
 const visitedTypes = new Set<string>(importedTypes);
 const allLinks: [string, string][] = [];
@@ -100,7 +105,7 @@ const visitType = (name: string): void => {
   const links: string[] = [];
   for (const p of props) {
     if (p === kind) continue;
-    if (baseProps.includes(p.name)) continue;
+    if (baseProps.includes(p)) continue;
     if (/_\w+Brand/.test(p.name)) continue;
     if (p.name === "parent") continue;
     assert(p.valueDeclaration);
@@ -128,7 +133,7 @@ const visitType = (name: string): void => {
             m.modifiers,
             m.name,
             m.questionToken,
-            ts.factory.createTypeReferenceNode("Node", [
+            ts.factory.createTypeReferenceNode("Token", [
               arg,
               ts.factory.createTypeReferenceNode(name),
             ]),
@@ -277,25 +282,10 @@ const addEnum = (name: string, values: string[]): void => {
 visitType("SourceFile");
 
 outputParts.push(`
-interface NodeArray<T> extends ReadonlyArray<T>, ReadonlyTextRange {
-  readonly hasTrailingComma: boolean;
-}
-interface Node<Kind extends SyntaxKind, Parent> extends ReadonlyTextRange {
+interface Token<Kind extends SyntaxKind, Parent extends Node> extends Node {
   readonly kind: Kind;
   readonly parent: Parent;
-  readonly flags: NodeFlags;
-  getSourceFile(): SourceFile;
-  getStart(sourceFile?: SourceFile, includeJsDocComment?: boolean): number;
-  getFullStart(): number;
-  getEnd(): number;
-  getWidth(): number;
-  getFullWidth(): number;
-  getLeadingTriviaWidth(sourceFile?: SourceFile): number;
-  getFullText(sourceFile?: SourceFile): string;
-  getText(sourceFile?: SourceFile): string;
-  /* getChildren, getChildAt, ... are removed until better typed  */
-}
-`);
+}`);
 
 const getParents = (name: string): Set<string> => {
   const parents = new Set<string>();
@@ -326,6 +316,7 @@ const getParentsWithEnums = (name: string) => [
   ...replaceWithEnums(getParents(name)),
 ];
 
+outputParts.push("\n/* Enums here just for factorisation */");
 for (const enumWithLotOfParents of [
   "Expression",
   "TypeNode",
@@ -339,30 +330,98 @@ for (const enumWithLotOfParents of [
   );
 }
 
-let output = "";
+const visitorNodes = nodes
+  .filter(
+    (n) =>
+      /* These are defined types with narrow typing but without a specific SyntaxKind token  */
+      ![
+        "JSDocNamespaceDeclaration",
+        "NamespaceDeclaration",
+        "JsxTagNamePropertyAccess",
+      ].includes(n),
+  )
+  .sort();
+
+outputParts.push(`
+/* Rules types */
+export type Rule<Data = undefined> = {
+  name: string;
+  createData?: (context: Omit<Context, "data">) => Data;
+  visitor: Visitor<Data>
+};
+export type Context<Data = undefined> = {
+  sourceFile: SourceFile;
+  typeChecker: TypeChecker;
+  report(node: Node, message: string): void;
+  data: Data;
+};
+export type Visitor<Data = undefined> = {
+  ${visitorNodes.map((n) => `${n}?(node: ${n}, context: Context<Data>): void`)}
+};`);
+
+let typesOutput = "";
 for (const part of outputParts) {
   if (typeof part === "string") {
-    output += `${part}\n`;
+    typesOutput += `${part}\n`;
   } else {
-    const parents =
-      part.name === "SourceFile"
-        ? "undefined"
-        : getParentsWithEnums(part.name).join(" | ");
-    output += `export type ${part.name} = Node<${part.kind}, ${parents}>`;
-    if (part.members?.length) {
-      const value = printer.printNode(
-        ts.EmitHint.Unspecified,
-        ts.factory.createTypeLiteralNode(part.members),
-        sourceFile,
-      );
-      output += ` & ${value}\n`;
-    } else {
-      output += ";\n";
-    }
+    typesOutput += `export interface ${part.name} extends Node { 
+  readonly kind: ${part.kind};
+  ${
+    part.name === "SourceFile"
+      ? "// parent is undefined but Node type doesn't allow it"
+      : `readonly parent: ${getParentsWithEnums(part.name).join(" | ")}`
+  }
+  ${
+    part.members
+      ?.map((m) => printer.printNode(ts.EmitHint.Unspecified, m, sourceFile))
+      .join("\n") ?? ""
+  }
+}\n`;
   }
 }
 
-writeFileSync(
-  "src/ast.ts",
-  await format(output, { filepath: "src/ast.ts", printWidth: 120 }),
+const writeOrCheck = (path: string, content: string) => {
+  if (process.argv.includes("--check")) {
+    if (readFileSync(path, "utf-8") !== content) {
+      console.error(
+        `File ${path} is not up to date. Run bun codegen to update`,
+      );
+      process.exit(1);
+    } else {
+      console.log(`File ${path} is up to date`);
+    }
+  } else {
+    writeFileSync(path, content);
+  }
+};
+
+writeOrCheck(
+  "src/types.ts",
+  await format(typesOutput, { parser: "typescript", printWidth: 120 }),
+);
+
+const nodeParts = outputParts.filter(
+  (p): p is Exclude<typeof p, string> => typeof p !== "string",
+);
+writeOrCheck(
+  "src/visit.ts",
+  `/** Generated **/
+import { SyntaxKind } from "typescript";  
+import type * as AST from "./types.ts";
+
+type AnyNode = ${visitorNodes.map((n) => `AST.${n}`).join(" | ")};
+
+export const visit = (node: AnyNode, visitor: AST.Visitor<unknown>, context: AST.Context<unknown>) => {
+  switch(node.kind) {
+${visitorNodes
+  .map((node) => {
+    const part = nodeParts.find((p) => p.name === node)!;
+    return `    case ${part.kind}: visitor.${part.name}?.(node, context); break;`;
+  })
+  .sort()
+  .join("\n")}
+  }
+  node.forEachChild(child => visit(child as any, visitor, context));
+}
+`,
 );
