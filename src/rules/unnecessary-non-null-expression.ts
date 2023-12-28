@@ -1,11 +1,13 @@
-import { createRule, isNullableType } from "../utils.ts";
+import { createRule } from "../public-utils.ts";
 
-export default createRule({
+export const noUnnecessaryNonNullExpression = createRule({
   name: "no-unnecessary-non-null-expression",
   visitor: {
     NonNullExpression(node, context) {
       if (
-        !isNullableType(context.typeChecker.getTypeAtLocation(node.expression))
+        !context.checker.utils.isNullableType(
+          context.checker.getTypeAtLocation(node.expression),
+        )
       ) {
         context.report(node, "Unnecessary non-null assertion.");
       }

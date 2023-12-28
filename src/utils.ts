@@ -1,20 +1,46 @@
-import ts from "typescript";
-import type { Rule } from "./types.ts";
+import ts, { SyntaxKind } from "typescript";
+import type { BinaryOperatorToken } from "./ast.ts";
 
-export const createRule = <Data>(rule: Rule<Data>) => rule;
+export const run = <T>(cb: () => T) => cb();
 
-export const isNullableType = (type: ts.Type, isReceiver = false): boolean => {
-  const flags = getTypeFlags(type);
-  if (isReceiver && flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) {
-    return true;
-  }
-  return (flags & (ts.TypeFlags.Null | ts.TypeFlags.Undefined)) !== 0;
+const estreeLogicalOperator = [
+  ts.SyntaxKind.BarBarToken,
+  ts.SyntaxKind.AmpersandAmpersandToken,
+  ts.SyntaxKind.QuestionQuestionToken,
+];
+export const isLogicalExpression = (token: BinaryOperatorToken) =>
+  estreeLogicalOperator.includes(token.kind);
+
+// Map to check exhaustiveness
+const assignmentOperatorsMap: Record<
+  ts.AssignmentOperator,
+  ts.AssignmentOperator
+> = {
+  [SyntaxKind.EqualsToken]: SyntaxKind.EqualsToken,
+  [SyntaxKind.PlusEqualsToken]: SyntaxKind.PlusEqualsToken,
+  [SyntaxKind.MinusEqualsToken]: SyntaxKind.MinusEqualsToken,
+  [SyntaxKind.AsteriskAsteriskEqualsToken]:
+    SyntaxKind.AsteriskAsteriskEqualsToken,
+  [SyntaxKind.AsteriskEqualsToken]: SyntaxKind.AsteriskEqualsToken,
+  [SyntaxKind.SlashEqualsToken]: SyntaxKind.SlashEqualsToken,
+  [SyntaxKind.PercentEqualsToken]: SyntaxKind.PercentEqualsToken,
+  [SyntaxKind.AmpersandEqualsToken]: SyntaxKind.AmpersandEqualsToken,
+  [SyntaxKind.BarEqualsToken]: SyntaxKind.BarEqualsToken,
+  [SyntaxKind.CaretEqualsToken]: SyntaxKind.CaretEqualsToken,
+  [SyntaxKind.LessThanLessThanEqualsToken]:
+    SyntaxKind.LessThanLessThanEqualsToken,
+  [SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken]:
+    SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken,
+  [SyntaxKind.GreaterThanGreaterThanEqualsToken]:
+    SyntaxKind.GreaterThanGreaterThanEqualsToken,
+  [SyntaxKind.BarBarEqualsToken]: SyntaxKind.BarBarEqualsToken,
+  [SyntaxKind.AmpersandAmpersandEqualsToken]:
+    SyntaxKind.AmpersandAmpersandEqualsToken,
+  [SyntaxKind.QuestionQuestionEqualsToken]:
+    SyntaxKind.QuestionQuestionEqualsToken,
 };
-
-export const getTypeFlags = (type: ts.Type): ts.TypeFlags => {
-  if (!type.isUnion()) return type.flags;
-  // @ts-expect-error Since typescript 5.0, this is invalid, but uses 0 as the default value of TypeFlags.
-  let flags: ts.TypeFlags = 0;
-  for (const t of (type as ts.UnionType).types) flags |= t.flags;
-  return flags;
-};
+const assignmentOperators = Object.values(
+  assignmentOperatorsMap,
+) as ts.BinaryOperator[];
+export const isAssignmentExpression = (token: BinaryOperatorToken) =>
+  assignmentOperators.includes(token.kind);

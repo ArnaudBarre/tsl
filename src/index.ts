@@ -1,10 +1,40 @@
 import fs from "node:fs";
 import ts from "typescript";
-import rule1 from "./rules/unnecessary-non-null-expression.ts";
-import type { Context, SourceFile } from "./types.ts";
+import type { SourceFile, Visitor } from "./ast.ts";
+import { createChecker } from "./checker.ts";
+import { defineConfig } from "./public-utils.ts";
+import { noMisusedPromises } from "./rules/no-misused-promises.ts";
+// import { noUnnecessaryNonNullExpression } from "./rules/unnecessary-non-null-expression.ts";
+import type { Config, Context, UnknownRule } from "./types.ts";
 import { visit } from "./visit.ts";
 
-const rules = [rule1];
+const config = defineConfig({
+  rules: [noMisusedPromises],
+  ignore: ["prisma/client.d.ts"],
+  options: {
+    "no-misused-promises": {
+      // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/no-misused-promises.md#checksvoidreturn
+      checksVoidReturn: { arguments: false, attributes: false },
+    },
+  },
+}) as Config<UnknownRule[]>;
+
+const rulesWithOptions: {
+  rule: UnknownRule;
+  options: unknown;
+  visitor: Visitor<unknown, unknown>;
+}[] = [];
+for (const rule of config.rules) {
+  const input = config.options?.[rule.name];
+  if (input === "off") continue;
+  const options = rule.parseOptions?.(input);
+  rulesWithOptions.push({
+    rule,
+    options,
+    visitor:
+      typeof rule.visitor === "function" ? rule.visitor(options) : rule.visitor,
+  });
+}
 
 const formatDiagnostics = (diagnostics: ts.Diagnostic[]) =>
   ts.formatDiagnostics(diagnostics, {
@@ -52,27 +82,29 @@ allDiagnostics.forEach((diagnostic) => {
   }
 });
 
-const typeChecker = program.getTypeChecker();
+const checker = createChecker(program.getTypeChecker());
 program.getSourceFiles().forEach((it) => {
   if (it.fileName.includes("node_modules")) return;
+  if (config.ignore?.some((p) => it.fileName.includes(p))) return;
   const sourceFile = it.getSourceFile() as unknown as SourceFile;
-  for (const rule of rules) {
-    const context: Context<unknown> = {
+  for (const { rule, options, visitor } of rulesWithOptions) {
+    const context: Context<unknown, unknown> = {
       sourceFile,
-      typeChecker,
+      checker,
       report(node, message) {
         const { line, character } = sourceFile.getLineAndCharacterOfPosition(
           node.getStart(),
         );
         console.log(
-          `${sourceFile.fileName} (${line + 1},${character + 1}): ${message} (${
+          `${sourceFile.fileName}(${line + 1},${character + 1}): ${message} (${
             rule.name
           })`,
         );
       },
+      options,
       data: undefined,
     };
     if (rule.createData) context.data = rule.createData(context);
-    visit(sourceFile, rule.visitor, context);
+    visit(sourceFile, visitor, context);
   }
 });

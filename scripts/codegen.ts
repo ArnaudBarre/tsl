@@ -35,7 +35,6 @@ const importedTypes = [
   "SyntaxKind",
   "TextChangeRange",
   "Type",
-  "TypeChecker",
 ];
 const outputParts: (
   | string
@@ -43,6 +42,7 @@ const outputParts: (
 )[] = [
   "/** Generated **/",
   `import type { ${importedTypes.join(", ")} } from "typescript";`,
+  'import type { Context } from "./types.ts";',
   "",
 ];
 
@@ -343,20 +343,12 @@ const visitorNodes = nodes
   .sort();
 
 outputParts.push(`
-/* Rules types */
-export type Rule<Data = undefined> = {
-  name: string;
-  createData?: (context: Omit<Context, "data">) => Data;
-  visitor: Visitor<Data>
-};
-export type Context<Data = undefined> = {
-  sourceFile: SourceFile;
-  typeChecker: TypeChecker;
-  report(node: Node, message: string): void;
-  data: Data;
-};
-export type Visitor<Data = undefined> = {
-  ${visitorNodes.map((n) => `${n}?(node: ${n}, context: Context<Data>): void`)}
+export type Visitor<OptionsOutput = undefined, Data = undefined> = {
+  ${visitorNodes
+    .map(
+      (n) => `${n}?(node: ${n}, context: Context<OptionsOutput, Data>): void`,
+    )
+    .join("\n")}
 };`);
 
 let typesOutput = "";
@@ -396,7 +388,7 @@ const writeOrCheck = (path: string, content: string) => {
 };
 
 writeOrCheck(
-  "src/types.ts",
+  "src/ast.ts",
   await format(typesOutput, { parser: "typescript", printWidth: 120 }),
 );
 
@@ -407,11 +399,12 @@ writeOrCheck(
   "src/visit.ts",
   `/** Generated **/
 import { SyntaxKind } from "typescript";  
-import type * as AST from "./types.ts";
+import type * as AST from "./ast.ts";
+import type { Context } from "./types.ts";
 
 type AnyNode = ${visitorNodes.map((n) => `AST.${n}`).join(" | ")};
 
-export const visit = (node: AnyNode, visitor: AST.Visitor<unknown>, context: AST.Context<unknown>) => {
+export const visit = (node: AnyNode, visitor: AST.Visitor<unknown, unknown>, context: Context<unknown, unknown>) => {
   switch(node.kind) {
 ${visitorNodes
   .map((node) => {
