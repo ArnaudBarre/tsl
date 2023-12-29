@@ -401,6 +401,15 @@ writeOrCheck(
 );
 
 writeOrCheck(
+  "scripts/kindToNodeTypeMap.ts",
+  `/** Generated **/
+export const kindToNodeTypeMap: Record<string, string> = {
+${visitorNodes.map((n) => `  ${n.kind}: "${n.node}",`).join("\n")}
+}
+`,
+);
+
+writeOrCheck(
   "src/visit.ts",
   `/** Generated **/
 import { SyntaxKind } from "typescript";  
