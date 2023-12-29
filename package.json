@@ -6,7 +6,7 @@
     "codegen": "bun scripts/codegen.ts",
     "prettier-all": "bun prettier-ci --write",
     "prettier-ci": "prettier --cache --check '**/*.{ts,json,md,yml}'",
-    "ci": "bun prettier-ci && bun codegen --check"
+    "ci": "bun prettier-ci && bun codegen --check && tsc"
   },
   "prettier": {
     "plugins": [

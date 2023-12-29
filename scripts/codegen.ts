@@ -316,6 +316,25 @@ const getParentsWithEnums = (name: string) => [
   ...replaceWithEnums(getParents(name)),
 ];
 
+const nodeParts = outputParts.filter(
+  (p): p is Exclude<typeof p, string> => typeof p !== "string",
+);
+const visitorNodes = nodes
+  .filter(
+    (n) =>
+      /* These are defined types with narrow typing but without a specific SyntaxKind token  */
+      ![
+        "JSDocNamespaceDeclaration",
+        "NamespaceDeclaration",
+        "JsxTagNamePropertyAccess",
+      ].includes(n),
+  )
+  .sort()
+  .map((node) => {
+    const part = nodeParts.find((p) => p.name === node)!;
+    return { kind: part.kind.replace("SyntaxKind.", ""), node };
+  });
+
 outputParts.push("\n/* Enums here just for factorisation */");
 for (const enumWithLotOfParents of [
   "Expression",
@@ -330,25 +349,14 @@ for (const enumWithLotOfParents of [
   );
 }
 
-const visitorNodes = nodes
-  .filter(
-    (n) =>
-      /* These are defined types with narrow typing but without a specific SyntaxKind token  */
-      ![
-        "JSDocNamespaceDeclaration",
-        "NamespaceDeclaration",
-        "JsxTagNamePropertyAccess",
-      ].includes(n),
-  )
-  .sort();
-
 outputParts.push(`
 export type Visitor<OptionsOutput = undefined, Data = undefined> = {
-  ${visitorNodes
-    .map(
-      (n) => `${n}?(node: ${n}, context: Context<OptionsOutput, Data>): void`,
-    )
-    .join("\n")}
+${visitorNodes
+  .flatMap((n) => [
+    `  ${n.kind}?(node: ${n.node}, context: Context<OptionsOutput, Data>): void`,
+    `  "${n.kind}:exit"?(node: ${n.node}, context: Context<OptionsOutput, Data>): void`,
+  ])
+  .join("\n")}
 };`);
 
 let typesOutput = "";
@@ -389,32 +397,35 @@ const writeOrCheck = (path: string, content: string) => {
 
 writeOrCheck(
   "src/ast.ts",
-  await format(typesOutput, { parser: "typescript", printWidth: 120 }),
+  await format(typesOutput, { parser: "typescript", printWidth: 125 }),
 );
 
-const nodeParts = outputParts.filter(
-  (p): p is Exclude<typeof p, string> => typeof p !== "string",
-);
 writeOrCheck(
   "src/visit.ts",
   `/** Generated **/
 import { SyntaxKind } from "typescript";  
-import type * as AST from "./ast.ts";
-import type { Context } from "./types.ts";
+import type { AST, Context } from "./types.ts";
 
-type AnyNode = ${visitorNodes.map((n) => `AST.${n}`).join(" | ")};
+type VisitorNode = ${visitorNodes.map((n) => `AST.${n.node}`).join(" | ")};
 
-export const visit = (node: AnyNode, visitor: AST.Visitor<unknown, unknown>, context: Context<unknown, unknown>) => {
+export const visit = (node: VisitorNode, visitor: AST.Visitor<unknown, unknown>, context: Context<unknown, unknown>) => {
   switch(node.kind) {
 ${visitorNodes
   .map((node) => {
-    const part = nodeParts.find((p) => p.name === node)!;
-    return `    case ${part.kind}: visitor.${part.name}?.(node, context); break;`;
+    return `    case SyntaxKind.${node.kind}: visitor.${node.kind}?.(node, context); break;`;
   })
   .sort()
   .join("\n")}
   }
   node.forEachChild(child => visit(child as any, visitor, context));
+  switch(node.kind) {
+${visitorNodes
+  .map((node) => {
+    return `    case SyntaxKind.${node.kind}: visitor["${node.kind}:exit"]?.(node, context); break;`;
+  })
+  .sort()
+  .join("\n")}
+  }
 }
 `,
 );

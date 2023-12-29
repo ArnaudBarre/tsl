@@ -1,8 +1,7 @@
 /* Credits: ts-api-utils, @typescript-eslint */
 import ts, { SyntaxKind } from "typescript";
-import type * as AST from "../ast.ts";
 import { createRule } from "../public-utils.ts";
-import type { Checker, Infer } from "../types.ts";
+import type { AST, Checker, Infer } from "../types.ts";
 import { isAssignmentExpression, isLogicalExpression, run } from "../utils.ts";
 
 interface ChecksVoidReturnOptions {
@@ -172,7 +171,7 @@ function checkConditional(
     return;
   }
   if (isAlwaysThenable(context.checker, node)) {
-    context.report(node, messages.conditional);
+    context.report({ node, message: messages.conditional });
   }
 }
 
@@ -193,7 +192,7 @@ function checkArguments(
     }
 
     if (returnsThenable(context.checker, argument)) {
-      context.report(argument, messages.voidReturnArgument);
+      context.report({ node: argument, message: messages.voidReturnArgument });
     }
   }
 }
@@ -206,7 +205,7 @@ function checkAssignment(node: AST.BinaryExpression, context: Context): void {
   }
 
   if (returnsThenable(context.checker, node.right)) {
-    context.report(node.right, messages.voidReturnVariable);
+    context.report({ node: node.right, message: messages.voidReturnVariable });
   }
 }
 
@@ -225,7 +224,7 @@ function checkVariableDeclaration(
   }
 
   if (returnsThenable(context.checker, node.initializer)) {
-    context.report(node, messages.voidReturnVariable);
+    context.report({ node, message: messages.voidReturnVariable });
   }
 }
 
@@ -243,7 +242,10 @@ function checkPropertyAssignment(
     ) &&
     returnsThenable(context.checker, node.initializer)
   ) {
-    context.report(node.initializer, messages.voidReturnProperty);
+    context.report({
+      node: node.initializer,
+      message: messages.voidReturnProperty,
+    });
   }
 }
 
@@ -257,7 +259,7 @@ function checkShorthandPropertyAssignment(
     isVoidReturningFunctionType(context.checker, node.name, contextualType) &&
     returnsThenable(context.checker, node.name)
   ) {
-    context.report(node, messages.voidReturnProperty);
+    context.report({ node, message: messages.voidReturnProperty });
   }
 }
 
@@ -298,7 +300,7 @@ function checkMethodDeclaration(node: AST.MethodDeclaration, context: Context) {
   );
 
   if (isVoidReturningFunctionType(context.checker, node.name, contextualType)) {
-    context.report(node, messages.voidReturnProperty);
+    context.report({ node, message: messages.voidReturnProperty });
   }
   return;
 }
@@ -318,7 +320,10 @@ function checkReturnStatement(
     ) &&
     returnsThenable(context.checker, node.expression)
   ) {
-    context.report(node.expression, messages.voidReturnReturnValue);
+    context.report({
+      node: node.expression,
+      message: messages.voidReturnReturnValue,
+    });
   }
 }
 
@@ -341,13 +346,16 @@ function checkJSXAttribute(node: AST.JsxAttribute, context: Context): void {
     ) &&
     returnsThenable(context.checker, expression!)
   ) {
-    context.report(node.initializer, messages.voidReturnAttribute);
+    context.report({
+      node: node.initializer,
+      message: messages.voidReturnAttribute,
+    });
   }
 }
 
 function checkSpread(node: AST.SpreadElement, context: Context): void {
   if (isSometimesThenable(context.checker, node.expression)) {
-    context.report(node.expression, messages.spread);
+    context.report({ node: node.expression, message: messages.spread });
   }
 }
 

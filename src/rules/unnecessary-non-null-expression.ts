@@ -9,7 +9,7 @@ export const noUnnecessaryNonNullExpression = createRule({
           context.checker.getTypeAtLocation(node.expression),
         )
       ) {
-        context.report(node, "Unnecessary non-null assertion.");
+        context.report({ node, message: "Unnecessary non-null assertion." });
       }
     },
   },

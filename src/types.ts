@@ -6,7 +6,8 @@ import type {
   TypeFlags,
   TypeReference,
 } from "typescript";
-import type { Expression, SourceFile, Visitor } from "./ast.ts";
+import type * as AST from "./ast.ts";
+export type { AST };
 
 export type Config<Rules extends AnyRule[]> = {
   rules: Rules;
@@ -32,8 +33,8 @@ export type Rule<
   parseOptions?: (input: OptionsInput) => OptionsOutput;
   createData?: (context: Omit<Context<OptionsOutput>, "data">) => Data;
   visitor:
-    | ((options: OptionsOutput) => Visitor<OptionsOutput, Data>)
-    | Visitor<OptionsOutput, Data>;
+    | ((options: OptionsOutput) => AST.Visitor<OptionsOutput, Data>)
+    | AST.Visitor<OptionsOutput, Data>;
 };
 
 export type Infer<TRule> = TRule extends Rule<
@@ -53,7 +54,7 @@ export type Infer<TRule> = TRule extends Rule<
 export type Checker = Omit<TypeChecker, "isArrayType" | "isTupleType"> & {
   utils: CheckerUtils;
   /* Fix Expression _Brand check */
-  getContextualType(node: Expression): Type | undefined;
+  getContextualType(node: AST.Expression): Type | undefined;
   /* Improve narrowing, borrow from TS-ESLint */
   isArrayType(type: Type): type is TypeReference;
   isTupleType(type: Type): type is TupleTypeReference;
@@ -67,9 +68,14 @@ export type CheckerUtils = {
 };
 
 export type Context<OptionsOutput = undefined, Data = undefined> = {
-  sourceFile: SourceFile;
+  sourceFile: AST.SourceFile;
   checker: Checker;
-  report(node: Node, message: string): void;
+  report(descriptor: {
+    node: Node;
+    message: string;
+    fix?: any;
+    suggest?: any;
+  }): void;
   options: OptionsOutput;
   data: Data;
 };
