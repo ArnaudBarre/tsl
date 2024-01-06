@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import ts from "typescript";
 import type { SourceFile, Visitor } from "./ast.ts";
-import { createChecker } from "./checker.ts";
+import { getContextUtils } from "./getContextUtils.ts";
 import { defineConfig } from "./public-utils.ts";
 import { noMisusedPromises } from "./rules/no-misused-promises.ts";
 // import { noUnnecessaryNonNullExpression } from "./rules/unnecessary-non-null-expression.ts";
-import type { Config, Context, UnknownRule } from "./types.ts";
+import type { Checker, Config, Context, UnknownRule } from "./types.ts";
 import { visit } from "./visit.ts";
 
 const config = defineConfig({
@@ -82,7 +82,8 @@ allDiagnostics.forEach((diagnostic) => {
   }
 });
 
-const checker = createChecker(program.getTypeChecker());
+const checker = program.getTypeChecker() as Checker;
+const compilerOptions = program.getCompilerOptions();
 program.getSourceFiles().forEach((it) => {
   if (it.fileName.includes("node_modules")) return;
   if (config.ignore?.some((p) => it.fileName.includes(p))) return;
@@ -91,7 +92,9 @@ program.getSourceFiles().forEach((it) => {
     const context: Context<unknown, unknown> = {
       sourceFile,
       checker,
-      report(node, message) {
+      compilerOptions,
+      utils: getContextUtils(checker),
+      report({ node, message }) {
         const { line, character } = sourceFile.getLineAndCharacterOfPosition(
           node.getStart(),
         );

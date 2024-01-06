@@ -5,7 +5,7 @@ export const noUnnecessaryNonNullExpression = createRule({
   visitor: {
     NonNullExpression(node, context) {
       if (
-        !context.checker.utils.isNullableType(
+        !context.utils.isNullableType(
           context.checker.getTypeAtLocation(node.expression),
         )
       ) {

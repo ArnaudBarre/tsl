@@ -1,12 +1,13 @@
 import type {
+  CompilerOptions,
   Node,
   TupleTypeReference,
   Type,
   TypeChecker,
-  TypeFlags,
   TypeReference,
 } from "typescript";
 import type * as AST from "./ast.ts";
+import type { ContextUtils } from "./getContextUtils.ts";
 export type { AST };
 
 export type Config<Rules extends AnyRule[]> = {
@@ -30,7 +31,7 @@ export type Rule<
   Data = undefined,
 > = {
   name: Name;
-  parseOptions?: (input: OptionsInput) => OptionsOutput;
+  parseOptions?: (input?: OptionsInput) => OptionsOutput;
   createData?: (context: Omit<Context<OptionsOutput>, "data">) => Data;
   visitor:
     | ((options: OptionsOutput) => AST.Visitor<OptionsOutput, Data>)
@@ -51,31 +52,24 @@ export type Infer<TRule> = TRule extends Rule<
     }
   : never;
 
-export type Checker = Omit<TypeChecker, "isArrayType" | "isTupleType"> & {
-  utils: CheckerUtils;
+export type Checker = Omit<
+  TypeChecker,
+  "getContextualType" | "isArrayType" | "isTupleType"
+> & {
   /* Fix Expression _Brand check */
   getContextualType(node: AST.Expression): Type | undefined;
   /* Improve narrowing, borrow from TS-ESLint */
   isArrayType(type: Type): type is TypeReference;
   isTupleType(type: Type): type is TupleTypeReference;
 };
-export type CheckerUtils = {
-  isTypeFlagSet(type: Type, flag: TypeFlags): boolean;
-  getTypeFlags(type: Type): TypeFlags;
-  unionTypeParts(type: Type): Type[];
-  isNullableType(type: Type, isReceiver?: boolean): boolean;
-  isThenableType(node: Node, type: Type): boolean;
-};
 
+export type ReportDescriptor = { node: Node; message: string };
 export type Context<OptionsOutput = undefined, Data = undefined> = {
   sourceFile: AST.SourceFile;
   checker: Checker;
-  report(descriptor: {
-    node: Node;
-    message: string;
-    fix?: any;
-    suggest?: any;
-  }): void;
+  compilerOptions: CompilerOptions;
+  utils: ContextUtils;
+  report(descriptor: ReportDescriptor): void;
   options: OptionsOutput;
   data: Data;
 };

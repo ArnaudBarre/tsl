@@ -2,9 +2,9 @@ import type { AnyRule, Config, Rule } from "./types.ts";
 
 export const createRule = <
   Name extends string,
-  OptionsInput,
-  OptionsOutput,
-  Data,
+  OptionsInput = undefined,
+  OptionsOutput = undefined,
+  Data = undefined,
 >(
   rule: Rule<Name, OptionsInput, OptionsOutput, Data>,
 ) => rule;

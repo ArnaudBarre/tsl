@@ -1,7 +1,8 @@
 /* Credits: ts-api-utils, @typescript-eslint */
 import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
-import type { AST, Checker, Infer } from "../types.ts";
+import { ruleTester } from "../ruleTester.ts";
+import type { AST, Infer } from "../types.ts";
 import { isAssignmentExpression, isLogicalExpression, run } from "../utils.ts";
 
 interface ChecksVoidReturnOptions {
@@ -27,7 +28,7 @@ const messages = {
   spread: "Expected a non-Promise value to be spreaded in an object.",
 };
 
-const parseOptions = (options: {
+const parseOptions = (options?: {
   checksConditionals?: boolean;
   checksVoidReturn?: ChecksVoidReturnOptions | boolean;
   checksSpreads?: boolean;
@@ -47,18 +48,18 @@ const parseOptions = (options: {
         };
       default:
         return {
-          arguments: options.checksVoidReturn.arguments ?? true,
-          attributes: options.checksVoidReturn.attributes ?? true,
-          properties: options.checksVoidReturn.properties ?? true,
-          returns: options.checksVoidReturn.returns ?? true,
-          variables: options.checksVoidReturn.variables ?? true,
+          arguments: options?.checksVoidReturn.arguments ?? true,
+          attributes: options?.checksVoidReturn.attributes ?? true,
+          properties: options?.checksVoidReturn.properties ?? true,
+          returns: options?.checksVoidReturn.returns ?? true,
+          variables: options?.checksVoidReturn.variables ?? true,
         };
     }
   });
   return {
-    checksConditionals: options.checksConditionals ?? true,
+    checksConditionals: options?.checksConditionals ?? true,
     checksVoidReturn,
-    checksSpreads: options.checksSpreads ?? true,
+    checksSpreads: options?.checksSpreads ?? true,
   };
 };
 
@@ -129,7 +130,7 @@ export const noMisusedPromises = createRule({
       : {};
 
     const spreadChecks: RuleVisitor = options.checksSpreads
-      ? { SpreadElement: checkSpread }
+      ? { SpreadAssignment: checkSpread }
       : {};
 
     return {
@@ -170,7 +171,7 @@ function checkConditional(
     }
     return;
   }
-  if (isAlwaysThenable(context.checker, node)) {
+  if (isAlwaysThenable(context, node)) {
     context.report({ node, message: messages.conditional });
   }
 }
@@ -179,7 +180,7 @@ function checkArguments(
   node: AST.CallExpression | AST.NewExpression,
   context: Context,
 ): void {
-  const voidArgs = voidFunctionArguments(context.checker, node);
+  const voidArgs = voidFunctionArguments(context, node);
   if (voidArgs.size === 0) {
     return;
   }
@@ -191,7 +192,7 @@ function checkArguments(
       continue;
     }
 
-    if (returnsThenable(context.checker, argument)) {
+    if (returnsThenable(context, argument)) {
       context.report({ node: argument, message: messages.voidReturnArgument });
     }
   }
@@ -200,11 +201,11 @@ function checkArguments(
 function checkAssignment(node: AST.BinaryExpression, context: Context): void {
   if (!isAssignmentExpression(node.operatorToken)) return;
   const varType = context.checker.getTypeAtLocation(node.left);
-  if (!isVoidReturningFunctionType(context.checker, node.left, varType)) {
+  if (!isVoidReturningFunctionType(context, node.left, varType)) {
     return;
   }
 
-  if (returnsThenable(context.checker, node.right)) {
+  if (returnsThenable(context, node.right)) {
     context.report({ node: node.right, message: messages.voidReturnVariable });
   }
 }
@@ -217,13 +218,11 @@ function checkVariableDeclaration(
     return;
   }
   const varType = context.checker.getTypeAtLocation(node.name);
-  if (
-    !isVoidReturningFunctionType(context.checker, node.initializer, varType)
-  ) {
+  if (!isVoidReturningFunctionType(context, node.initializer, varType)) {
     return;
   }
 
-  if (returnsThenable(context.checker, node.initializer)) {
+  if (returnsThenable(context, node.initializer)) {
     context.report({ node, message: messages.voidReturnVariable });
   }
 }
@@ -235,12 +234,8 @@ function checkPropertyAssignment(
   const contextualType = context.checker.getContextualType(node.initializer);
   if (
     contextualType !== undefined &&
-    isVoidReturningFunctionType(
-      context.checker,
-      node.initializer,
-      contextualType,
-    ) &&
-    returnsThenable(context.checker, node.initializer)
+    isVoidReturningFunctionType(context, node.initializer, contextualType) &&
+    returnsThenable(context, node.initializer)
   ) {
     context.report({
       node: node.initializer,
@@ -256,8 +251,8 @@ function checkShorthandPropertyAssignment(
   const contextualType = context.checker.getContextualType(node.name);
   if (
     contextualType !== undefined &&
-    isVoidReturningFunctionType(context.checker, node.name, contextualType) &&
-    returnsThenable(context.checker, node.name)
+    isVoidReturningFunctionType(context, node.name, contextualType) &&
+    returnsThenable(context, node.name)
   ) {
     context.report({ node, message: messages.voidReturnProperty });
   }
@@ -279,7 +274,7 @@ function checkMethodDeclaration(node: AST.MethodDeclaration, context: Context) {
     return;
   }
 
-  if (!returnsThenable(context.checker, node)) {
+  if (!returnsThenable(context, node)) {
     return;
   }
   const objType = context.checker.getContextualType(obj);
@@ -299,7 +294,7 @@ function checkMethodDeclaration(node: AST.MethodDeclaration, context: Context) {
     node.name,
   );
 
-  if (isVoidReturningFunctionType(context.checker, node.name, contextualType)) {
+  if (isVoidReturningFunctionType(context, node.name, contextualType)) {
     context.report({ node, message: messages.voidReturnProperty });
   }
   return;
@@ -313,12 +308,8 @@ function checkReturnStatement(
   const contextualType = context.checker.getContextualType(node.expression);
   if (
     contextualType !== undefined &&
-    isVoidReturningFunctionType(
-      context.checker,
-      node.expression,
-      contextualType,
-    ) &&
-    returnsThenable(context.checker, node.expression)
+    isVoidReturningFunctionType(context, node.expression, contextualType) &&
+    returnsThenable(context, node.expression)
   ) {
     context.report({
       node: node.expression,
@@ -339,12 +330,8 @@ function checkJSXAttribute(node: AST.JsxAttribute, context: Context): void {
   const contextualType = context.checker.getContextualType(node.initializer);
   if (
     contextualType !== undefined &&
-    isVoidReturningFunctionType(
-      context.checker,
-      expressionContainer,
-      contextualType,
-    ) &&
-    returnsThenable(context.checker, expression!)
+    isVoidReturningFunctionType(context, expressionContainer, contextualType) &&
+    returnsThenable(context, expression!)
   ) {
     context.report({
       node: node.initializer,
@@ -353,19 +340,19 @@ function checkJSXAttribute(node: AST.JsxAttribute, context: Context): void {
   }
 }
 
-function checkSpread(node: AST.SpreadElement, context: Context): void {
-  if (isSometimesThenable(context.checker, node.expression)) {
+function checkSpread(node: AST.SpreadAssignment, context: Context): void {
+  if (isSometimesThenable(context, node.expression)) {
     context.report({ node: node.expression, message: messages.spread });
   }
 }
 
-function isSometimesThenable(checker: Checker, node: ts.Node): boolean {
-  const type = checker.getTypeAtLocation(node);
+function isSometimesThenable(context: Context, node: ts.Node): boolean {
+  const type = context.checker.getTypeAtLocation(node);
 
-  for (const subType of checker.utils.unionTypeParts(
-    checker.getApparentType(type),
+  for (const subType of context.utils.unionTypeParts(
+    context.checker.getApparentType(type),
   )) {
-    if (checker.utils.isThenableType(node, subType)) {
+    if (context.utils.isThenableType(node, subType)) {
       return true;
     }
   }
@@ -377,11 +364,11 @@ function isSometimesThenable(checker: Checker, node: ts.Node): boolean {
 // alternates in a union) to be thenable. Otherwise, you might be trying to
 // check if something is defined or undefined and get caught because one of the
 // branches is thenable.
-function isAlwaysThenable(checker: Checker, node: ts.Node): boolean {
-  const type = checker.getTypeAtLocation(node);
+function isAlwaysThenable(context: Context, node: ts.Node): boolean {
+  const type = context.checker.getTypeAtLocation(node);
 
-  for (const subType of checker.utils.unionTypeParts(
-    checker.getApparentType(type),
+  for (const subType of context.utils.unionTypeParts(
+    context.checker.getApparentType(type),
   )) {
     const thenProp = subType.getProperty("then");
 
@@ -394,13 +381,13 @@ function isAlwaysThenable(checker: Checker, node: ts.Node): boolean {
     // We walk through each variation of the then property. Since we know it
     // exists at this point, we just need at least one of the alternates to
     // be of the right form to consider it thenable.
-    const thenType = checker.getTypeOfSymbolAtLocation(thenProp, node);
+    const thenType = context.checker.getTypeOfSymbolAtLocation(thenProp, node);
     let hasThenableSignature = false;
-    for (const subType of checker.utils.unionTypeParts(thenType)) {
+    for (const subType of context.utils.unionTypeParts(thenType)) {
       for (const signature of subType.getCallSignatures()) {
         if (
           signature.parameters.length !== 0 &&
-          isFunctionParam(checker, signature.parameters[0], node)
+          isFunctionParam(context, signature.parameters[0], node)
         ) {
           hasThenableSignature = true;
           break;
@@ -427,14 +414,14 @@ function isAlwaysThenable(checker: Checker, node: ts.Node): boolean {
 }
 
 function isFunctionParam(
-  checker: Checker,
+  context: Context,
   param: ts.Symbol,
   node: ts.Node,
 ): boolean {
-  const type: ts.Type | undefined = checker.getApparentType(
-    checker.getTypeOfSymbolAtLocation(param, node),
+  const type: ts.Type | undefined = context.checker.getApparentType(
+    context.checker.getTypeOfSymbolAtLocation(param, node),
   );
-  for (const subType of checker.utils.unionTypeParts(type)) {
+  for (const subType of context.utils.unionTypeParts(type)) {
     if (subType.getCallSignatures().length !== 0) {
       return true;
     }
@@ -443,16 +430,16 @@ function isFunctionParam(
 }
 
 function checkThenableOrVoidArgument(
-  checker: Checker,
+  context: Context,
   node: AST.CallExpression | AST.NewExpression,
   type: ts.Type,
   index: number,
   thenableReturnIndices: Set<number>,
   voidReturnIndices: Set<number>,
 ): void {
-  if (isThenableReturningFunctionType(checker, node.expression, type)) {
+  if (isThenableReturningFunctionType(context, node.expression, type)) {
     thenableReturnIndices.add(index);
-  } else if (isVoidReturningFunctionType(checker, node.expression, type)) {
+  } else if (isVoidReturningFunctionType(context, node.expression, type)) {
     // If a certain argument accepts both thenable and void returns,
     // a promise-returning function is valid
     if (!thenableReturnIndices.has(index)) {
@@ -468,7 +455,7 @@ function checkThenableOrVoidArgument(
 // the array type parameter (e.g. '...args:Array<SomeType>') when determining
 // if trailing arguments are candidates.
 function voidFunctionArguments(
-  checker: Checker,
+  context: Context,
   node: AST.CallExpression | AST.NewExpression,
 ): Set<number> {
   // 'new' can be used without any arguments, as in 'let b = new Object;'
@@ -478,12 +465,12 @@ function voidFunctionArguments(
   }
   const thenableReturnIndices = new Set<number>();
   const voidReturnIndices = new Set<number>();
-  const type = checker.getTypeAtLocation(node.expression);
+  const type = context.checker.getTypeAtLocation(node.expression);
 
   // We can't use checker.getResolvedSignature because it prefers an early '() => void' over a later '() => Promise<void>'
   // See https://github.com/microsoft/TypeScript/issues/48077
 
-  for (const subType of checker.utils.unionTypeParts(type)) {
+  for (const subType of context.utils.unionTypeParts(type)) {
     // Standard function calls and `new` have two different types of signatures
     const signatures = ts.isCallExpression(node)
       ? subType.getCallSignatures()
@@ -491,7 +478,7 @@ function voidFunctionArguments(
     for (const signature of signatures) {
       for (const [index, parameter] of signature.parameters.entries()) {
         const decl = parameter.valueDeclaration;
-        let type = checker.getTypeOfSymbolAtLocation(
+        let type = context.checker.getTypeOfSymbolAtLocation(
           parameter,
           node.expression,
         );
@@ -501,14 +488,14 @@ function voidFunctionArguments(
         // Note - we currently do not support 'spread' arguments - adding support for them
         // is tracked in https://github.com/typescript-eslint/typescript-eslint/issues/5744
         if (decl && ts.isParameter(decl) && decl.dotDotDotToken) {
-          if (checker.isArrayType(type)) {
+          if (context.checker.isArrayType(type)) {
             // Unwrap 'Array<MaybeVoidFunction>' to 'MaybeVoidFunction',
             // so that we'll handle it in the same way as a non-rest
             // 'param: MaybeVoidFunction'
-            type = checker.getTypeArguments(type)[0];
+            type = context.checker.getTypeArguments(type)[0];
             for (let i = index; i < node.arguments.length; i++) {
               checkThenableOrVoidArgument(
-                checker,
+                context,
                 node,
                 type,
                 i,
@@ -516,17 +503,17 @@ function voidFunctionArguments(
                 voidReturnIndices,
               );
             }
-          } else if (checker.isTupleType(type)) {
+          } else if (context.checker.isTupleType(type)) {
             // Check each type in the tuple - for example, [boolean, () => void] would
             // add the index of the second tuple parameter to 'voidReturnIndices'
-            const typeArgs = checker.getTypeArguments(type);
+            const typeArgs = context.checker.getTypeArguments(type);
             for (
               let i = index;
               i < node.arguments.length && i - index < typeArgs.length;
               i++
             ) {
               checkThenableOrVoidArgument(
-                checker,
+                context,
                 node,
                 typeArgs[i - index],
                 i,
@@ -537,7 +524,7 @@ function voidFunctionArguments(
           }
         } else {
           checkThenableOrVoidArgument(
-            checker,
+            context,
             node,
             type,
             index,
@@ -560,13 +547,13 @@ function voidFunctionArguments(
  * @returns Whether any call signature of the type has a thenable return type.
  */
 function anySignatureIsThenableType(
-  checker: Checker,
+  context: Context,
   node: ts.Node,
   type: ts.Type,
 ): boolean {
   for (const signature of type.getCallSignatures()) {
     const returnType = signature.getReturnType();
-    if (checker.utils.isThenableType(node, returnType)) {
+    if (context.utils.isThenableType(node, returnType)) {
       return true;
     }
   }
@@ -578,12 +565,12 @@ function anySignatureIsThenableType(
  * @returns Whether type is a thenable-returning function.
  */
 function isThenableReturningFunctionType(
-  checker: Checker,
+  context: Context,
   node: ts.Node,
   type: ts.Type,
 ): boolean {
-  for (const subType of checker.utils.unionTypeParts(type)) {
-    if (anySignatureIsThenableType(checker, node, subType)) {
+  for (const subType of context.utils.unionTypeParts(type)) {
+    if (anySignatureIsThenableType(context, node, subType)) {
       return true;
     }
   }
@@ -595,23 +582,23 @@ function isThenableReturningFunctionType(
  * @returns Whether type is a void-returning function.
  */
 function isVoidReturningFunctionType(
-  checker: Checker,
+  context: Context,
   node: ts.Node,
   type: ts.Type,
 ): boolean {
   let hadVoidReturn = false;
 
-  for (const subType of checker.utils.unionTypeParts(type)) {
+  for (const subType of context.utils.unionTypeParts(type)) {
     for (const signature of subType.getCallSignatures()) {
       const returnType = signature.getReturnType();
 
       // If a certain positional argument accepts both thenable and void returns,
       // a promise-returning function is valid
-      if (checker.utils.isThenableType(node, returnType)) {
+      if (context.utils.isThenableType(node, returnType)) {
         return false;
       }
 
-      hadVoidReturn ||= checker.utils.isTypeFlagSet(
+      hadVoidReturn ||= context.utils.isTypeFlagSet(
         returnType,
         ts.TypeFlags.Void,
       );
@@ -624,12 +611,1200 @@ function isVoidReturningFunctionType(
 /**
  * @returns Whether expression is a function that returns a thenable.
  */
-function returnsThenable(checker: Checker, node: ts.Node): boolean {
-  const type = checker.getApparentType(checker.getTypeAtLocation(node));
+function returnsThenable(context: Context, node: ts.Node): boolean {
+  const type = context.checker.getApparentType(
+    context.checker.getTypeAtLocation(node),
+  );
 
-  if (anySignatureIsThenableType(checker, node, type)) {
+  if (anySignatureIsThenableType(context, node, type)) {
     return true;
   }
 
   return false;
 }
+
+export const test = () =>
+  ruleTester({
+    rule: noMisusedPromises,
+    valid: [
+      `
+if (true) {
+}
+    `,
+      {
+        code: `
+if (Promise.resolve()) {
+}
+      `,
+        options: { checksConditionals: false },
+      },
+      `
+if (true) {
+} else if (false) {
+} else {
+}
+    `,
+      {
+        code: `
+if (Promise.resolve()) {
+} else if (Promise.resolve()) {
+} else {
+}
+      `,
+        options: { checksConditionals: false },
+      },
+      "for (;;) {}",
+      "for (let i; i < 10; i++) {}",
+      {
+        code: "for (let i; Promise.resolve(); i++) {}",
+        options: { checksConditionals: false },
+      },
+      "do {} while (true);",
+      {
+        code: "do {} while (Promise.resolve());",
+        options: { checksConditionals: false },
+      },
+      "while (true) {}",
+      {
+        code: "while (Promise.resolve()) {}",
+        options: { checksConditionals: false },
+      },
+      "true ? 123 : 456;",
+      {
+        code: "Promise.resolve() ? 123 : 456;",
+        options: { checksConditionals: false },
+      },
+      `
+if (!true) {
+}
+    `,
+      {
+        code: `
+if (!Promise.resolve()) {
+}
+      `,
+        options: { checksConditionals: false },
+      },
+      "(await Promise.resolve()) || false;",
+      {
+        code: "Promise.resolve() || false;",
+        options: { checksConditionals: false },
+      },
+      "(true && (await Promise.resolve())) || false;",
+      {
+        code: "(true && Promise.resolve()) || false;",
+        options: { checksConditionals: false },
+      },
+      "false || (true && Promise.resolve());",
+      `
+async function test() {
+  if (await Promise.resolve()) {
+  }
+}
+    `,
+      `
+async function test() {
+  const mixed: Promise | undefined = Promise.resolve();
+  if (mixed) {
+    await mixed;
+  }
+}
+    `,
+      `
+interface NotQuiteThenable {
+  then(param: string): void;
+  then(): void;
+}
+const value: NotQuiteThenable = { then() {} };
+if (value) {
+}
+    `,
+      "[1, 2, 3].forEach(val => {});",
+      {
+        code: "[1, 2, 3].forEach(async val => {});",
+        options: { checksVoidReturn: false },
+      },
+      "new Promise((resolve, reject) => resolve());",
+      {
+        code: "new Promise(async (resolve, reject) => resolve());",
+        options: { checksVoidReturn: false },
+      },
+      `
+Promise.all(
+  ['abc', 'def'].map(async val => {
+    await val;
+  }),
+);
+    `,
+      `
+const fn: (arg: () => Promise<void> | void) => void = () => {};
+fn(() => Promise.resolve());
+    `,
+      `
+declare const returnsPromise: (() => Promise<void>) | null;
+if (returnsPromise?.()) {
+}
+    `,
+      `
+declare const returnsPromise: { call: () => Promise<void> } | null;
+if (returnsPromise?.call()) {
+}
+    `,
+      "Promise.resolve() ?? false;",
+      `
+function test(a: Promise<void> | undefinded) {
+  const foo = a ?? Promise.reject();
+}
+    `,
+      `
+function test(p: Promise<boolean> | undefined, bool: boolean) {
+  if (p ?? bool) {
+  }
+}
+    `,
+      `
+async function test(p: Promise<boolean | undefined>, bool: boolean) {
+  if ((await p) ?? bool) {
+  }
+}
+    `,
+      `
+async function test(p: Promise<boolean> | undefined) {
+  if (await (p ?? Promise.reject())) {
+  }
+}
+    `,
+      `
+let f;
+f = async () => 10;
+    `,
+      `
+let f: () => Promise<void>;
+f = async () => 10;
+const g = async () => 0;
+const h: () => Promise<void> = async () => 10;
+    `,
+      `
+const obj = {
+  f: async () => 10,
+};
+    `,
+      `
+const f = async () => 123;
+const obj = {
+  f,
+};
+    `,
+      `
+const obj = {
+  async f() {
+    return 0;
+  },
+};
+    `,
+      `
+type O = { f: () => Promise<void>; g: () => Promise<void> };
+const g = async () => 0;
+const obj: O = {
+  f: async () => 10,
+  g,
+};
+    `,
+      `
+type O = { f: () => Promise<void> };
+const name = 'f';
+const obj: O = {
+  async [name]() {
+    return 10;
+  },
+};
+    `,
+      `
+const obj: number = {
+  g() {
+    return 10;
+  },
+};
+    `,
+      `
+const obj = {
+  f: async () => 'foo',
+  async g() {
+    return 0;
+  },
+};
+    `,
+      `
+function f() {
+  return async () => 0;
+}
+function g() {
+  return;
+}
+    `,
+      {
+        tsx: true,
+        code: `
+type O = {
+  bool: boolean;
+  func: () => Promise<void>;
+};
+const Component = (obj: O) => null;
+<Component bool func={async () => 10} />;
+      `,
+      },
+      {
+        tsx: true,
+        code: `
+const Component: any = () => null;
+<Component func={async () => 10} />;
+      `,
+      },
+      {
+        code: `
+interface ItLike {
+  (name: string, callback: () => Promise<void>): void;
+  (name: string, callback: () => void): void;
+}
+
+declare const it: ItLike;
+
+it('', async () => {});
+      `,
+      },
+      {
+        code: `
+interface ItLike {
+  (name: string, callback: () => void): void;
+  (name: string, callback: () => Promise<void>): void;
+}
+
+declare const it: ItLike;
+
+it('', async () => {});
+      `,
+      },
+      {
+        code: `
+interface ItLike {
+  (name: string, callback: () => void): void;
+}
+interface ItLike {
+  (name: string, callback: () => Promise<void>): void;
+}
+
+declare const it: ItLike;
+
+it('', async () => {});
+      `,
+      },
+      {
+        code: `
+interface ItLike {
+  (name: string, callback: () => Promise<void>): void;
+}
+interface ItLike {
+  (name: string, callback: () => void): void;
+}
+
+declare const it: ItLike;
+
+it('', async () => {});
+      `,
+      },
+      {
+        tsx: true,
+        code: `
+interface Props {
+  onEvent: (() => void) | (() => Promise<void>);
+}
+
+declare function Component(props: Props): any;
+
+const _ = <Component onEvent={async () => {}} />;
+      `,
+      },
+      `
+console.log({ ...(await Promise.resolve({ key: 42 })) });
+    `,
+      `
+const getData = () => Promise.resolve({ key: 42 });
+
+console.log({
+  someData: 42,
+  ...(await getData()),
+});
+    `,
+      `
+declare const condition: boolean;
+
+console.log({ ...(condition && (await Promise.resolve({ key: 42 }))) });
+console.log({ ...(condition || (await Promise.resolve({ key: 42 }))) });
+console.log({ ...(condition ? {} : await Promise.resolve({ key: 42 })) });
+console.log({ ...(condition ? await Promise.resolve({ key: 42 }) : {}) });
+    `,
+      `
+console.log([...(await Promise.resolve(42))]);
+    `,
+      {
+        code: `
+console.log({ ...Promise.resolve({ key: 42 }) });
+      `,
+        options: { checksSpreads: false },
+      },
+      {
+        code: `
+const getData = () => Promise.resolve({ key: 42 });
+
+console.log({
+  someData: 42,
+  ...getData(),
+});
+      `,
+        options: { checksSpreads: false },
+      },
+      {
+        code: `
+declare const condition: boolean;
+
+console.log({ ...(condition && Promise.resolve({ key: 42 })) });
+console.log({ ...(condition || Promise.resolve({ key: 42 })) });
+console.log({ ...(condition ? {} : Promise.resolve({ key: 42 })) });
+console.log({ ...(condition ? Promise.resolve({ key: 42 }) : {}) });
+      `,
+        options: { checksSpreads: false },
+      },
+      {
+        code: `
+// This is invalid Typescript, but it shouldn't trigger this linter specifically
+console.log([...Promise.resolve(42)]);
+      `,
+        options: { checksSpreads: false },
+      },
+      `
+function spreadAny(..._args: any): void {}
+
+spreadAny(
+  true,
+  () => Promise.resolve(1),
+  () => Promise.resolve(false),
+);
+    `,
+      `
+function spreadArrayAny(..._args: Array<any>): void {}
+
+spreadArrayAny(
+  true,
+  () => Promise.resolve(1),
+  () => Promise.resolve(false),
+);
+    `,
+      `
+function spreadArrayUnknown(..._args: Array<unknown>): void {}
+
+spreadArrayUnknown(() => Promise.resolve(true), 1, 2);
+
+function spreadArrayFuncPromise(
+  ..._args: Array<() => Promise<undefined>>
+): void {}
+
+spreadArrayFuncPromise(
+  () => Promise.resolve(undefined),
+  () => Promise.resolve(undefined),
+);
+    `,
+      // Prettier adds a () but this tests arguments being undefined, not []
+      // eslint-disable-next-line @typescript-eslint/internal/plugin-test-formatting
+      `
+class TakeCallbacks {
+  constructor(...callbacks: Array<() => void>) {}
+}
+
+new TakeCallbacks;
+new TakeCallbacks();
+new TakeCallbacks(
+  () => 1,
+  () => true,
+);
+    `,
+      `
+function restTuple(...args: []): void;
+function restTuple(...args: [string]): void;
+function restTuple(..._args: string[]): void {}
+
+restTuple();
+restTuple('Hello');
+    `,
+      `
+      let value: Record<string, () => void>;
+      value.sync = () => {};
+    `,
+      `
+      type ReturnsRecord = () => Record<string, () => void>;
+
+      const test: ReturnsRecord = () => {
+        return { sync: () => {} };
+      };
+    `,
+      `
+      type ReturnsRecord = () => Record<string, () => void>;
+
+      function sync() {}
+
+      const test: ReturnsRecord = () => {
+        return { sync };
+      };
+    `,
+      `
+      function withTextRecurser<Text extends string>(
+        recurser: (text: Text) => void,
+      ): (text: Text) => void {
+        return (text: Text): void => {
+          if (text.length) {
+            return;
+          }
+
+          return recurser(node);
+        };
+      }
+    `,
+      // https://github.com/typescript-eslint/typescript-eslint/issues/6637
+      {
+        tsx: true,
+        code: `
+        type OnSelectNodeFn = (node: string | null) => void;
+
+        interface ASTViewerBaseProps {
+          readonly onSelectNode?: OnSelectNodeFn;
+        }
+
+        declare function ASTViewer(props: ASTViewerBaseProps): null;
+        declare const onSelectFn: OnSelectNodeFn;
+
+        <ASTViewer onSelectNode={onSelectFn} />;
+      `,
+        options: { checksVoidReturn: { attributes: true } },
+      },
+    ],
+
+    invalid: [
+      {
+        code: `
+if (Promise.resolve()) {
+}
+      `,
+        errors: [
+          {
+            line: 2,
+            message: messages.conditional,
+          },
+        ],
+      },
+      {
+        code: `
+if (Promise.resolve()) {
+} else if (Promise.resolve()) {
+} else {
+}
+      `,
+        errors: [
+          {
+            line: 2,
+            message: messages.conditional,
+          },
+          {
+            line: 3,
+            message: messages.conditional,
+          },
+        ],
+      },
+      {
+        code: "for (let i; Promise.resolve(); i++) {}",
+        errors: [
+          {
+            line: 1,
+            message: messages.conditional,
+          },
+        ],
+      },
+      {
+        code: "do {} while (Promise.resolve());",
+        errors: [
+          {
+            line: 1,
+            message: messages.conditional,
+          },
+        ],
+      },
+      {
+        code: "while (Promise.resolve()) {}",
+        errors: [
+          {
+            line: 1,
+            message: messages.conditional,
+          },
+        ],
+      },
+      {
+        code: "Promise.resolve() ? 123 : 456;",
+        errors: [
+          {
+            line: 1,
+            message: messages.conditional,
+          },
+        ],
+      },
+      {
+        code: `
+if (!Promise.resolve()) {
+}
+      `,
+        errors: [
+          {
+            line: 2,
+            message: messages.conditional,
+          },
+        ],
+      },
+      {
+        code: "Promise.resolve() || false;",
+        errors: [
+          {
+            line: 1,
+            message: messages.conditional,
+          },
+        ],
+      },
+      {
+        code: `
+[Promise.resolve(), Promise.reject()].forEach(async val => {
+  await val;
+});
+      `,
+        errors: [
+          {
+            line: 2,
+            message: messages.voidReturnArgument,
+          },
+        ],
+      },
+      {
+        code: `
+new Promise(async (resolve, reject) => {
+  await Promise.resolve();
+  resolve();
+});
+      `,
+        errors: [
+          {
+            line: 2,
+            message: messages.voidReturnArgument,
+          },
+        ],
+      },
+      {
+        code: `
+const fnWithCallback = (arg: string, cb: (err: any, res: string) => void) => {
+  cb(null, arg);
+};
+
+fnWithCallback('val', async (err, res) => {
+  await res;
+});
+      `,
+        errors: [
+          {
+            line: 6,
+            message: messages.voidReturnArgument,
+          },
+        ],
+      },
+      {
+        code: `
+const fnWithCallback = (arg: string, cb: (err: any, res: string) => void) => {
+  cb(null, arg);
+};
+
+fnWithCallback('val', (err, res) => Promise.resolve(res));
+      `,
+        errors: [
+          {
+            line: 6,
+            message: messages.voidReturnArgument,
+          },
+        ],
+      },
+      {
+        code: `
+const fnWithCallback = (arg: string, cb: (err: any, res: string) => void) => {
+  cb(null, arg);
+};
+
+fnWithCallback('val', (err, res) => {
+  if (err) {
+    return 'abc';
+  } else {
+    return Promise.resolve(res);
+  }
+});
+      `,
+        errors: [
+          {
+            line: 6,
+            message: messages.voidReturnArgument,
+          },
+        ],
+      },
+      {
+        code: `
+const fnWithCallback:
+  | ((arg: string, cb: (err: any, res: string) => void) => void)
+  | null = (arg, cb) => {
+  cb(null, arg);
+};
+
+fnWithCallback?.('val', (err, res) => Promise.resolve(res));
+      `,
+        errors: [
+          {
+            line: 8,
+            message: messages.voidReturnArgument,
+          },
+        ],
+      },
+      {
+        code: `
+const fnWithCallback:
+  | ((arg: string, cb: (err: any, res: string) => void) => void)
+  | null = (arg, cb) => {
+  cb(null, arg);
+};
+
+fnWithCallback('val', (err, res) => {
+  if (err) {
+    return 'abc';
+  } else {
+    return Promise.resolve(res);
+  }
+});
+      `,
+        errors: [
+          {
+            line: 8,
+            message: messages.voidReturnArgument,
+          },
+        ],
+      },
+      {
+        code: `
+function test(bool: boolean, p: Promise<void>) {
+  if (bool || p) {
+  }
+}
+      `,
+        errors: [
+          {
+            line: 3,
+            message: messages.conditional,
+          },
+        ],
+      },
+      {
+        code: `
+function test(bool: boolean, p: Promise<void>) {
+  if (bool && p) {
+  }
+}
+      `,
+        errors: [
+          {
+            line: 3,
+            message: messages.conditional,
+          },
+        ],
+      },
+      {
+        code: `
+function test(a: any, p: Promise<void>) {
+  if (a ?? p) {
+  }
+}
+      `,
+        errors: [
+          {
+            line: 3,
+            message: messages.conditional,
+          },
+        ],
+      },
+      {
+        code: `
+function test(p: Promise<void> | undefined) {
+  if (p ?? Promise.reject()) {
+  }
+}
+      `,
+        errors: [
+          {
+            line: 3,
+            message: messages.conditional,
+          },
+        ],
+      },
+      {
+        code: `
+let f: () => void;
+f = async () => {
+  return 3;
+};
+      `,
+        errors: [
+          {
+            line: 3,
+            message: messages.voidReturnVariable,
+          },
+        ],
+      },
+      {
+        code: `
+let f: () => void;
+f = async () => {
+  return 3;
+};
+      `,
+        errors: [
+          {
+            line: 3,
+            message: messages.voidReturnVariable,
+          },
+        ],
+        options: { checksVoidReturn: { variables: true } },
+      },
+      {
+        code: `
+const f: () => void = async () => {
+  return 0;
+};
+const g = async () => 1,
+  h: () => void = async () => {};
+      `,
+        errors: [
+          {
+            line: 2,
+            message: messages.voidReturnVariable,
+          },
+          {
+            line: 6,
+            message: messages.voidReturnVariable,
+          },
+        ],
+      },
+      {
+        code: `
+const obj: {
+  f?: () => void;
+} = {};
+obj.f = async () => {
+  return 0;
+};
+      `,
+        errors: [
+          {
+            line: 5,
+            message: messages.voidReturnVariable,
+          },
+        ],
+      },
+      {
+        code: `
+type O = { f: () => void };
+const obj: O = {
+  f: async () => 'foo',
+};
+      `,
+        errors: [
+          {
+            line: 4,
+            message: messages.voidReturnProperty,
+          },
+        ],
+      },
+      {
+        code: `
+type O = { f: () => void };
+const obj: O = {
+  f: async () => 'foo',
+};
+      `,
+        errors: [
+          {
+            line: 4,
+            message: messages.voidReturnProperty,
+          },
+        ],
+        options: { checksVoidReturn: { properties: true } },
+      },
+      {
+        code: `
+type O = { f: () => void };
+const f = async () => 0;
+const obj: O = {
+  f,
+};
+      `,
+        errors: [
+          {
+            line: 5,
+            message: messages.voidReturnProperty,
+          },
+        ],
+      },
+      {
+        code: `
+type O = { f: () => void };
+const obj: O = {
+  async f() {
+    return 0;
+  },
+};
+      `,
+        errors: [
+          {
+            line: 4,
+            message: messages.voidReturnProperty,
+          },
+        ],
+      },
+      {
+        code: `
+type O = { f: () => void; g: () => void; h: () => void };
+function f(): O {
+  const h = async () => 0;
+  return {
+    async f() {
+      return 123;
+    },
+    g: async () => 0,
+    h,
+  };
+}
+      `,
+        errors: [
+          {
+            line: 6,
+            message: messages.voidReturnProperty,
+          },
+          {
+            line: 9,
+            message: messages.voidReturnProperty,
+          },
+          {
+            line: 10,
+            message: messages.voidReturnProperty,
+          },
+        ],
+      },
+      {
+        code: `
+function f(): () => void {
+  return async () => 0;
+}
+      `,
+        errors: [
+          {
+            line: 3,
+            message: messages.voidReturnReturnValue,
+          },
+        ],
+      },
+      {
+        code: `
+function f(): () => void {
+  return async () => 0;
+}
+      `,
+        errors: [
+          {
+            line: 3,
+            message: messages.voidReturnReturnValue,
+          },
+        ],
+        options: { checksVoidReturn: { returns: true } },
+      },
+      {
+        tsx: true,
+        code: `
+type O = {
+  func: () => void;
+};
+const Component = (obj: O) => null;
+<Component func={async () => 0} />;
+      `,
+        errors: [
+          {
+            line: 6,
+            message: messages.voidReturnAttribute,
+          },
+        ],
+      },
+      {
+        tsx: true,
+        code: `
+type O = {
+  func: () => void;
+};
+const Component = (obj: O) => null;
+<Component func={async () => 0} />;
+      `,
+
+        errors: [
+          {
+            line: 6,
+            message: messages.voidReturnAttribute,
+          },
+        ],
+        options: { checksVoidReturn: { attributes: true } },
+      },
+      {
+        tsx: true,
+        code: `
+type O = {
+  func: () => void;
+};
+const g = async () => 'foo';
+const Component = (obj: O) => null;
+<Component func={g} />;
+      `,
+        errors: [
+          {
+            line: 7,
+            message: messages.voidReturnAttribute,
+          },
+        ],
+      },
+      {
+        code: `
+interface ItLike {
+  (name: string, callback: () => number): void;
+  (name: string, callback: () => void): void;
+}
+
+declare const it: ItLike;
+
+it('', async () => {});
+      `,
+        errors: [
+          {
+            line: 9,
+            message: messages.voidReturnArgument,
+          },
+        ],
+      },
+      {
+        code: `
+interface ItLike {
+  (name: string, callback: () => number): void;
+}
+interface ItLike {
+  (name: string, callback: () => void): void;
+}
+
+declare const it: ItLike;
+
+it('', async () => {});
+      `,
+        errors: [
+          {
+            line: 11,
+            message: messages.voidReturnArgument,
+          },
+        ],
+      },
+      {
+        code: `
+interface ItLike {
+  (name: string, callback: () => void): void;
+}
+interface ItLike {
+  (name: string, callback: () => number): void;
+}
+
+declare const it: ItLike;
+
+it('', async () => {});
+      `,
+        errors: [
+          {
+            line: 11,
+            message: messages.voidReturnArgument,
+          },
+        ],
+      },
+      {
+        code: `
+console.log({ ...Promise.resolve({ key: 42 }) });
+      `,
+        errors: [
+          {
+            line: 2,
+            message: messages.spread,
+          },
+        ],
+      },
+      {
+        code: `
+const getData = () => Promise.resolve({ key: 42 });
+
+console.log({
+  someData: 42,
+  ...getData(),
+});
+      `,
+        errors: [
+          {
+            line: 6,
+            message: messages.spread,
+          },
+        ],
+      },
+      {
+        code: `
+declare const condition: boolean;
+
+console.log({ ...(condition && Promise.resolve({ key: 42 })) });
+console.log({ ...(condition || Promise.resolve({ key: 42 })) });
+console.log({ ...(condition ? {} : Promise.resolve({ key: 42 })) });
+console.log({ ...(condition ? Promise.resolve({ key: 42 }) : {}) });
+      `,
+        errors: [
+          { line: 4, message: messages.spread },
+          { line: 5, message: messages.spread },
+          { line: 6, message: messages.spread },
+          { line: 7, message: messages.spread },
+        ],
+      },
+      {
+        code: `
+function restPromises(first: Boolean, ...callbacks: Array<() => void>): void {}
+
+restPromises(
+  true,
+  () => Promise.resolve(true),
+  () => Promise.resolve(null),
+  () => true,
+  () => Promise.resolve('Hello'),
+);
+      `,
+        errors: [
+          { line: 6, message: messages.voidReturnArgument },
+          { line: 7, message: messages.voidReturnArgument },
+          { line: 9, message: messages.voidReturnArgument },
+        ],
+      },
+      {
+        code: `
+type MyUnion = (() => void) | boolean;
+
+function restUnion(first: string, ...callbacks: Array<MyUnion>): void {}
+restUnion('Testing', false, () => Promise.resolve(true));
+      `,
+        errors: [{ line: 5, message: messages.voidReturnArgument }],
+      },
+      {
+        code: `
+function restTupleOne(first: string, ...callbacks: [() => void]): void {}
+restTupleOne('My string', () => Promise.resolve(1));
+      `,
+        errors: [{ line: 3, message: messages.voidReturnArgument }],
+      },
+      {
+        code: `
+function restTupleTwo(
+  first: boolean,
+  ...callbacks: [undefined, () => void, undefined]
+): void {}
+
+restTupleTwo(true, undefined, () => Promise.resolve(true), undefined);
+      `,
+        errors: [{ line: 7, message: messages.voidReturnArgument }],
+      },
+      {
+        code: `
+function restTupleFour(
+  first: number,
+  ...callbacks: [() => void, boolean, () => void, () => void]
+): void;
+
+restTupleFour(
+  1,
+  () => Promise.resolve(true),
+  false,
+  () => {},
+  () => Promise.resolve(1),
+);
+      `,
+        errors: [
+          { line: 9, message: messages.voidReturnArgument },
+          { line: 12, message: messages.voidReturnArgument },
+        ],
+      },
+      {
+        // Prettier adds a () but this tests arguments being undefined, not []
+        // eslint-disable-next-line @typescript-eslint/internal/plugin-test-formatting
+        code: `
+class TakesVoidCb {
+  constructor(first: string, ...args: Array<() => void>);
+}
+
+new TakesVoidCb;
+new TakesVoidCb();
+new TakesVoidCb(
+  'Testing',
+  () => {},
+  () => Promise.resolve(true),
+);
+      `,
+        errors: [{ line: 11, message: messages.voidReturnArgument }],
+      },
+      {
+        code: `
+function restTuple(...args: []): void;
+function restTuple(...args: [boolean, () => void]): void;
+function restTuple(..._args: any[]): void {}
+
+restTuple();
+restTuple(true, () => Promise.resolve(1));
+      `,
+        errors: [{ line: 7, message: messages.voidReturnArgument }],
+      },
+      {
+        code: `
+type ReturnsRecord = () => Record<string, () => void>;
+
+const test: ReturnsRecord = () => {
+  return { asynchronous: async () => {} };
+};
+      `,
+        errors: [{ line: 5, message: messages.voidReturnProperty }],
+      },
+      {
+        code: `
+let value: Record<string, () => void>;
+value.asynchronous = async () => {};
+      `,
+        errors: [{ line: 3, message: messages.voidReturnVariable }],
+      },
+      {
+        code: `
+type ReturnsRecord = () => Record<string, () => void>;
+
+async function asynchronous() {}
+
+const test: ReturnsRecord = () => {
+  return { asynchronous };
+};
+      `,
+        errors: [{ line: 7, message: messages.voidReturnProperty }],
+      },
+    ],
+  });

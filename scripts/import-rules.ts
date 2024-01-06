@@ -4,10 +4,13 @@ import generate from "@babel/generator";
 import * as parser from "@babel/parser";
 import traverse from "@babel/traverse";
 import type {
+  Expression,
   Identifier,
+  MemberExpression,
   ObjectExpression,
   ObjectMethod,
   ObjectProperty,
+  PatternLike,
   TSType,
 } from "@babel/types";
 import { format } from "prettier";
@@ -154,25 +157,18 @@ const estreeToTSTree: Record<
 };
 const astNodes = Object.values(kindToNodeTypeMap);
 
-// const codeToAST = <Statement extends ExpressionStatement>(code: string) =>
-//   parser.parse(code, {
-//     sourceFilename: "tmp.ts",
-//     plugins: ["typescript"],
-//     sourceType: "module",
-//   }).program.body[0] as Statement;
+const focus = "";
+// const focus = "consistent-type-exports.ts";
 
-// const focus = "";
-const focus = "consistent-type-exports.ts";
-
-for (const rule of rules) {
+for (const rule of rules.slice(2, 3)) {
   const filename = `${rule}.ts`;
   if (focus && !(focus === rule || focus === filename)) continue;
   if (!focus) console.log(rule);
-  const current = readFileSync(
+  const srcContent = readFileSync(
     `../typescript-eslint/packages/eslint-plugin/src/rules/${filename}`,
     "utf-8",
   );
-  const ast = parser.parse(current, {
+  const srcAST = parser.parse(srcContent, {
     sourceFilename: filename,
     plugins: ["typescript"],
     sourceType: "module",
@@ -182,7 +178,7 @@ for (const rule of rules) {
   let parserServicesName: string | undefined;
   let exportName = "";
   const fnWithInjectedContext: string[] = [];
-  traverse(ast, {
+  traverse(srcAST, {
     ImportDeclaration(path) {
       path.remove();
     },
@@ -274,59 +270,59 @@ for (const rule of rules) {
           expression: false,
         },
       };
-      if (!options) {
-        params.properties = [nameProp, visitorProp];
-        return;
-      }
-      const defaults = getObjectValue(params, "defaultOptions")!.value;
-      assert(defaults.type === "ArrayExpression");
-      assert(defaults.elements.length === 1, "Default is array");
-      assert(defaults.elements[0]!.type === "ObjectExpression");
-      const optionsParam: ObjectProperty = {
-        type: "ObjectProperty",
-        shorthand: false,
-        computed: false,
-        key: { type: "Identifier", name: "parseOptions" },
-        value: {
-          type: "ArrowFunctionExpression",
-          params: [
-            {
-              type: "Identifier",
-              name: "options",
-              typeAnnotation: {
-                type: "TSTypeAnnotation",
-                typeAnnotation: options,
-              },
-            },
-          ],
-          body: {
-            type: "BlockStatement",
-            directives: [],
-            body: [
+      if (options) {
+        const defaults = getObjectValue(params, "defaultOptions")!.value;
+        assert(defaults.type === "ArrayExpression");
+        assert(defaults.elements.length === 1, "Default is array");
+        assert(defaults.elements[0]!.type === "ObjectExpression");
+        const optionsParam: ObjectProperty = {
+          type: "ObjectProperty",
+          shorthand: false,
+          computed: false,
+          key: { type: "Identifier", name: "parseOptions" },
+          value: {
+            type: "ArrowFunctionExpression",
+            params: [
               {
-                type: "IfStatement",
-                test: {
-                  type: "UnaryExpression",
-                  operator: "!",
-                  prefix: true,
-                  argument: { type: "Identifier", name: "options" },
+                type: "Identifier",
+                name: "options",
+                typeAnnotation: {
+                  type: "TSTypeAnnotation",
+                  typeAnnotation: options,
                 },
-                consequent: {
-                  type: "ReturnStatement",
-                  argument: defaults.elements[0],
-                },
-              },
-              {
-                type: "ReturnStatement",
-                argument: { type: "Identifier", name: "options" },
               },
             ],
+            body: {
+              type: "BlockStatement",
+              directives: [],
+              body: [
+                {
+                  type: "IfStatement",
+                  test: {
+                    type: "UnaryExpression",
+                    operator: "!",
+                    prefix: true,
+                    argument: { type: "Identifier", name: "options" },
+                  },
+                  consequent: {
+                    type: "ReturnStatement",
+                    argument: defaults.elements[0],
+                  },
+                },
+                {
+                  type: "ReturnStatement",
+                  argument: { type: "Identifier", name: "options" },
+                },
+              ],
+            },
+            async: false,
+            expression: false,
           },
-          async: false,
-          expression: false,
-        },
-      };
-      params.properties = [nameProp, optionsParam, visitorProp];
+        };
+        params.properties = [nameProp, optionsParam, visitorProp];
+      } else {
+        params.properties = [nameProp, visitorProp];
+      }
       path.replaceWith({
         type: "ExportNamedDeclaration",
         declaration: {
@@ -395,7 +391,7 @@ for (const rule of rules) {
         path.replaceWith(path.node.arguments[0]);
         return;
       }
-      // tsutils.x() -> context.checker.utils.x()
+      // tsutils.x() -> context.utils.x()
       if (
         path.node.callee.type === "MemberExpression" &&
         path.node.callee.object.type === "Identifier" &&
@@ -403,12 +399,7 @@ for (const rule of rules) {
       ) {
         path.node.callee.object = {
           type: "MemberExpression",
-          object: {
-            type: "MemberExpression",
-            object: { type: "Identifier", name: "context" },
-            property: { type: "Identifier", name: "checker" },
-            computed: false,
-          },
+          object: { type: "Identifier", name: "context" },
           property: { type: "Identifier", name: "utils" },
           computed: false,
         };
@@ -418,6 +409,22 @@ for (const rule of rules) {
             path.node.arguments = path.node.arguments.filter((a) => a !== arg);
           }
         }
+        return;
+      }
+      // getConstrainedTypeAtLocation(services, node) -> context.utils.getConstrainedTypeAtLocation(node)
+      if (
+        path.node.callee.type === "Identifier" &&
+        path.node.callee.name === "getConstrainedTypeAtLocation" &&
+        path.node.arguments[0].type === "Identifier" &&
+        path.node.arguments[0].name === parserServicesName
+      ) {
+        path.node.callee = {
+          type: "MemberExpression",
+          object: { type: "Identifier", name: "context" },
+          property: { type: "Identifier", name: "utils" },
+          computed: false,
+        };
+        path.node.arguments.shift();
         return;
       }
     },
@@ -453,7 +460,8 @@ for (const rule of rules) {
       ) {
         path.node.left.name = path.node.right.name === "Node" ? "ts" : "AST";
         path.node.right.name = estreeToTSTree[path.node.right.name]
-          ? kindToNodeTypeMap[estreeToTSTree[path.node.right.name]!]
+          ? kindToNodeTypeMap[estreeToTSTree[path.node.right.name]!] ??
+            estreeToTSTree[path.node.right.name]
           : path.node.right.name;
         return;
       }
@@ -490,21 +498,58 @@ for (const rule of rules) {
         return;
       }
     },
-    ObjectProperty(path) {
-      // TODO: use data
-      // messageId: "x" -> message: message.x,
-      if (
-        path.node.key.type === "Identifier" &&
-        path.node.key.name === "messageId" &&
-        path.node.value.type === "StringLiteral"
-      ) {
-        path.node.key.name = "message";
-        path.node.value = {
+    ObjectExpression(path) {
+      let messageProp: ObjectProperty | undefined;
+      let dataProp: ObjectExpression | undefined;
+      for (const p of path.node.properties) {
+        if (p.type === "ObjectProperty" && p.key.type === "Identifier") {
+          if (p.key.name === "data") {
+            assert(
+              p.value.type === "ObjectExpression",
+              "data is not an object",
+            );
+            dataProp = p.value;
+          }
+          if (p.key.name === "messageId") {
+            messageProp = p;
+            p.key.name = "message";
+          }
+        }
+      }
+      const getMessageExpression = (value: string): Expression => {
+        const memberExpr: MemberExpression = {
           type: "MemberExpression",
           object: { type: "Identifier", name: "messages" },
-          property: { type: "Identifier", name: path.node.value.value },
+          property: { type: "Identifier", name: value },
           computed: false,
         };
+        return dataProp
+          ? {
+              type: "CallExpression",
+              callee: memberExpr,
+              arguments: [dataProp],
+            }
+          : memberExpr;
+      };
+      const replaceMessageId = (expr: Expression | PatternLike): Expression => {
+        if (expr.type === "StringLiteral") {
+          return getMessageExpression(expr.value);
+        } else if (expr.type === "ConditionalExpression") {
+          expr.consequent = replaceMessageId(expr.consequent);
+          expr.alternate = replaceMessageId(expr.alternate);
+          return expr;
+        } else if (expr.type === "Identifier") {
+          return getMessageExpression(expr.name);
+        } else {
+          throw new Error(`Unexpected expr type: ${expr.type}`);
+        }
+      };
+      if (messageProp) {
+        messageProp.value = replaceMessageId(messageProp.value);
+        const nodeProp = getObjectValue(path.node, "node");
+        path.node.properties = path.node.properties.filter(
+          (prop) => prop === messageProp || prop === nodeProp,
+        );
       }
     },
     FunctionDeclaration(path) {
@@ -540,7 +585,124 @@ for (const rule of rules) {
     },
   });
 
-  // TODO: retraverser and inject context to fnWithInjectedContext calls
+  // retraverse and inject context to fn calls
+  traverse(srcAST, {
+    CallExpression(path) {
+      if (
+        path.node.callee.type === "Identifier" &&
+        fnWithInjectedContext.includes(path.node.callee.name)
+      ) {
+        path.node.arguments.push({ type: "Identifier", name: "context" });
+      }
+    },
+  });
+
+  const testContent = readFileSync(
+    `../typescript-eslint/packages/eslint-plugin/tests/rules/${rule}.test.ts`,
+    "utf-8",
+  );
+  const testAST = parser.parse(testContent, {
+    sourceFilename: filename,
+    plugins: ["typescript"],
+    sourceType: "module",
+  });
+  traverse(testAST, {
+    ImportDeclaration(path) {
+      path.remove();
+    },
+    VariableDeclaration(path) {
+      if (
+        path.node.declarations[0]?.id.type === "Identifier" &&
+        path.node.declarations[0]?.id.name === "ruleTester"
+      ) {
+        path.remove();
+      }
+    },
+    CallExpression(path) {
+      if (
+        path.node.callee.type === "MemberExpression" &&
+        path.node.callee.object.type === "Identifier" &&
+        path.node.callee.object.name === "ruleTester"
+      ) {
+        path.node.callee = path.node.callee.object;
+        assert(path.node.arguments[2].type === "ObjectExpression");
+        path.node.arguments = [
+          {
+            type: "ObjectExpression",
+            properties: [
+              {
+                type: "ObjectProperty",
+                key: { type: "Identifier", name: "rule" },
+                value: { type: "Identifier", name: exportName },
+                computed: false,
+                shorthand: false,
+              },
+              ...path.node.arguments[2].properties,
+            ],
+          },
+        ];
+      }
+    },
+    ObjectExpression(path) {
+      const codeProp = getObjectValue(path.node, "code");
+      if (codeProp) {
+        const errorsProp = getObjectValue(path.node, "errors");
+        const optionsProp = getObjectValue(path.node, "options");
+        if (optionsProp) {
+          assert(
+            optionsProp.value.type === "ArrayExpression",
+            "options is not an array",
+          );
+          assert(
+            optionsProp.value.elements.length === 1,
+            "options length is not 1",
+          );
+          assert(
+            optionsProp.value.elements[0]?.type === "ObjectExpression",
+            "options length is not 1",
+          );
+          optionsProp.value = optionsProp.value.elements[0];
+        }
+        path.node.properties = path.node.properties.filter(
+          (prop) =>
+            prop === codeProp || prop === errorsProp || prop === optionsProp,
+        );
+      }
+
+      const messageIdProp = getObjectValue(path.node, "messageId");
+      if (messageIdProp) {
+        assert(
+          messageIdProp.key.type === "Identifier",
+          "messageId is not a string",
+        );
+        messageIdProp.key.name = "message";
+        const getMessageExpression = (value: string): MemberExpression => {
+          return {
+            type: "MemberExpression",
+            object: { type: "Identifier", name: "messages" },
+            property: { type: "Identifier", name: value },
+            computed: false,
+          };
+        };
+        const replaceMessageId = (
+          expr: Expression | PatternLike,
+        ): Expression => {
+          if (expr.type === "StringLiteral") {
+            return getMessageExpression(expr.value);
+          } else if (expr.type === "ConditionalExpression") {
+            expr.consequent = replaceMessageId(expr.consequent);
+            expr.alternate = replaceMessageId(expr.alternate);
+            return expr;
+          } else if (expr.type === "Identifier") {
+            return getMessageExpression(expr.name);
+          } else {
+            throw new Error(`Unexpected expr type: ${expr.type}`);
+          }
+        };
+        messageIdProp.value = replaceMessageId(messageIdProp.value);
+      }
+    },
+  });
 
   const toTemplateStrings = messages
     ?.map(([key, value]) => {
@@ -551,16 +713,11 @@ for (const rule of rules) {
       const paramNames = [...value.value.matchAll(/\{\{\w+}}/g)].map((m) =>
         m[0].slice(2, -2),
       );
-      const params =
-        paramNames.length === 1
-          ? `${paramNames[0]}: string`
-          : `params: {${paramNames.map((p) => `${p}: string`).join(",")}}`;
+      const params = `params: {${paramNames
+        .map((p) => `${p}: string`)
+        .join(",")}}`;
       const newValue = paramNames.reduce(
-        (acc, p) =>
-          acc.replaceAll(
-            `{{${p}}}`,
-            paramNames.length === 1 ? `\${${p}}` : `\${params.${p}}`,
-          ),
+        (acc, p) => acc.replaceAll(`{{${p}}}`, `\${params.${p}}`),
         value.value.replaceAll("`", "\\`"),
       );
       return [key, `(${params}) => \`${newValue}\``];
@@ -579,6 +736,7 @@ import type { AST, Checker${
       fnWithInjectedContext.length ? ", Infer" : ""
     } } from "../types.ts";
 import { createRule } from "../public-utils.ts";
+import { ruleTester } from "../ruleTester.ts";
 
 const messages = ${toTemplateStrings ? `{${toTemplateStrings}}` : '"extended"'}
 ${
@@ -586,7 +744,10 @@ ${
     ? `\ntype Context = Infer<typeof ${exportName}>["Context"]`
     : ""
 }
-` + generate(ast, { retainLines: true, filename }).code;
+` +
+    generate(srcAST, { retainLines: true, filename }).code +
+    "\n\n/** Tests */\n" +
+    generate(testAST, { retainLines: true, filename }).code;
   writeFileSync(
     `src/rules/${rule}.ts`,
     await format(content, {
