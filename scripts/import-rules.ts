@@ -160,7 +160,7 @@ const astNodes = Object.values(kindToNodeTypeMap);
 const focus = "";
 // const focus = "consistent-type-exports.ts";
 
-for (const rule of rules.slice(6, 7)) {
+for (const rule of rules.slice(7, 8)) {
   const filename = `${rule}.ts`;
   if (focus && !(focus === rule || focus === filename)) continue;
   if (!focus) console.log(rule);
@@ -274,7 +274,9 @@ for (const rule of rules.slice(6, 7)) {
         const defaults = getObjectValue(params, "defaultOptions")!.value;
         assert(defaults.type === "ArrayExpression");
         assert(defaults.elements.length === 1, "Default is array");
-        assert(defaults.elements[0]!.type === "ObjectExpression");
+        const defaultsObject = defaults.elements[0]!;
+        assert(defaultsObject.type === "ObjectExpression");
+
         const optionsParam: ObjectProperty = {
           type: "ObjectProperty",
           shorthand: false,
@@ -294,30 +296,17 @@ for (const rule of rules.slice(6, 7)) {
               },
             ],
             body: {
-              type: "BlockStatement",
-              directives: [],
-              body: [
+              type: "ObjectExpression",
+              properties: [
+                ...defaultsObject.properties,
                 {
-                  type: "IfStatement",
-                  test: {
-                    type: "UnaryExpression",
-                    operator: "!",
-                    prefix: true,
-                    argument: { type: "Identifier", name: "options" },
-                  },
-                  consequent: {
-                    type: "ReturnStatement",
-                    argument: defaults.elements[0],
-                  },
-                },
-                {
-                  type: "ReturnStatement",
+                  type: "SpreadElement",
                   argument: { type: "Identifier", name: "options" },
                 },
               ],
             },
             async: false,
-            expression: false,
+            expression: true,
           },
         };
         params.properties = [nameProp, optionsParam, visitorProp];
@@ -456,7 +445,10 @@ for (const rule of rules.slice(6, 7)) {
         path.remove();
         return;
       }
-      if (path.node.id.name === "MessageIds") {
+      if (
+        path.node.id.name === "MessageIds" ||
+        path.node.id.name === "MessageId"
+      ) {
         path.remove();
         return;
       }
@@ -685,13 +677,32 @@ for (const rule of rules.slice(6, 7)) {
           "messageId is not a string",
         );
         messageIdProp.key.name = "message";
-        const getMessageExpression = (value: string): MemberExpression => {
-          return {
+        let dataProp: ObjectExpression | undefined;
+        for (const p of path.node.properties) {
+          if (p.type === "ObjectProperty" && p.key.type === "Identifier") {
+            if (p.key.name === "data") {
+              assert(
+                p.value.type === "ObjectExpression",
+                "data is not an object",
+              );
+              dataProp = p.value;
+            }
+          }
+        }
+        const getMessageExpression = (value: string): Expression => {
+          const memberExpr: MemberExpression = {
             type: "MemberExpression",
             object: { type: "Identifier", name: "messages" },
             property: { type: "Identifier", name: value },
             computed: false,
           };
+          return dataProp
+            ? {
+                type: "CallExpression",
+                callee: memberExpr,
+                arguments: [dataProp],
+              }
+            : memberExpr;
         };
         const replaceMessageId = (
           expr: Expression | PatternLike,
@@ -709,6 +720,16 @@ for (const rule of rules.slice(6, 7)) {
           }
         };
         messageIdProp.value = replaceMessageId(messageIdProp.value);
+        const nodeProp = getObjectValue(path.node, "node");
+        const lineProp = getObjectValue(path.node, "line");
+        const columnProp = getObjectValue(path.node, "column");
+        path.node.properties = path.node.properties.filter(
+          (prop) =>
+            prop === messageIdProp ||
+            prop === nodeProp ||
+            prop === lineProp ||
+            prop === columnProp,
+        );
       }
     },
   });
