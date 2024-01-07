@@ -160,7 +160,7 @@ const astNodes = Object.values(kindToNodeTypeMap);
 const focus = "";
 // const focus = "consistent-type-exports.ts";
 
-for (const rule of rules.slice(2, 3)) {
+for (const rule of rules.slice(4, 5)) {
   const filename = `${rule}.ts`;
   if (focus && !(focus === rule || focus === filename)) continue;
   if (!focus) console.log(rule);
@@ -286,6 +286,7 @@ for (const rule of rules.slice(2, 3)) {
               {
                 type: "Identifier",
                 name: "options",
+                optional: true,
                 typeAnnotation: {
                   type: "TSTypeAnnotation",
                   typeAnnotation: options,
@@ -641,6 +642,28 @@ for (const rule of rules.slice(2, 3)) {
             ],
           },
         ];
+        // export const test = () => ruleTester({... })
+        path.replaceWith({
+          type: "ExportNamedDeclaration",
+          specifiers: [],
+          declaration: {
+            type: "VariableDeclaration",
+            kind: "const" as const,
+            declarations: [
+              {
+                type: "VariableDeclarator",
+                id: { type: "Identifier", name: "test" },
+                init: {
+                  type: "ArrowFunctionExpression",
+                  params: [],
+                  body: path.node,
+                  async: false,
+                  expression: true,
+                },
+              },
+            ],
+          },
+        });
       }
     },
     ObjectExpression(path) {
