@@ -17,7 +17,16 @@ type CaseProps<TRule extends Rule> = {
   options?: Infer<TRule>["OptionsInput"];
   compilerOptions?: ts.CompilerOptions;
 };
-export { type defaultCompilerOptions };
+type ErrorReport = { message: string; line?: number; column?: number };
+type SetupCase<TRule extends Rule> = {
+  compilerOptionsKey: string;
+  filename: string;
+  code: string;
+  options?: Infer<TRule>["OptionsInput"];
+  isValid: boolean;
+  index: number;
+  errors: ErrorReport[] | null;
+};
 
 const defaultCompilerOptions: ts.CompilerOptions = {
   module: ts.ModuleKind.ESNext,
@@ -29,30 +38,8 @@ const defaultCompilerOptions: ts.CompilerOptions = {
   types: [],
 };
 
-const programsCache = new Map<string, (filename: string) => ts.Program>();
-const filesMap = new Map<string, string>();
-
-const getProgram = (compilerOptions: ts.CompilerOptions | undefined) => {
-  const compilerOptionsInput = compilerOptions
-    ? { ...defaultCompilerOptions, ...compilerOptions }
-    : defaultCompilerOptions;
-  const cacheKey = JSON.stringify(compilerOptionsInput);
-  const cachedProgram = programsCache.get(cacheKey);
-  if (cachedProgram) return cachedProgram;
-  const host = ts.createCompilerHost(compilerOptionsInput, true);
-  const originalReadFile = host.readFile;
-  host.readFile = (file) => {
-    if (filesMap.has(file)) return filesMap.get(file);
-    return originalReadFile(file);
-  };
-  const lib = "node_modules/typescript/lib/lib.es2022.d.ts";
-  const base = ts.createProgram([lib], compilerOptionsInput, host);
-  const fn = (filename: string) =>
-    ts.createProgram([lib, filename], compilerOptionsInput, host, base);
-  programsCache.set(cacheKey, fn);
-  return fn;
-};
-
+const typeFocus = process.argv[3];
+const indexFocus = process.argv[4];
 export const ruleTester = <TRule extends AnyRule>({
   rule,
   tsx,
@@ -67,18 +54,90 @@ export const ruleTester = <TRule extends AnyRule>({
     errors?: { message: string; line?: number; column?: number }[];
   })[];
 }) => {
-  const runCase = (caseProps: CaseProps<TRule>, index: number) => {
-    const options = rule.parseOptions?.(caseProps.options);
+  const compilerOptionsToFiles = new Map<string, string[]>();
+  const filesMap = new Map<string, string>();
+  const cases: SetupCase<TRule>[] = [];
+
+  const setupCase = (
+    caseProps: CaseProps<TRule>,
+    isValid: boolean,
+    index: number,
+    errors: ErrorReport[] | null,
+  ) => {
     const useTSX = tsx ? caseProps.tsx !== false : caseProps.tsx === true;
-    const filename = `${rule.name}/${index}.${useTSX ? "tsx" : "ts"}`;
+    const filename = `${rule.name}/${isValid ? "valid" : "invalid"}-${index}.${
+      useTSX ? "tsx" : "ts"
+    }`;
     filesMap.set(filename, caseProps.code);
-    const program = getProgram(caseProps.compilerOptions)(filename);
+    const compilerOptionsInput = caseProps.compilerOptions
+      ? { ...defaultCompilerOptions, ...caseProps.compilerOptions }
+      : defaultCompilerOptions;
+    const compilerOptionsKey = JSON.stringify(compilerOptionsInput);
+    const cachedProgram = compilerOptionsToFiles.get(compilerOptionsKey);
+    if (cachedProgram) {
+      cachedProgram.push(filename);
+    } else {
+      compilerOptionsToFiles.set(compilerOptionsKey, [filename]);
+    }
+    cases.push({
+      compilerOptionsKey,
+      filename,
+      code: caseProps.code,
+      options: caseProps.options,
+      isValid,
+      index,
+      errors,
+    });
+  };
+
+  console.log(rule.name);
+  for (const [index, _validCase] of valid.entries()) {
+    if (typeFocus && typeFocus !== "valid") continue;
+    if (indexFocus && indexFocus !== index.toString()) continue;
+    const validCase =
+      typeof _validCase === "string" ? { code: _validCase } : _validCase;
+    setupCase(validCase, true, index, null);
+  }
+  for (const [index, invalidCase] of invalid.entries()) {
+    if (typeFocus && typeFocus !== "invalid") continue;
+    if (indexFocus && indexFocus !== index.toString()) continue;
+    const errors =
+      invalidCase.errors ??
+      (invalidCase.error ? [{ message: invalidCase.error }] : []);
+    if (errors.length === 0) {
+      throw new Error(`Invalid case ${index} has no errors`);
+    }
+    setupCase(invalidCase, false, index, errors);
+  }
+
+  const compilerOptionsToProgram = new Map<string, ts.Program>();
+  for (const [optionsKey, files] of compilerOptionsToFiles.entries()) {
+    const compilerOptionsInput = JSON.parse(optionsKey);
+    const host = ts.createCompilerHost(compilerOptionsInput, true);
+    const originalReadFile = host.readFile;
+    host.readFile = (file) => {
+      if (filesMap.has(file)) return filesMap.get(file);
+      return originalReadFile(file);
+    };
+    const esLib = "node_modules/typescript/lib/lib.es2022.d.ts";
+    const domLib = "node_modules/typescript/lib/lib.dom.d.ts";
+    compilerOptionsToProgram.set(
+      optionsKey,
+      ts.createProgram([esLib, domLib, ...files], compilerOptionsInput, host),
+    );
+  }
+
+  for (const caseProps of cases) {
+    const options = rule.parseOptions?.(caseProps.options);
+    const program = compilerOptionsToProgram.get(caseProps.compilerOptionsKey)!;
     const checker = program.getTypeChecker() as unknown as Checker;
     const compilerOptions = program.getCompilerOptions();
     const visitor =
       typeof rule.visitor === "function" ? rule.visitor(options) : rule.visitor;
     const reports: ReportDescriptor[] = [];
-    const sourceFile = program.getSourceFile(filename) as unknown as SourceFile;
+    const sourceFile = program.getSourceFile(
+      caseProps.filename,
+    ) as unknown as SourceFile;
     const context: Context<
       Infer<TRule>["OptionsOutput"],
       Infer<TRule>["Data"]
@@ -95,37 +154,27 @@ export const ruleTester = <TRule extends AnyRule>({
     };
     if (rule.createData) context.data = rule.createData(context);
     visit(sourceFile, visitor, context);
-    return reports;
-  };
-
-  console.log(rule.name);
-  for (const [index, _validCase] of valid.entries()) {
-    const validCase =
-      typeof _validCase === "string" ? { code: _validCase } : _validCase;
-    const reports = runCase(validCase, index);
-    if (reports.length !== 0) {
-      console.error(`Reports for valid case ${index} (${validCase.code})`);
-      for (const report of reports) {
-        console.log(`  - ${report.message}`);
+    if (caseProps.isValid) {
+      if (reports.length !== 0) {
+        console.error(
+          `Reports for valid case ${caseProps.index} (${caseProps.code})`,
+        );
+        for (const report of reports) {
+          console.log(`  - ${report.message}`);
+        }
       }
-    }
-  }
-  for (const [index, invalidCase] of invalid.entries()) {
-    const reports = runCase(invalidCase, index);
-    if (reports.length === 0) {
-      console.error(
-        `No reports for invalid case ${index} (${invalidCase.code})`,
-      );
     } else {
-      const errors =
-        invalidCase.errors ??
-        (invalidCase.error ? [{ message: invalidCase.error }] : []);
-      if (errors.length === 0) throw new Error("Unexpected empty errors");
-      for (const [idx, error] of errors.entries()) {
-        if (reports[idx].message !== error.message) {
-          console.error(
-            `Wrong message for invalid case ${index}: expected ${error.message}, got ${reports[idx].message}`,
-          );
+      if (reports.length === 0) {
+        console.error(
+          `No reports for invalid case ${caseProps.index} (${caseProps.code})`,
+        );
+      } else {
+        for (const [idx, error] of caseProps.errors!.entries()) {
+          if (reports[idx].message !== error.message) {
+            console.error(
+              `Wrong message for invalid case ${caseProps.index}: expected ${error.message}, got ${reports[idx].message}`,
+            );
+          }
         }
       }
     }

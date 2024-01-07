@@ -160,7 +160,7 @@ const astNodes = Object.values(kindToNodeTypeMap);
 const focus = "";
 // const focus = "consistent-type-exports.ts";
 
-for (const rule of rules.slice(4, 5)) {
+for (const rule of rules.slice(5, 6)) {
   const filename = `${rule}.ts`;
   if (focus && !(focus === rule || focus === filename)) continue;
   if (!focus) console.log(rule);
@@ -421,8 +421,16 @@ for (const rule of rules.slice(4, 5)) {
       ) {
         path.node.callee = {
           type: "MemberExpression",
-          object: { type: "Identifier", name: "context" },
-          property: { type: "Identifier", name: "utils" },
+          object: {
+            type: "MemberExpression",
+            object: { type: "Identifier", name: "context" },
+            property: { type: "Identifier", name: "utils" },
+            computed: false,
+          },
+          property: {
+            type: "Identifier",
+            name: "getConstrainedTypeAtLocation",
+          },
           computed: false,
         };
         path.node.arguments.shift();
@@ -642,28 +650,6 @@ for (const rule of rules.slice(4, 5)) {
             ],
           },
         ];
-        // export const test = () => ruleTester({... })
-        path.replaceWith({
-          type: "ExportNamedDeclaration",
-          specifiers: [],
-          declaration: {
-            type: "VariableDeclaration",
-            kind: "const" as const,
-            declarations: [
-              {
-                type: "VariableDeclarator",
-                id: { type: "Identifier", name: "test" },
-                init: {
-                  type: "ArrowFunctionExpression",
-                  params: [],
-                  body: path.node,
-                  async: false,
-                  expression: true,
-                },
-              },
-            ],
-          },
-        });
       }
     },
     ObjectExpression(path) {
@@ -770,7 +756,10 @@ ${
 ` +
     generate(srcAST, { retainLines: true, filename }).code +
     "\n\n/** Tests */\n" +
-    generate(testAST, { retainLines: true, filename }).code;
+    generate(testAST, { retainLines: true, filename }).code.replace(
+      "ruleTester(",
+      "export const test = () => ruleTester(",
+    );
   writeFileSync(
     `src/rules/${rule}.ts`,
     await format(content, {

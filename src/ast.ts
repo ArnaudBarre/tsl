@@ -17,7 +17,8 @@ import type { Context } from "./types.ts";
 
 export interface SourceFile extends Node {
   readonly kind: SyntaxKind.SourceFile;
-  // parent is undefined but Node type doesn't allow it
+  // parent is actually undefined, see comment for NullNode
+  readonly parent: NullNode;
   readonly statements: NodeArray<Statement>;
   readonly endOfFileToken: Token<SyntaxKind.EndOfFileToken, SourceFile>;
   fileName: string;
@@ -2312,6 +2313,199 @@ interface Token<Kind extends SyntaxKind, Parent extends Node> extends Node {
   readonly kind: Kind;
   readonly parent: Parent;
 }
+
+/*
+ * This node doesn't exist, it just here so that SourceFile.parent is
+ * defined for compatibility with base types and is not ts.Node to keep
+ * narrowing working on node.parent.kind
+ */
+export interface NullNode extends Node {
+  readonly kind: SyntaxKind.NullKeyword;
+  readonly parent: NullNode;
+}
+
+export type AnyNode =
+  | ArrayBindingPattern
+  | ArrayLiteralExpression
+  | ArrayTypeNode
+  | ArrowFunction
+  | AsExpression
+  | AwaitExpression
+  | BigIntLiteral
+  | BinaryExpression
+  | BindingElement
+  | Block
+  | BreakStatement
+  | CallExpression
+  | CallSignatureDeclaration
+  | CaseBlock
+  | CaseClause
+  | CatchClause
+  | ClassDeclaration
+  | ClassExpression
+  | ClassStaticBlockDeclaration
+  | CommaListExpression
+  | ComputedPropertyName
+  | ConditionalExpression
+  | ConditionalTypeNode
+  | ConstructSignatureDeclaration
+  | ConstructorDeclaration
+  | ConstructorTypeNode
+  | ContinueStatement
+  | DebuggerStatement
+  | Decorator
+  | DefaultClause
+  | DeleteExpression
+  | DoStatement
+  | ElementAccessExpression
+  | EmptyStatement
+  | EnumDeclaration
+  | EnumMember
+  | ExportAssignment
+  | ExportDeclaration
+  | ExportSpecifier
+  | ExpressionStatement
+  | ExpressionWithTypeArguments
+  | ExternalModuleReference
+  | FalseLiteral
+  | ForInStatement
+  | ForOfStatement
+  | ForStatement
+  | FunctionDeclaration
+  | FunctionExpression
+  | FunctionTypeNode
+  | GetAccessorDeclaration
+  | HeritageClause
+  | Identifier
+  | IfStatement
+  | ImportAttribute
+  | ImportAttributes
+  | ImportClause
+  | ImportDeclaration
+  | ImportEqualsDeclaration
+  | ImportExpression
+  | ImportSpecifier
+  | ImportTypeNode
+  | IndexSignatureDeclaration
+  | IndexedAccessTypeNode
+  | InferTypeNode
+  | InterfaceDeclaration
+  | IntersectionTypeNode
+  | JSDocAllType
+  | JSDocFunctionType
+  | JSDocLink
+  | JSDocLinkCode
+  | JSDocLinkPlain
+  | JSDocMemberName
+  | JSDocNamepathType
+  | JSDocNonNullableType
+  | JSDocNullableType
+  | JSDocOptionalType
+  | JSDocParameterTag
+  | JSDocPropertyTag
+  | JSDocReturnTag
+  | JSDocSignature
+  | JSDocTemplateTag
+  | JSDocText
+  | JSDocTypeExpression
+  | JSDocTypeLiteral
+  | JSDocUnknownType
+  | JSDocVariadicType
+  | JsxAttribute
+  | JsxAttributes
+  | JsxClosingElement
+  | JsxClosingFragment
+  | JsxElement
+  | JsxExpression
+  | JsxFragment
+  | JsxNamespacedName
+  | JsxOpeningElement
+  | JsxOpeningFragment
+  | JsxSelfClosingElement
+  | JsxSpreadAttribute
+  | JsxText
+  | LabeledStatement
+  | LiteralTypeNode
+  | MappedTypeNode
+  | MetaProperty
+  | MethodDeclaration
+  | MethodSignature
+  | MissingDeclaration
+  | ModuleBlock
+  | ModuleDeclaration
+  | NamedExports
+  | NamedImports
+  | NamedTupleMember
+  | NamespaceExport
+  | NamespaceExportDeclaration
+  | NamespaceImport
+  | NewExpression
+  | NoSubstitutionTemplateLiteral
+  | NonNullExpression
+  | NotEmittedStatement
+  | NullLiteral
+  | NumericLiteral
+  | ObjectBindingPattern
+  | ObjectLiteralExpression
+  | OmittedExpression
+  | OptionalTypeNode
+  | ParameterDeclaration
+  | ParenthesizedExpression
+  | ParenthesizedTypeNode
+  | PartiallyEmittedExpression
+  | PostfixUnaryExpression
+  | PrefixUnaryExpression
+  | PrivateIdentifier
+  | PropertyAccessExpression
+  | PropertyAssignment
+  | PropertyDeclaration
+  | PropertySignature
+  | QualifiedName
+  | RegularExpressionLiteral
+  | RestTypeNode
+  | ReturnStatement
+  | SatisfiesExpression
+  | SemicolonClassElement
+  | SetAccessorDeclaration
+  | ShorthandPropertyAssignment
+  | SourceFile
+  | SpreadAssignment
+  | SpreadElement
+  | StringLiteral
+  | SuperExpression
+  | SwitchStatement
+  | SyntheticExpression
+  | TaggedTemplateExpression
+  | TemplateExpression
+  | TemplateHead
+  | TemplateLiteralTypeNode
+  | TemplateLiteralTypeSpan
+  | TemplateMiddle
+  | TemplateSpan
+  | TemplateTail
+  | ThisExpression
+  | ThisTypeNode
+  | ThrowStatement
+  | TrueLiteral
+  | TryStatement
+  | TupleTypeNode
+  | TypeAliasDeclaration
+  | TypeAssertion
+  | TypeLiteralNode
+  | TypeOfExpression
+  | TypeOperatorNode
+  | TypeParameterDeclaration
+  | TypePredicateNode
+  | TypeQueryNode
+  | TypeReferenceNode
+  | UnionTypeNode
+  | VariableDeclaration
+  | VariableDeclarationList
+  | VariableStatement
+  | VoidExpression
+  | WhileStatement
+  | WithStatement
+  | YieldExpression;
 
 /* Enums here just for factorisation */
 export type ExpressionParent =

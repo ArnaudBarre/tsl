@@ -335,6 +335,22 @@ const visitorNodes = nodes
     return { kind: part.kind.replace("SyntaxKind.", ""), node };
   });
 
+outputParts.push(`
+/*
+ * This node doesn't exist, it just here so that SourceFile.parent is
+ * defined for compatibility with base types and is not ts.Node to keep
+ * narrowing working on node.parent.kind
+ */
+export interface NullNode extends Node {
+  readonly kind: SyntaxKind.NullKeyword;
+  readonly parent: NullNode;
+}
+`);
+
+outputParts.push(`
+export type AnyNode = ${visitorNodes.map((n) => n.node).join(" | ")};
+`);
+
 outputParts.push("\n/* Enums here just for factorisation */");
 for (const enumWithLotOfParents of [
   "Expression",
@@ -368,7 +384,8 @@ for (const part of outputParts) {
   readonly kind: ${part.kind};
   ${
     part.name === "SourceFile"
-      ? "// parent is undefined but Node type doesn't allow it"
+      ? "// parent is actually undefined, see comment for NullNode\n" +
+        "readonly parent: NullNode;"
       : `readonly parent: ${getParentsWithEnums(part.name).join(" | ")}`
   }
   ${
@@ -415,9 +432,7 @@ writeOrCheck(
 import { SyntaxKind } from "typescript";  
 import type { AST, Context } from "./types.ts";
 
-type VisitorNode = ${visitorNodes.map((n) => `AST.${n.node}`).join(" | ")};
-
-export const visit = (node: VisitorNode, visitor: AST.Visitor<unknown, unknown>, context: Context<unknown, unknown>) => {
+export const visit = (node: AST.AnyNode, visitor: AST.Visitor<unknown, unknown>, context: Context<unknown, unknown>) => {
   switch(node.kind) {
 ${visitorNodes
   .map((node) => {

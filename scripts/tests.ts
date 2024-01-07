@@ -1,9 +1,9 @@
 const rules = new Bun.Glob("src/rules/*.ts");
 
-const focus = process.argv[2];
+const fileFocs = process.argv[2];
 
 for await (let rule of rules.scan()) {
-  if (focus && rule.split("/").pop() !== focus) continue;
+  if (fileFocs && rule.split("/").pop() !== fileFocs) continue;
   const module = await import(`../${rule}`);
   if (module.test) {
     module.test();
