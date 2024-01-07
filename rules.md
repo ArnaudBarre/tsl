@@ -6,6 +6,7 @@ dot-notation ✅ (without options)
 naming-convention: TODO
 no-base-to-string: ✅ (without options, only `.toString()`, see `restrict-plus-operands` and `restrict-template-expressions` for other checks)
 no-duplicate-type-constituents ✅ (smarter thanks to `isTypeAssignableTo`)
-no-floating-promises.ts ✅
+no-floating-promises ✅
+no-for-in-array ✅
 
-no-misused-promises.ts ✅
+no-misused-promises ✅

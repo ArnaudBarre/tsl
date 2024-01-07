@@ -6,7 +6,7 @@ const validIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/u;
 
 export const dotNotation = createRule({
   name: "dot-notation",
-  visitor: () => ({
+  visitor: {
     ElementAccessExpression(node, context) {
       if (
         node.argumentExpression.kind === SyntaxKind.StringLiteral ||
@@ -34,7 +34,7 @@ export const dotNotation = createRule({
         });
       }
     },
-  }),
+  },
 });
 
 export const test = () =>

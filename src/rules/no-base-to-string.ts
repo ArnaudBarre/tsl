@@ -17,7 +17,7 @@ enum Usefulness {
 }
 export const noBaseToString = createRule({
   name: "no-base-to-string",
-  visitor: () => ({
+  visitor: {
     CallExpression(node, context) {
       if (
         node.expression.kind === SyntaxKind.PropertyAccessExpression &&
@@ -38,7 +38,7 @@ export const noBaseToString = createRule({
         });
       }
     },
-  }),
+  },
 });
 
 function collectToStringCertainty(type: ts.Type, context: Context): Usefulness {
