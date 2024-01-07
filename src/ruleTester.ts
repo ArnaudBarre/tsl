@@ -32,7 +32,9 @@ const defaultCompilerOptions: ts.CompilerOptions = {
   module: ts.ModuleKind.ESNext,
   lib: ["ES2022"],
   target: ts.ScriptTarget.ESNext,
+  moduleDetection: ts.ModuleDetectionKind.Force,
   noEmit: true,
+  isolatedModules: true,
   skipLibCheck: true,
   strict: true,
   types: [],
@@ -73,9 +75,9 @@ export const ruleTester = <TRule extends AnyRule>({
       ? { ...defaultCompilerOptions, ...caseProps.compilerOptions }
       : defaultCompilerOptions;
     const compilerOptionsKey = JSON.stringify(compilerOptionsInput);
-    const cachedProgram = compilerOptionsToFiles.get(compilerOptionsKey);
-    if (cachedProgram) {
-      cachedProgram.push(filename);
+    const current = compilerOptionsToFiles.get(compilerOptionsKey);
+    if (current) {
+      current.push(filename);
     } else {
       compilerOptionsToFiles.set(compilerOptionsKey, [filename]);
     }
@@ -121,10 +123,13 @@ export const ruleTester = <TRule extends AnyRule>({
     };
     const esLib = "node_modules/typescript/lib/lib.es2022.d.ts";
     const domLib = "node_modules/typescript/lib/lib.dom.d.ts";
-    compilerOptionsToProgram.set(
-      optionsKey,
-      ts.createProgram([esLib, domLib, ...files], compilerOptionsInput, host),
+    const program = ts.createProgram(
+      [esLib, domLib, ...files],
+      compilerOptionsInput,
+      host,
     );
+    program.emit();
+    compilerOptionsToProgram.set(optionsKey, program);
   }
 
   for (const caseProps of cases) {

@@ -177,7 +177,7 @@ declare class Bluebird<R> implements PromiseLike<R> {
   ): Bluebird<TResult1 | TResult2>;
 }
 
-declare const bluebird: Bluebird;
+declare const bluebird: Bluebird<number>;
 
 async function test() {
   await bluebird;
