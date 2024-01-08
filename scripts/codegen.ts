@@ -22,6 +22,32 @@ const baseProps = baseNodeProps.filter(
   (p) => p.name !== "kind" && p.name !== "parent",
 );
 
+const keywordTypeInterface = interfaces.find(
+  (i) => i.name.text === "KeywordTypeNode",
+);
+assert(
+  keywordTypeInterface &&
+    keywordTypeInterface.typeParameters?.length === 1 &&
+    keywordTypeInterface.typeParameters[0].default &&
+    ts.isTypeReferenceNode(keywordTypeInterface.typeParameters[0].default) &&
+    ts.isIdentifier(keywordTypeInterface.typeParameters[0].default.typeName),
+  "Unexpected params for KeywordTypeNode",
+);
+const keywordTypeName =
+  keywordTypeInterface.typeParameters![0].default.typeName.text;
+const keywordType = types.find((t) => t.name.text === keywordTypeName);
+assert(keywordType && ts.isUnionTypeNode(keywordType.type));
+const typeKeywordNames = keywordType.type.types.map((t) => {
+  assert(
+    ts.isTypeReferenceNode(t) &&
+      ts.isQualifiedName(t.typeName) &&
+      ts.isIdentifier(t.typeName.left) &&
+      ts.isIdentifier(t.typeName.right) &&
+      t.typeName.left.text === "SyntaxKind",
+  );
+  return t.typeName.right.text;
+});
+
 const importedTypes = [
   "__String",
   "AmdDependency",
@@ -55,6 +81,13 @@ const visitType = (name: string): void => {
   if (name.startsWith("SyntaxKind.")) return;
   if (visitedTypes.has(name)) return;
   visitedTypes.add(name);
+
+  if (typeKeywordNames.includes(name)) {
+    outputParts.push({ name, kind: `SyntaxKind.${name}`, members: [] });
+    nodes.push(name);
+    return;
+  }
+
   const int = interfaces.find((i) => i.name.text === name);
   if (!int) {
     const type = types.find((t) => t.name.text === name);
@@ -262,7 +295,7 @@ const visitEnum = (name: string) => {
         ),
     )
     .map((i) => i.name.text)
-    .filter((n) => n !== "KeywordTypeNode");
+    .flatMap((n) => (n === "KeywordTypeNode" ? typeKeywordNames : [n]));
   assert(values.length >= 2 || name === "ObjectLiteralExpressionBase");
   visitEnumWithValues(name, values);
 };

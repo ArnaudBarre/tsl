@@ -342,6 +342,18 @@ export interface TypeAssertion extends Node {
   readonly expression: UnaryExpression;
 }
 export type TypeNode =
+  | AnyKeyword
+  | BigIntKeyword
+  | BooleanKeyword
+  | IntrinsicKeyword
+  | NeverKeyword
+  | NumberKeyword
+  | ObjectKeyword
+  | StringKeyword
+  | SymbolKeyword
+  | UndefinedKeyword
+  | UnknownKeyword
+  | VoidKeyword
   | ThisTypeNode
   | FunctionOrConstructorTypeNodeBase
   | NodeWithTypeArguments
@@ -365,6 +377,54 @@ export type TypeNode =
   | TemplateLiteralTypeSpan
   | JSDocTypeExpression
   | JSDocType;
+export interface AnyKeyword extends Node {
+  readonly kind: SyntaxKind.AnyKeyword;
+  readonly parent: TypeNodeParent;
+}
+export interface BigIntKeyword extends Node {
+  readonly kind: SyntaxKind.BigIntKeyword;
+  readonly parent: TypeNodeParent;
+}
+export interface BooleanKeyword extends Node {
+  readonly kind: SyntaxKind.BooleanKeyword;
+  readonly parent: TypeNodeParent;
+}
+export interface IntrinsicKeyword extends Node {
+  readonly kind: SyntaxKind.IntrinsicKeyword;
+  readonly parent: TypeNodeParent;
+}
+export interface NeverKeyword extends Node {
+  readonly kind: SyntaxKind.NeverKeyword;
+  readonly parent: TypeNodeParent;
+}
+export interface NumberKeyword extends Node {
+  readonly kind: SyntaxKind.NumberKeyword;
+  readonly parent: TypeNodeParent;
+}
+export interface ObjectKeyword extends Node {
+  readonly kind: SyntaxKind.ObjectKeyword;
+  readonly parent: TypeNodeParent;
+}
+export interface StringKeyword extends Node {
+  readonly kind: SyntaxKind.StringKeyword;
+  readonly parent: TypeNodeParent;
+}
+export interface SymbolKeyword extends Node {
+  readonly kind: SyntaxKind.SymbolKeyword;
+  readonly parent: TypeNodeParent;
+}
+export interface UndefinedKeyword extends Node {
+  readonly kind: SyntaxKind.UndefinedKeyword;
+  readonly parent: TypeNodeParent;
+}
+export interface UnknownKeyword extends Node {
+  readonly kind: SyntaxKind.UnknownKeyword;
+  readonly parent: TypeNodeParent;
+}
+export interface VoidKeyword extends Node {
+  readonly kind: SyntaxKind.VoidKeyword;
+  readonly parent: TypeNodeParent;
+}
 export interface ThisTypeNode extends Node {
   readonly kind: SyntaxKind.ThisType;
   readonly parent: TypeNodeParent;
@@ -2325,16 +2385,19 @@ export interface NullNode extends Node {
 }
 
 export type AnyNode =
+  | AnyKeyword
   | ArrayBindingPattern
   | ArrayLiteralExpression
   | ArrayTypeNode
   | ArrowFunction
   | AsExpression
   | AwaitExpression
+  | BigIntKeyword
   | BigIntLiteral
   | BinaryExpression
   | BindingElement
   | Block
+  | BooleanKeyword
   | BreakStatement
   | CallExpression
   | CallSignatureDeclaration
@@ -2391,6 +2454,7 @@ export type AnyNode =
   | InferTypeNode
   | InterfaceDeclaration
   | IntersectionTypeNode
+  | IntrinsicKeyword
   | JSDocAllType
   | JSDocFunctionType
   | JSDocLink
@@ -2439,13 +2503,16 @@ export type AnyNode =
   | NamespaceExport
   | NamespaceExportDeclaration
   | NamespaceImport
+  | NeverKeyword
   | NewExpression
   | NoSubstitutionTemplateLiteral
   | NonNullExpression
   | NotEmittedStatement
   | NullLiteral
+  | NumberKeyword
   | NumericLiteral
   | ObjectBindingPattern
+  | ObjectKeyword
   | ObjectLiteralExpression
   | OmittedExpression
   | OptionalTypeNode
@@ -2471,9 +2538,11 @@ export type AnyNode =
   | SourceFile
   | SpreadAssignment
   | SpreadElement
+  | StringKeyword
   | StringLiteral
   | SuperExpression
   | SwitchStatement
+  | SymbolKeyword
   | SyntheticExpression
   | TaggedTemplateExpression
   | TemplateExpression
@@ -2498,11 +2567,14 @@ export type AnyNode =
   | TypePredicateNode
   | TypeQueryNode
   | TypeReferenceNode
+  | UndefinedKeyword
   | UnionTypeNode
+  | UnknownKeyword
   | VariableDeclaration
   | VariableDeclarationList
   | VariableStatement
   | VoidExpression
+  | VoidKeyword
   | WhileStatement
   | WithStatement
   | YieldExpression;
@@ -2644,6 +2716,8 @@ export type LeftHandSideExpressionParent =
   | Decorator;
 
 export type Visitor<OptionsOutput = undefined, Data = undefined> = {
+  AnyKeyword?(node: AnyKeyword, context: Context<OptionsOutput, Data>): void;
+  "AnyKeyword:exit"?(node: AnyKeyword, context: Context<OptionsOutput, Data>): void;
   ArrayBindingPattern?(node: ArrayBindingPattern, context: Context<OptionsOutput, Data>): void;
   "ArrayBindingPattern:exit"?(node: ArrayBindingPattern, context: Context<OptionsOutput, Data>): void;
   ArrayLiteralExpression?(node: ArrayLiteralExpression, context: Context<OptionsOutput, Data>): void;
@@ -2656,6 +2730,8 @@ export type Visitor<OptionsOutput = undefined, Data = undefined> = {
   "AsExpression:exit"?(node: AsExpression, context: Context<OptionsOutput, Data>): void;
   AwaitExpression?(node: AwaitExpression, context: Context<OptionsOutput, Data>): void;
   "AwaitExpression:exit"?(node: AwaitExpression, context: Context<OptionsOutput, Data>): void;
+  BigIntKeyword?(node: BigIntKeyword, context: Context<OptionsOutput, Data>): void;
+  "BigIntKeyword:exit"?(node: BigIntKeyword, context: Context<OptionsOutput, Data>): void;
   BigIntLiteral?(node: BigIntLiteral, context: Context<OptionsOutput, Data>): void;
   "BigIntLiteral:exit"?(node: BigIntLiteral, context: Context<OptionsOutput, Data>): void;
   BinaryExpression?(node: BinaryExpression, context: Context<OptionsOutput, Data>): void;
@@ -2664,6 +2740,8 @@ export type Visitor<OptionsOutput = undefined, Data = undefined> = {
   "BindingElement:exit"?(node: BindingElement, context: Context<OptionsOutput, Data>): void;
   Block?(node: Block, context: Context<OptionsOutput, Data>): void;
   "Block:exit"?(node: Block, context: Context<OptionsOutput, Data>): void;
+  BooleanKeyword?(node: BooleanKeyword, context: Context<OptionsOutput, Data>): void;
+  "BooleanKeyword:exit"?(node: BooleanKeyword, context: Context<OptionsOutput, Data>): void;
   BreakStatement?(node: BreakStatement, context: Context<OptionsOutput, Data>): void;
   "BreakStatement:exit"?(node: BreakStatement, context: Context<OptionsOutput, Data>): void;
   CallExpression?(node: CallExpression, context: Context<OptionsOutput, Data>): void;
@@ -2776,6 +2854,8 @@ export type Visitor<OptionsOutput = undefined, Data = undefined> = {
   "InterfaceDeclaration:exit"?(node: InterfaceDeclaration, context: Context<OptionsOutput, Data>): void;
   IntersectionType?(node: IntersectionTypeNode, context: Context<OptionsOutput, Data>): void;
   "IntersectionType:exit"?(node: IntersectionTypeNode, context: Context<OptionsOutput, Data>): void;
+  IntrinsicKeyword?(node: IntrinsicKeyword, context: Context<OptionsOutput, Data>): void;
+  "IntrinsicKeyword:exit"?(node: IntrinsicKeyword, context: Context<OptionsOutput, Data>): void;
   JSDocAllType?(node: JSDocAllType, context: Context<OptionsOutput, Data>): void;
   "JSDocAllType:exit"?(node: JSDocAllType, context: Context<OptionsOutput, Data>): void;
   JSDocFunctionType?(node: JSDocFunctionType, context: Context<OptionsOutput, Data>): void;
@@ -2872,6 +2952,8 @@ export type Visitor<OptionsOutput = undefined, Data = undefined> = {
   "NamespaceExportDeclaration:exit"?(node: NamespaceExportDeclaration, context: Context<OptionsOutput, Data>): void;
   NamespaceImport?(node: NamespaceImport, context: Context<OptionsOutput, Data>): void;
   "NamespaceImport:exit"?(node: NamespaceImport, context: Context<OptionsOutput, Data>): void;
+  NeverKeyword?(node: NeverKeyword, context: Context<OptionsOutput, Data>): void;
+  "NeverKeyword:exit"?(node: NeverKeyword, context: Context<OptionsOutput, Data>): void;
   NewExpression?(node: NewExpression, context: Context<OptionsOutput, Data>): void;
   "NewExpression:exit"?(node: NewExpression, context: Context<OptionsOutput, Data>): void;
   NoSubstitutionTemplateLiteral?(node: NoSubstitutionTemplateLiteral, context: Context<OptionsOutput, Data>): void;
@@ -2882,10 +2964,14 @@ export type Visitor<OptionsOutput = undefined, Data = undefined> = {
   "NotEmittedStatement:exit"?(node: NotEmittedStatement, context: Context<OptionsOutput, Data>): void;
   NullKeyword?(node: NullLiteral, context: Context<OptionsOutput, Data>): void;
   "NullKeyword:exit"?(node: NullLiteral, context: Context<OptionsOutput, Data>): void;
+  NumberKeyword?(node: NumberKeyword, context: Context<OptionsOutput, Data>): void;
+  "NumberKeyword:exit"?(node: NumberKeyword, context: Context<OptionsOutput, Data>): void;
   NumericLiteral?(node: NumericLiteral, context: Context<OptionsOutput, Data>): void;
   "NumericLiteral:exit"?(node: NumericLiteral, context: Context<OptionsOutput, Data>): void;
   ObjectBindingPattern?(node: ObjectBindingPattern, context: Context<OptionsOutput, Data>): void;
   "ObjectBindingPattern:exit"?(node: ObjectBindingPattern, context: Context<OptionsOutput, Data>): void;
+  ObjectKeyword?(node: ObjectKeyword, context: Context<OptionsOutput, Data>): void;
+  "ObjectKeyword:exit"?(node: ObjectKeyword, context: Context<OptionsOutput, Data>): void;
   ObjectLiteralExpression?(node: ObjectLiteralExpression, context: Context<OptionsOutput, Data>): void;
   "ObjectLiteralExpression:exit"?(node: ObjectLiteralExpression, context: Context<OptionsOutput, Data>): void;
   OmittedExpression?(node: OmittedExpression, context: Context<OptionsOutput, Data>): void;
@@ -2936,12 +3022,16 @@ export type Visitor<OptionsOutput = undefined, Data = undefined> = {
   "SpreadAssignment:exit"?(node: SpreadAssignment, context: Context<OptionsOutput, Data>): void;
   SpreadElement?(node: SpreadElement, context: Context<OptionsOutput, Data>): void;
   "SpreadElement:exit"?(node: SpreadElement, context: Context<OptionsOutput, Data>): void;
+  StringKeyword?(node: StringKeyword, context: Context<OptionsOutput, Data>): void;
+  "StringKeyword:exit"?(node: StringKeyword, context: Context<OptionsOutput, Data>): void;
   StringLiteral?(node: StringLiteral, context: Context<OptionsOutput, Data>): void;
   "StringLiteral:exit"?(node: StringLiteral, context: Context<OptionsOutput, Data>): void;
   SuperKeyword?(node: SuperExpression, context: Context<OptionsOutput, Data>): void;
   "SuperKeyword:exit"?(node: SuperExpression, context: Context<OptionsOutput, Data>): void;
   SwitchStatement?(node: SwitchStatement, context: Context<OptionsOutput, Data>): void;
   "SwitchStatement:exit"?(node: SwitchStatement, context: Context<OptionsOutput, Data>): void;
+  SymbolKeyword?(node: SymbolKeyword, context: Context<OptionsOutput, Data>): void;
+  "SymbolKeyword:exit"?(node: SymbolKeyword, context: Context<OptionsOutput, Data>): void;
   SyntheticExpression?(node: SyntheticExpression, context: Context<OptionsOutput, Data>): void;
   "SyntheticExpression:exit"?(node: SyntheticExpression, context: Context<OptionsOutput, Data>): void;
   TaggedTemplateExpression?(node: TaggedTemplateExpression, context: Context<OptionsOutput, Data>): void;
@@ -2990,8 +3080,12 @@ export type Visitor<OptionsOutput = undefined, Data = undefined> = {
   "TypeQuery:exit"?(node: TypeQueryNode, context: Context<OptionsOutput, Data>): void;
   TypeReference?(node: TypeReferenceNode, context: Context<OptionsOutput, Data>): void;
   "TypeReference:exit"?(node: TypeReferenceNode, context: Context<OptionsOutput, Data>): void;
+  UndefinedKeyword?(node: UndefinedKeyword, context: Context<OptionsOutput, Data>): void;
+  "UndefinedKeyword:exit"?(node: UndefinedKeyword, context: Context<OptionsOutput, Data>): void;
   UnionType?(node: UnionTypeNode, context: Context<OptionsOutput, Data>): void;
   "UnionType:exit"?(node: UnionTypeNode, context: Context<OptionsOutput, Data>): void;
+  UnknownKeyword?(node: UnknownKeyword, context: Context<OptionsOutput, Data>): void;
+  "UnknownKeyword:exit"?(node: UnknownKeyword, context: Context<OptionsOutput, Data>): void;
   VariableDeclaration?(node: VariableDeclaration, context: Context<OptionsOutput, Data>): void;
   "VariableDeclaration:exit"?(node: VariableDeclaration, context: Context<OptionsOutput, Data>): void;
   VariableDeclarationList?(node: VariableDeclarationList, context: Context<OptionsOutput, Data>): void;
@@ -3000,6 +3094,8 @@ export type Visitor<OptionsOutput = undefined, Data = undefined> = {
   "VariableStatement:exit"?(node: VariableStatement, context: Context<OptionsOutput, Data>): void;
   VoidExpression?(node: VoidExpression, context: Context<OptionsOutput, Data>): void;
   "VoidExpression:exit"?(node: VoidExpression, context: Context<OptionsOutput, Data>): void;
+  VoidKeyword?(node: VoidKeyword, context: Context<OptionsOutput, Data>): void;
+  "VoidKeyword:exit"?(node: VoidKeyword, context: Context<OptionsOutput, Data>): void;
   WhileStatement?(node: WhileStatement, context: Context<OptionsOutput, Data>): void;
   "WhileStatement:exit"?(node: WhileStatement, context: Context<OptionsOutput, Data>): void;
   WithStatement?(node: WithStatement, context: Context<OptionsOutput, Data>): void;

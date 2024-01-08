@@ -142,6 +142,13 @@ const estreeToTSTree: Record<
   TSOptionalType: "OptionalType",
   TSParameterProperty: "Parameter",
   TSPropertySignature: "PropertySignature",
+  TSAnyKeyword: "AnyKeyword",
+  TSBigIntKeyword: "BigIntKeyword",
+  TSBooleanKeyword: "BooleanKeyword",
+  TSNeverKeyword: "NeverKeyword",
+  TSUnknownKeyword: "UnknownKeyword",
+  TSNumberKeyword: "NumberKeyword",
+  TSStringKeyword: "StringKeyword",
   TSThisType: "ThisType",
   TSTupleType: "TupleType",
   TSTemplateLiteralType: "TemplateLiteralType",
@@ -160,7 +167,7 @@ const astNodes = Object.values(kindToNodeTypeMap);
 const focus = "";
 // const focus = "consistent-type-exports.ts";
 
-for (const rule of rules.slice(10, 11)) {
+for (const rule of rules.slice(13, 14)) {
   const filename = `${rule}.ts`;
   if (focus && !(focus === rule || focus === filename)) continue;
   if (!focus) console.log(rule);
@@ -498,6 +505,21 @@ for (const rule of rules.slice(10, 11)) {
         }
         return;
       }
+      // TSESTree.AST_NODE_TYPES.Program -> SyntaxKind.SourceFile
+      if (
+        path.node.object.type === "MemberExpression" &&
+        path.node.object.object.type === "Identifier" &&
+        path.node.object.object.name === "TSESTree" &&
+        path.node.object.property.type === "Identifier" &&
+        path.node.object.property.name === "AST_NODE_TYPES"
+      ) {
+        path.node.object = { type: "Identifier", name: "SyntaxKind" };
+        if (path.node.property.type === "Identifier") {
+          path.node.property.name =
+            estreeToTSTree[path.node.property.name] ?? path.node.property.name;
+        }
+        return;
+      }
     },
     ObjectExpression(path) {
       let messageProp: ObjectProperty | undefined;
@@ -736,11 +758,17 @@ for (const rule of rules.slice(10, 11)) {
 
   const toTemplateStrings = messages
     ?.map(([key, value]) => {
-      if (value.type !== "StringLiteral") return [key, value];
-      if (!value.value.includes("{{")) {
-        return [key, JSON.stringify(value.value)];
+      const text =
+        value.type === "StringLiteral"
+          ? value.value
+          : value.type === "TemplateLiteral"
+          ? value.quasis[0].value.raw
+          : null;
+      if (!text) return [key, value];
+      if (!text.includes("{{")) {
+        return [key, JSON.stringify(text)];
       }
-      const paramNames = [...value.value.matchAll(/\{\{\w+}}/g)].map((m) =>
+      const paramNames = [...text.matchAll(/\{\{\w+}}/g)].map((m) =>
         m[0].slice(2, -2),
       );
       const params = `params: {${paramNames
@@ -748,7 +776,7 @@ for (const rule of rules.slice(10, 11)) {
         .join(",")}}`;
       const newValue = paramNames.reduce(
         (acc, p) => acc.replaceAll(`{{${p}}}`, `\${params.${p}}`),
-        value.value.replaceAll("`", "\\`"),
+        text.replaceAll("`", "\\`"),
       );
       return [key, `(${params}) => \`${newValue}\``];
     })
@@ -777,7 +805,7 @@ ${
 ` +
     generate(srcAST, { retainLines: true, filename }).code +
     "\n\n/** Tests */\n" +
-    generate(testAST, { retainLines: true, filename }).code.replace(
+    generate(testAST, { filename }).code.replace(
       "ruleTester(",
       "export const test = () => ruleTester(",
     );
