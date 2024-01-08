@@ -148,6 +148,7 @@ export const ruleTester = <TRule extends AnyRule>({
       Infer<TRule>["Data"]
     > = {
       sourceFile,
+      program,
       checker,
       compilerOptions,
       utils: getContextUtils(checker),

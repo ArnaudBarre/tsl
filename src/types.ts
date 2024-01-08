@@ -1,6 +1,7 @@
 import type {
   CompilerOptions,
   Node,
+  Program,
   TupleTypeReference,
   Type,
   TypeChecker,
@@ -82,6 +83,7 @@ export type Checker = Omit<
 export type ReportDescriptor = { node: Node; message: string };
 export type Context<OptionsOutput = undefined, Data = undefined> = {
   sourceFile: AST.SourceFile;
+  program: Program;
   checker: Checker;
   compilerOptions: CompilerOptions;
   utils: ContextUtils;

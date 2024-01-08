@@ -91,6 +91,7 @@ program.getSourceFiles().forEach((it) => {
   for (const { rule, options, visitor } of rulesWithOptions) {
     const context: Context<unknown, unknown> = {
       sourceFile,
+      program,
       checker,
       compilerOptions,
       utils: getContextUtils(checker),

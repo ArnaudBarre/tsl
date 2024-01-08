@@ -7,6 +7,9 @@ export const getContextUtils = (checker: Checker) => ({
   isTypeFlagSet(type: ts.Type, flag: ts.TypeFlags): boolean {
     return (type.flags & flag) !== 0;
   },
+  isSymbolFlagSet(type: ts.Symbol, flag: ts.SymbolFlags): boolean {
+    return (type.flags & flag) !== 0;
+  },
   getTypeFlags(type: ts.Type): ts.TypeFlags {
     if (!type.isUnion()) return type.flags;
     // @ts-expect-error Since typescript 5.0, this is invalid, but uses 0 as the default value of TypeFlags.
