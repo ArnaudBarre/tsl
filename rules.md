@@ -9,5 +9,6 @@ no-duplicate-type-constituents ✅ (smarter thanks to `isTypeAssignableTo`)
 no-floating-promises ✅
 no-for-in-array ✅
 no-implied-eval ✅ (do not check for global shadowing)
+no-meaningless-void-operator ✅
 
 no-misused-promises ✅
