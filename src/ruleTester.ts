@@ -175,10 +175,22 @@ export const ruleTester = <TRule extends AnyRule>({
           `No reports for invalid case ${caseProps.index} (${caseProps.code})`,
         );
       } else {
-        for (const [idx, error] of caseProps.errors!.entries()) {
-          if (reports[idx].message !== error.message) {
-            console.error(
-              `Wrong message for invalid case ${caseProps.index}: expected ${error.message}, got ${reports[idx].message}`,
+        let introLogged = false;
+        for (
+          let i = 0;
+          i < Math.max(caseProps.errors!.length, reports.length);
+          i++
+        ) {
+          if (caseProps.errors!.at(i)?.message !== reports.at(i)?.message) {
+            if (!introLogged) {
+              console.error(
+                `Report(s) mismatch for invalid case ${caseProps.index} (${caseProps.code})`,
+              );
+              introLogged = true;
+            }
+            console.log(
+              `  #${i}: Expected: ${caseProps.errors!.at(i)?.message}
+           Got: ${reports.at(i)?.message}`,
             );
           }
         }
