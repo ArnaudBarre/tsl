@@ -164,13 +164,11 @@ const estreeToTSTree: Record<
 };
 const astNodes = Object.values(kindToNodeTypeMap);
 
-const focus = "";
-// const focus = "consistent-type-exports.ts";
+const index = Number(process.argv[2]);
 
-for (const rule of rules.slice(14, 15)) {
+for (const rule of rules.slice(index, index + 1)) {
   const filename = `${rule}.ts`;
-  if (focus && !(focus === rule || focus === filename)) continue;
-  if (!focus) console.log(rule);
+  console.log(rule);
   const srcContent = readFileSync(
     `../typescript-eslint/packages/eslint-plugin/src/rules/${filename}`,
     "utf-8",

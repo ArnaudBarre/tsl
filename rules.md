@@ -14,3 +14,4 @@ no-misused-promises ✅
 no-mixed-enums ❌ (typed only to handle cases not supported in isolatedModules)
 no-redundant-type-constituents ✅ (smarter thanks to `isTypeAssignableTo`)
 no-throw-literal ✅
+no-unnecessary-boolean-literal-compare ✅
