@@ -167,7 +167,7 @@ const astNodes = Object.values(kindToNodeTypeMap);
 const focus = "";
 // const focus = "consistent-type-exports.ts";
 
-for (const rule of rules.slice(13, 14)) {
+for (const rule of rules.slice(14, 15)) {
   const filename = `${rule}.ts`;
   if (focus && !(focus === rule || focus === filename)) continue;
   if (!focus) console.log(rule);
