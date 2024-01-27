@@ -3,19 +3,46 @@ import ts from "typescript";
 import type { SourceFile, Visitor } from "./ast.ts";
 import { getContextUtils } from "./getContextUtils.ts";
 import { defineConfig } from "./public-utils.ts";
-import { noMisusedPromises } from "./rules/no-misused-promises.ts";
-// import { noUnnecessaryNonNullExpression } from "./rules/unnecessary-non-null-expression.ts";
+// import { awaitThenable } from "./rules/await-thenable.ts";
+// import { dotNotation } from "./rules/dot-notation.ts";
+// import { noBaseToString } from "./rules/no-base-to-string.ts";
+// import { noConfusingVoidExpression } from "./rules/no-confusing-void-expression.ts";
+// import { noFloatingPromises } from "./rules/no-floating-promises.ts";
+// import { noForInArray } from "./rules/no-for-in-array.ts";
+// import { noImpliedEval } from "./rules/no-implied-eval.ts";
+// import { noMeaninglessVoidOperator } from "./rules/no-meaningless-void-operator.ts";
+// import { noMisusedPromises } from "./rules/no-misused-promises.ts";
+// import { noRedundantTypeConstituents } from "./rules/no-redundant-type-constituents.ts";
+// import { noThrowLiteral } from "./rules/no-throw-literal.ts";
+// import { noUnnecessaryBooleanLiteralCompare } from "./rules/no-unnecessary-boolean-literal-compare.ts";
+import { noUnnecessaryCondition } from "./rules/no-unnecessary-condition.ts";
+// import { noUnnecessaryNonNullExpression } from "./rules/no-unnecessary-non-null-expression.ts";
 import type { Checker, Config, Context, UnknownRule } from "./types.ts";
 import { visit } from "./visit.ts";
 
 const config = defineConfig({
-  rules: [noMisusedPromises],
-  ignore: ["prisma/client.d.ts"],
+  rules: [
+    // awaitThenable,
+    // dotNotation,
+    // noBaseToString,
+    // noConfusingVoidExpression,
+    // noFloatingPromises,
+    // noForInArray,
+    // noImpliedEval,
+    // noMeaninglessVoidOperator,
+    // noMisusedPromises,
+    // noRedundantTypeConstituents,
+    // noThrowLiteral,
+    // noUnnecessaryBooleanLiteralCompare,
+    noUnnecessaryCondition,
+    // noUnnecessaryNonNullExpression,
+  ],
+  ignore: ["prisma/client.d.ts", "generated", "scripts/playground"],
   options: {
-    "no-misused-promises": {
-      // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/no-misused-promises.md#checksvoidreturn
-      checksVoidReturn: { arguments: false, attributes: false },
-    },
+    // "no-misused-promises": {
+    //   checksVoidReturn: { arguments: false, attributes: false },
+    // },
+    // "no-confusing-void-expression": { ignoreArrowShorthand: true },
   },
 }) as Config<UnknownRule[]>;
 

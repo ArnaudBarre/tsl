@@ -11,6 +11,18 @@ const estreeLogicalOperator = [
 export const isLogicalExpression = (token: BinaryOperatorToken) =>
   estreeLogicalOperator.includes(token.kind);
 
+const estreeLiteral = [
+  ts.SyntaxKind.StringLiteral,
+  ts.SyntaxKind.NumericLiteral,
+  ts.SyntaxKind.BigIntLiteral,
+  ts.SyntaxKind.TrueKeyword,
+  ts.SyntaxKind.FalseKeyword,
+  ts.SyntaxKind.NullKeyword,
+  ts.SyntaxKind.RegularExpressionLiteral,
+];
+export const isLiteralKind = (kind: ts.SyntaxKind) =>
+  estreeLiteral.includes(kind);
+
 // Map to check exhaustiveness
 const assignmentOperatorsMap: Record<
   ts.AssignmentOperator,

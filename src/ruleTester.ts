@@ -53,7 +53,10 @@ export const ruleTester = <TRule extends AnyRule>({
   valid: (CaseProps<TRule> | string)[];
   invalid: (CaseProps<TRule> & {
     error?: string;
-    errors?: { message: string; line?: number; column?: number }[];
+    errors?: (
+      | { message: string; line?: number; column?: number }
+      | [message: string, line?: number, column?: number]
+    )[];
   })[];
 }) => {
   const compilerOptionsToFiles = new Map<string, string[]>();
@@ -103,9 +106,13 @@ export const ruleTester = <TRule extends AnyRule>({
   for (const [index, invalidCase] of invalid.entries()) {
     if (typeFocus && typeFocus !== "invalid") continue;
     if (indexFocus && indexFocus !== index.toString()) continue;
-    const errors =
-      invalidCase.errors ??
-      (invalidCase.error ? [{ message: invalidCase.error }] : []);
+    const errors = invalidCase.errors
+      ? invalidCase.errors.map((e) =>
+          Array.isArray(e) ? { message: e[0], line: e[1], column: e[2] } : e,
+        )
+      : invalidCase.error
+      ? [{ message: invalidCase.error }]
+      : [];
     if (errors.length === 0) {
       throw new Error(`Invalid case ${index} has no errors`);
     }

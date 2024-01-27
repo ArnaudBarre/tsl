@@ -1,8 +1,9 @@
+import { isTypeFlagSet } from "ts-api-utils";
 import { SyntaxKind, TypeFlags } from "typescript";
 import type { TypeNode } from "../ast.ts";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
-import type { AST } from "../types.ts";
+import type { AST, Context } from "../types.ts";
 
 const messages = {
   intersection: (params: { type: string; overrideBy: string }) =>
@@ -22,7 +23,6 @@ export const noRedundantTypeConstituents = createRule({
         return;
       }
       const flattenNodes = flattenIntersection(node);
-      const redundantNodes: AST.TypeNode[] = [];
       for (const typeNode of flattenNodes) {
         const type = context.checker.getTypeAtLocation(typeNode);
         for (const otherTypeNode of flattenNodes) {
@@ -31,31 +31,28 @@ export const noRedundantTypeConstituents = createRule({
             break;
           }
           const otherType = context.checker.getTypeAtLocation(otherTypeNode);
-          if (context.checker.isTypeAssignableTo(type, otherType)) {
-            const [redundantNode, overriddenBy] =
-              otherType.flags === TypeFlags.Any &&
-              type.flags !== TypeFlags.Never
-                ? [typeNode, otherTypeNode]
-                : [otherTypeNode, typeNode];
-            if (redundantNodes.includes(redundantNode)) continue;
-            redundantNodes.push(redundantNode);
-            context.report({
-              node: redundantNode,
-              message: messages.intersection({
-                type: redundantNode.getText(),
-                overrideBy: overriddenBy.getText(),
-              }),
-            });
-          } else if (context.checker.isTypeAssignableTo(otherType, type)) {
-            if (redundantNodes.includes(typeNode)) continue;
-            redundantNodes.push(typeNode);
-            context.report({
-              node: typeNode,
-              message: messages.intersection({
-                type: typeNode.getText(),
-                overrideBy: otherTypeNode.getText(),
-              }),
-            });
+          if (type.flags === TypeFlags.Never) {
+            reportIntersection(context, otherTypeNode, typeNode);
+          } else if (otherType.flags === TypeFlags.Never) {
+            reportIntersection(context, typeNode, otherTypeNode);
+          } else if (type.flags === TypeFlags.Any) {
+            reportIntersection(context, otherTypeNode, typeNode);
+          } else if (otherType.flags === TypeFlags.Any) {
+            reportIntersection(context, typeNode, otherTypeNode);
+          } else if (type.flags === TypeFlags.Unknown) {
+            reportIntersection(context, typeNode, otherTypeNode);
+          } else if (otherType.flags === TypeFlags.Unknown) {
+            reportIntersection(context, otherTypeNode, typeNode);
+          } else if (
+            typeNode.kind === SyntaxKind.LiteralType &&
+            literals.includes(typeNode.literal.kind)
+          ) {
+            reportIntersection(context, otherTypeNode, typeNode);
+          } else if (
+            otherTypeNode.kind === SyntaxKind.LiteralType &&
+            literals.includes(otherTypeNode.literal.kind)
+          ) {
+            reportIntersection(context, typeNode, otherTypeNode);
           }
         }
       }
@@ -77,6 +74,8 @@ export const noRedundantTypeConstituents = createRule({
             break;
           }
           const otherType = context.checker.getTypeAtLocation(otherTypeNode);
+          // Generics can lead to false positive
+          if (isTypeFlagSet(otherType, TypeFlags.TypeVariable)) continue;
           if (context.checker.isTypeAssignableTo(type, otherType)) {
             const [redundantNode, assignableToNode] =
               type.flags === TypeFlags.Any
@@ -123,6 +122,31 @@ const flattenIntersection = (node: AST.IntersectionTypeNode): TypeNode[] =>
       : [n],
   );
 
+const literals = [
+  SyntaxKind.BigIntLiteral,
+  SyntaxKind.NumericLiteral,
+  SyntaxKind.NoSubstitutionTemplateLiteral,
+  SyntaxKind.RegularExpressionLiteral,
+  SyntaxKind.StringLiteral,
+  SyntaxKind.FalseKeyword,
+  SyntaxKind.TrueKeyword,
+  SyntaxKind.NullKeyword,
+];
+
+const reportIntersection = (
+  context: Context,
+  redundantNode: TypeNode,
+  overriddenBy: TypeNode,
+) => {
+  context.report({
+    node: redundantNode,
+    message: messages.intersection({
+      type: redundantNode.getText(),
+      overrideBy: overriddenBy.getText(),
+    }),
+  });
+};
+
 export const test = () =>
   ruleTester({
     rule: noRedundantTypeConstituents,
@@ -145,17 +169,6 @@ export const test = () =>
       type B3 = true;
       type T3 = B3 | false;
       `,
-      "type T = boolean & null;",
-      `
-      type B = boolean;
-      type T = B & null;
-      `,
-      "type T = number & null;",
-      "type T = `${string}` & null;",
-      `
-        type B = \`\${string}\`;
-        type T = B & null;
-      `,
       "type T = null | undefined;",
       "type T = { a: string } | { b: string };",
       "type T = { a: string | number };",
@@ -168,6 +181,11 @@ export const test = () =>
       "type T = 'A' | string[];",
       "type T = () => string | void;",
       "type T = () => null | undefined;",
+      'type Metadata = { language: "EN" | "FR" } & Record<string, string>;',
+      `
+      type Mutations = { Foo: { output: 0 }, Bar: { output: null } };
+      type Output<Name extends keyof Mutations> = Mutations[Name]["output"];
+      type GetOutput<Name extends keyof Mutations> = Output<Name> | null`,
     ],
     invalid: [
       // intersections: never > any > number > unknown
@@ -363,6 +381,21 @@ export const test = () =>
       {
         code: "type T = false & boolean;",
         error: messages.intersection({ type: "boolean", overrideBy: "false" }),
+      },
+      {
+        code: "type B = boolean; type T = B & null;",
+        error: messages.intersection({ type: "B", overrideBy: "null" }),
+      },
+      {
+        code: "type T = number & null;",
+        error: messages.intersection({ type: "number", overrideBy: "null" }),
+      },
+      {
+        code: "type T = `${string}` & null;",
+        error: messages.intersection({
+          type: "`${string}`",
+          overrideBy: "null",
+        }),
       },
     ],
   });

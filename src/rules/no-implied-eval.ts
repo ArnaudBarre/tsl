@@ -1,3 +1,4 @@
+import { isSymbolFlagSet } from "ts-api-utils";
 import ts, { SymbolFlags, SyntaxKind } from "typescript";
 import type { AnyNode } from "../ast.ts";
 import { createRule } from "../public-utils.ts";
@@ -59,10 +60,7 @@ function isFunctionType(node: AnyNode, context: Context): boolean {
 
   if (
     symbol &&
-    context.utils.isSymbolFlagSet(
-      symbol,
-      SymbolFlags.Function | SymbolFlags.Method,
-    )
+    isSymbolFlagSet(symbol, SymbolFlags.Function | SymbolFlags.Method)
   ) {
     return true;
   }

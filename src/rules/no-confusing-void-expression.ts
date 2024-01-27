@@ -1,3 +1,4 @@
+import { isTypeFlagSet } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import type { AnyNode } from "../ast.ts";
 import { createRule } from "../public-utils.ts";
@@ -45,7 +46,7 @@ export const noConfusingVoidExpression = createRule({
   visitor: (options) => ({
     CallExpression(node, context) {
       const type = context.utils.getConstrainedTypeAtLocation(node);
-      if (!context.utils.isTypeFlagSet(type, ts.TypeFlags.VoidLike)) {
+      if (!isTypeFlagSet(type, ts.TypeFlags.VoidLike)) {
         // not a void expression
         return;
       }

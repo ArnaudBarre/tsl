@@ -1,3 +1,4 @@
+import { isTypeFlagSet, unionTypeParts } from "ts-api-utils";
 import ts from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
@@ -13,10 +14,8 @@ export const noForInArray = createRule({
     ForInStatement(node, context) {
       const type = context.utils.getConstrainedTypeAtLocation(node.expression);
       if (
-        context.utils
-          .unionTypeParts(type)
-          .every((t) => context.checker.isArrayType(t)) ||
-        context.utils.isTypeFlagSet(type, ts.TypeFlags.StringLike)
+        unionTypeParts(type).every((t) => context.checker.isArrayType(t)) ||
+        isTypeFlagSet(type, ts.TypeFlags.StringLike)
       ) {
         context.report({ node, message: messages.forInViolation });
       }

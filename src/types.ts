@@ -78,6 +78,11 @@ export type Checker = Omit<
    * ```
    */
   isTypeAssignableTo(source: Type, target: Type): boolean;
+  /**
+   * TS internal api
+   * Return the type of the given property in the given type, or undefined if no such property exists
+   */
+  getTypeOfPropertyOfType(type: Type, propertyName: string): Type | undefined;
 };
 
 export type ReportDescriptor = { node: Node; message: string };

@@ -1,3 +1,4 @@
+import { isIntrinsicAnyType, isIntrinsicUnknownType } from "ts-api-utils";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 
@@ -8,7 +9,7 @@ export const awaitThenable = createRule({
   visitor: {
     AwaitExpression(node, context) {
       const type = context.checker.getTypeAtLocation(node.expression);
-      if (context.utils.isAny(type) || context.utils.isUnknown(type)) {
+      if (isIntrinsicAnyType(type) || isIntrinsicUnknownType(type)) {
         return;
       }
       if (!context.utils.isThenableType(node.expression, type)) {

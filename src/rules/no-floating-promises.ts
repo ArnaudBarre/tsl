@@ -1,3 +1,4 @@
+import { unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
@@ -128,11 +129,11 @@ function isUnhandledPromise(
   // Check the type. At this point it can't be unhandled if it isn't a promise
   // or array thereof.
 
-  if (isPromiseArray(checker, node, context)) {
+  if (isPromiseArray(checker, node)) {
     return { isUnhandled: true, promiseArray: true };
   }
 
-  if (!isPromiseLike(checker, node, context)) {
+  if (!isPromiseLike(checker, node)) {
     return { isUnhandled: false };
   }
 
@@ -204,25 +205,21 @@ function isUnhandledPromise(
   return { isUnhandled: false };
 }
 
-function isPromiseArray(
-  checker: Checker,
-  node: ts.Node,
-  context: Context,
-): boolean {
+function isPromiseArray(checker: Checker, node: ts.Node): boolean {
   const type = checker.getTypeAtLocation(node);
-  for (const ty of context.utils
-    .unionTypeParts(type)
-    .map((t) => checker.getApparentType(t))) {
+  for (const ty of unionTypeParts(type).map((t) =>
+    checker.getApparentType(t),
+  )) {
     if (checker.isArrayType(ty)) {
       const arrayType = checker.getTypeArguments(ty)[0];
-      if (isPromiseLike(checker, node, context, arrayType)) {
+      if (isPromiseLike(checker, node, arrayType)) {
         return true;
       }
     }
 
     if (checker.isTupleType(ty)) {
       for (const tupleElementType of checker.getTypeArguments(ty)) {
-        if (isPromiseLike(checker, node, context, tupleElementType)) {
+        if (isPromiseLike(checker, node, tupleElementType)) {
           return true;
         }
       }
@@ -238,13 +235,10 @@ function isPromiseArray(
 function isPromiseLike(
   checker: Checker,
   node: ts.Node,
-  context: Context,
   type?: ts.Type,
 ): boolean {
   type ??= checker.getTypeAtLocation(node);
-  for (const ty of context.utils.unionTypeParts(
-    checker.getApparentType(type),
-  )) {
+  for (const ty of unionTypeParts(checker.getApparentType(type))) {
     const then = ty.getProperty("then");
     if (then === undefined) {
       continue;
@@ -256,9 +250,8 @@ function isPromiseLike(
         thenType,
         (signature) =>
           signature.parameters.length >= 2 &&
-          isFunctionParam(checker, signature.parameters[0], node, context) &&
-          isFunctionParam(checker, signature.parameters[1], node, context),
-        context,
+          isFunctionParam(checker, signature.parameters[0], node) &&
+          isFunctionParam(checker, signature.parameters[1], node),
       )
     ) {
       return true;
@@ -270,9 +263,8 @@ function isPromiseLike(
 function hasMatchingSignature(
   type: ts.Type,
   matcher: (signature: ts.Signature) => boolean,
-  context: Context,
 ): boolean {
-  for (const t of context.utils.unionTypeParts(type)) {
+  for (const t of unionTypeParts(type)) {
     if (t.getCallSignatures().some(matcher)) {
       return true;
     }
@@ -285,12 +277,11 @@ function isFunctionParam(
   checker: Checker,
   param: ts.Symbol,
   node: ts.Node,
-  context: Context,
 ): boolean {
   const type: ts.Type | undefined = checker.getApparentType(
     checker.getTypeOfSymbolAtLocation(param, node),
   );
-  for (const t of context.utils.unionTypeParts(type)) {
+  for (const t of unionTypeParts(type)) {
     if (t.getCallSignatures().length !== 0) {
       return true;
     }

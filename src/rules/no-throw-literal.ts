@@ -1,3 +1,4 @@
+import { isIntrinsicAnyType, isIntrinsicUnknownType } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
@@ -37,13 +38,13 @@ export const noThrowLiteral = createRule({
         return;
       }
 
-      if (context.options.allowThrowingAny && context.utils.isAny(type)) {
+      if (context.options.allowThrowingAny && isIntrinsicAnyType(type)) {
         return;
       }
 
       if (
         context.options.allowThrowingUnknown &&
-        context.utils.isUnknown(type)
+        isIntrinsicUnknownType(type)
       ) {
         return;
       }

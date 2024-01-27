@@ -1,3 +1,4 @@
+import { unionTypeParts } from "ts-api-utils";
 import ts from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
@@ -16,7 +17,7 @@ export const noMeaninglessVoidOperator = createRule({
   visitor: {
     VoidExpression(node, context) {
       const argType = context.checker.getTypeAtLocation(node.expression);
-      const unionParts = context.utils.unionTypeParts(argType);
+      const unionParts = unionTypeParts(argType);
       if (
         unionParts.every(
           (part) => part.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined),
