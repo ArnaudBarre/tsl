@@ -460,29 +460,13 @@ ${visitorNodes.map((n) => `  ${n.kind}: "${n.node}",`).join("\n")}
 );
 
 writeOrCheck(
-  "src/visit.ts",
+  "src/visitorEntries.ts",
   `/** Generated **/
-import { SyntaxKind } from "typescript";  
-import type { AST, Context } from "./types.ts";
+import { SyntaxKind } from "typescript";
+import type { AST } from "./types.ts";
 
-export const visit = (node: AST.AnyNode, visitor: AST.Visitor<unknown, unknown>, context: Context<unknown, unknown>) => {
-  switch(node.kind) {
-${visitorNodes
-  .map((node) => {
-    return `    case SyntaxKind.${node.kind}: visitor.${node.kind}?.(node, context); break;`;
-  })
-  .sort()
-  .join("\n")}
-  }
-  node.forEachChild(child => visit(child as any, visitor, context));
-  switch(node.kind) {
-${visitorNodes
-  .map((node) => {
-    return `    case SyntaxKind.${node.kind}: visitor["${node.kind}:exit"]?.(node, context); break;`;
-  })
-  .sort()
-  .join("\n")}
-  }
-}
+export const visitorEntries: [number, keyof AST.Visitor][] = [
+${visitorNodes.map((n) => `  [SyntaxKind.${n.kind}, "${n.kind}"],`).join("\n")}
+];
 `,
 );

@@ -1,15 +1,16 @@
 import ts from "typescript";
-import type { SourceFile } from "./ast.ts";
+import type { SourceFile, Visitor } from "./ast.ts";
 import { getContextUtils } from "./getContextUtils.ts";
 import type {
   AnyRule,
+  AST,
   Checker,
   Context,
   Infer,
   ReportDescriptor,
   Rule,
 } from "./types.ts";
-import { visit } from "./visit.ts";
+import { visitorEntries } from "./visitorEntries.ts";
 
 type CaseProps<TRule extends Rule> = {
   code: string;
@@ -166,7 +167,18 @@ export const ruleTester = <TRule extends AnyRule>({
       data: undefined,
     };
     if (rule.createData) context.data = rule.createData(context);
-    visit(sourceFile, visitor, context);
+    const visit = (node: AST.AnyNode) => {
+      const nodeType = visitorEntries.find((e) => e[0] === node.kind)?.[1];
+      if (nodeType) {
+        visitor[nodeType]?.(node as any, context);
+      }
+      // @ts-expect-error
+      node.forEachChild(visit);
+      if (nodeType) {
+        visitor[`${nodeType}:exit` as keyof Visitor]?.(node as any, context);
+      }
+    };
+    visit(sourceFile);
     if (caseProps.isValid) {
       if (reports.length !== 0) {
         console.error(
