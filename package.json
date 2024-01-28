@@ -20,6 +20,7 @@
     "@types/babel__generator": "^7.6.8",
     "@types/babel__traverse": "^7.20.4",
     "@types/bun": "^1.0.0",
+    "@types/react": "^18.2.48",
     "prettier": "3.0.3",
     "ts-api-utils": "^1.0.3",
     "typescript": "^5.3.3"

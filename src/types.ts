@@ -56,10 +56,15 @@ export type Infer<TRule> = TRule extends Rule<
 
 export type Checker = Omit<
   TypeChecker,
-  "getContextualType" | "isArrayType" | "isTupleType"
+  | "getContextualType"
+  | "getTypeFromTypeNode"
+  | "getResolvedSignature"
+  | "isArrayType"
+  | "isTupleType"
 > & {
   /* Fix Expression _Brand check */
   getContextualType(node: AST.Expression): Type | undefined;
+  getTypeFromTypeNode(node: AST.TypeNode): Type;
   getResolvedSignature(
     node:
       | AST.CallExpression

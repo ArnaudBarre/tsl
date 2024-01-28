@@ -94,7 +94,7 @@ allDiagnostics.forEach((diagnostic) => {
 
 const start = performance.now();
 
-const checker = program.getTypeChecker() as Checker;
+const checker = program.getTypeChecker() as unknown as Checker;
 const compilerOptions = program.getCompilerOptions();
 const contextUtils = getContextUtils(checker);
 

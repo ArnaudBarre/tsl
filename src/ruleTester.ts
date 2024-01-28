@@ -1,4 +1,4 @@
-import ts from "typescript";
+import ts, { ModuleResolutionKind } from "typescript";
 import type { SourceFile, Visitor } from "./ast.ts";
 import { getContextUtils } from "./getContextUtils.ts";
 import type {
@@ -34,6 +34,7 @@ const defaultCompilerOptions: ts.CompilerOptions = {
   lib: ["ES2022"],
   target: ts.ScriptTarget.ESNext,
   moduleDetection: ts.ModuleDetectionKind.Force,
+  moduleResolution: ModuleResolutionKind.Bundler,
   noEmit: true,
   isolatedModules: true,
   skipLibCheck: true,
@@ -75,9 +76,14 @@ export const ruleTester = <TRule extends AnyRule>({
       useTSX ? "tsx" : "ts"
     }`;
     filesMap.set(filename, caseProps.code);
-    const compilerOptionsInput = caseProps.compilerOptions
-      ? { ...defaultCompilerOptions, ...caseProps.compilerOptions }
-      : defaultCompilerOptions;
+    const compilerOptionsInput =
+      caseProps.compilerOptions || useTSX
+        ? {
+            ...defaultCompilerOptions,
+            jsx: useTSX ? ts.JsxEmit.ReactJSX : undefined,
+            ...caseProps.compilerOptions,
+          }
+        : defaultCompilerOptions;
     const compilerOptionsKey = JSON.stringify(compilerOptionsInput);
     const current = compilerOptionsToFiles.get(compilerOptionsKey);
     if (current) {
@@ -132,11 +138,47 @@ export const ruleTester = <TRule extends AnyRule>({
     const esLib = "node_modules/typescript/lib/lib.es2022.d.ts";
     const domLib = "node_modules/typescript/lib/lib.dom.d.ts";
     const program = ts.createProgram(
-      [esLib, domLib, ...files],
+      [
+        esLib,
+        domLib,
+        ...(compilerOptionsInput.jsx === ts.JsxEmit.ReactJSX
+          ? [
+              "node_modules/@types/react/index.d.ts",
+              "node_modules/@types/react/jsx-runtime.d.ts",
+            ]
+          : []),
+        ...files,
+      ],
       compilerOptionsInput,
       host,
     );
-    program.emit();
+    const emitResult = program.emit();
+    if (indexFocus) {
+      const allDiagnostics = ts
+        .getPreEmitDiagnostics(program)
+        .concat(emitResult.diagnostics);
+      allDiagnostics.forEach((diagnostic) => {
+        if (diagnostic.file) {
+          let { line, character } = ts.getLineAndCharacterOfPosition(
+            diagnostic.file,
+            diagnostic.start!,
+          );
+          let message = ts.flattenDiagnosticMessageText(
+            diagnostic.messageText,
+            "\n",
+          );
+          console.log(
+            `${diagnostic.file.fileName} (${line + 1},${
+              character + 1
+            }): ${message}`,
+          );
+        } else {
+          console.log(
+            ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
+          );
+        }
+      });
+    }
     compilerOptionsToProgram.set(optionsKey, program);
   }
 
