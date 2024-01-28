@@ -199,7 +199,7 @@ function couldBeTupleType(type: ts.ObjectType): boolean {
   return true;
 }
 
-function isConstAssertion(node: AST.TypeNode): boolean {
+export function isConstAssertion(node: AST.TypeNode): boolean {
   return (
     node.kind === SyntaxKind.TypeReference &&
     node.typeName.kind === SyntaxKind.Identifier &&

@@ -27,3 +27,4 @@ no-unsafe-member-access ✅ (strict mode only)
 no-unsafe-return ✅ (strict mode only)
 no-unsafe-unary-minus ✅
 no-useless-template-literals ✅
+non-nullable-type-assertion-style ✅
