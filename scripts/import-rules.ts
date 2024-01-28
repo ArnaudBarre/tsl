@@ -178,11 +178,12 @@ for (const rule of rules.slice(index, index + 1)) {
     plugins: ["typescript"],
     sourceType: "module",
   });
-  let options: TSType;
+  let options: TSType | undefined;
   let messages: [string, ObjectProperty["value"]][] | undefined;
   let parserServicesName: string | undefined;
   let exportName = "";
   const fnWithInjectedContext: string[] = [];
+  const tsutils: string[] = [];
   traverse(srcAST, {
     ImportDeclaration(path) {
       path.remove();
@@ -386,23 +387,35 @@ for (const rule of rules.slice(index, index + 1)) {
         path.replaceWith(path.node.arguments[0]);
         return;
       }
-      // tsutils.x() -> context.utils.x()
+      // tsutils.x() -> x() / context.utils.x()
       if (
         path.node.callee.type === "MemberExpression" &&
         path.node.callee.object.type === "Identifier" &&
         path.node.callee.object.name === "tsutils"
       ) {
-        path.node.callee.object = {
-          type: "MemberExpression",
-          object: { type: "Identifier", name: "context" },
-          property: { type: "Identifier", name: "utils" },
-          computed: false,
-        };
-        // drop checker arg
-        for (const arg of path.node.arguments) {
-          if (arg.type === "Identifier" && arg.name === "checker") {
-            path.node.arguments = path.node.arguments.filter((a) => a !== arg);
+        if (
+          path.node.arguments.some(
+            (arg) => arg.type === "Identifier" && arg.name === "checker",
+          )
+        ) {
+          path.node.callee.object = {
+            type: "MemberExpression",
+            object: { type: "Identifier", name: "context" },
+            property: { type: "Identifier", name: "utils" },
+            computed: false,
+          };
+          // drop checker arg
+          for (const arg of path.node.arguments) {
+            if (arg.type === "Identifier" && arg.name === "checker") {
+              path.node.arguments = path.node.arguments.filter(
+                (a) => a !== arg,
+              );
+            }
           }
+        } else {
+          assert(path.node.callee.property.type === "Identifier");
+          tsutils.push(path.node.callee.property.name);
+          path.node.callee = path.node.callee.property;
         }
         return;
       }
@@ -766,14 +779,14 @@ for (const rule of rules.slice(index, index + 1)) {
       if (!text.includes("{{")) {
         return [key, JSON.stringify(text)];
       }
-      const paramNames = [...text.matchAll(/\{\{\w+}}/g)].map((m) =>
+      const paramContent = [...text.matchAll(/\{\{[^}]+}}/g)].map((m) =>
         m[0].slice(2, -2),
       );
-      const params = `params: {${paramNames
-        .map((p) => `${p}: string`)
+      const params = `params: {${paramContent
+        .map((p) => `${p.trim()}: string`)
         .join(",")}}`;
-      const newValue = paramNames.reduce(
-        (acc, p) => acc.replaceAll(`{{${p}}}`, `\${params.${p}}`),
+      const newValue = paramContent.reduce(
+        (acc, p) => acc.replaceAll(`{{${p}}}`, `\${params.${p.trim()}}`),
         text.replaceAll("`", "\\`"),
       );
       return [key, `(${params}) => \`${newValue}\``];
@@ -786,17 +799,20 @@ for (const rule of rules.slice(index, index + 1)) {
     )
     .join("\n");
 
+  const tsApiUtilsImports = tsutils.length
+    ? `\nimport { ${tsutils.join(", ")} } from "ts-api-utils";`
+    : "";
   const content =
-    `import ts, { SyntaxKind, SymbolFlags } from "typescript";
+    `import ts, { SyntaxKind, SymbolFlags } from "typescript";${tsApiUtilsImports}
 import type { AST, Checker${
-      fnWithInjectedContext.length ? ", Infer" : ""
+      fnWithInjectedContext.length ? `, ${options ? "Infer" : "Context"}` : ""
     } } from "../types.ts";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 
 const messages = ${toTemplateStrings ? `{${toTemplateStrings}}` : '"extended"'}
 ${
-  fnWithInjectedContext.length
+  fnWithInjectedContext.length && options
     ? `\ntype Context = Infer<typeof ${exportName}>["Context"]`
     : ""
 }

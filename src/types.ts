@@ -2,6 +2,7 @@ import type {
   CompilerOptions,
   Node,
   Program,
+  Signature,
   TupleTypeReference,
   Type,
   TypeChecker,
@@ -59,6 +60,15 @@ export type Checker = Omit<
 > & {
   /* Fix Expression _Brand check */
   getContextualType(node: AST.Expression): Type | undefined;
+  getResolvedSignature(
+    node:
+      | AST.CallExpression
+      | AST.NewExpression
+      | AST.TaggedTemplateExpression
+      | AST.Decorator
+      | AST.JsxSelfClosingElement
+      | AST.JsxOpeningElement,
+  ): Signature | undefined;
   /* Improve narrowing, borrow from TS-ESLint */
   isArrayType(type: Type): type is TypeReference;
   isTupleType(type: Type): type is TupleTypeReference;

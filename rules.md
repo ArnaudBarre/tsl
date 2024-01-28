@@ -16,3 +16,5 @@ no-redundant-type-constituents ✅ (smarter thanks to `isTypeAssignableTo`)
 no-throw-literal ✅
 no-unnecessary-boolean-literal-compare ✅
 no-unnecessary-non-null-expression ✅ (no crazy edge case for non-strict mode)
+no-unnecessary-qualifier ❌ (please move out of TS only concept)
+no-unnecessary-type-arguments ✅
