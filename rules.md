@@ -20,3 +20,4 @@ no-unnecessary-qualifier ❌ (please move out of TS only concept)
 no-unnecessary-type-arguments ✅
 no-unnecessary-type-assertion ✅
 no-unsafe-argument ✅
+no-unsafe-assignment ✅ (strict mode only)

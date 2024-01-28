@@ -16,7 +16,10 @@ import { defineConfig } from "./public-utils.ts";
 // import { noThrowLiteral } from "./rules/no-throw-literal.ts";
 // import { noUnnecessaryBooleanLiteralCompare } from "./rules/no-unnecessary-boolean-literal-compare.ts";
 import { noUnnecessaryCondition } from "./rules/no-unnecessary-condition.ts";
-// import { noUnnecessaryNonNullExpression } from "./rules/no-unnecessary-non-null-expression.ts";
+// import { noUnnecessaryTypeArguments } from "./rules/no-unnecessary-type-arguments.ts";
+// import { noUnnecessaryTypeAssertion } from "./rules/no-unnecessary-type-assertion.ts";
+// import { noUnsafeArgument } from "./rules/no-unsafe-argument.ts";
+// import { noUnsafeAssignment } from "./rules/no-unsafe-assignment.ts";
 import type { AST, Checker, Config, Context, UnknownRule } from "./types.ts";
 import { visitorEntries } from "./visitorEntries.ts";
 
@@ -35,7 +38,10 @@ const config = defineConfig({
     // noThrowLiteral,
     // noUnnecessaryBooleanLiteralCompare,
     noUnnecessaryCondition,
-    // noUnnecessaryNonNullExpression,
+    // noUnnecessaryTypeArguments,
+    // noUnnecessaryTypeAssertion,
+    // noUnsafeArgument,
+    // noUnsafeAssignment,
   ],
   ignore: ["prisma/client.d.ts", "generated", "scripts/playground"],
   options: {

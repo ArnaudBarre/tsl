@@ -3,7 +3,7 @@ import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { typeHasFlag } from "../types-utils.ts";
-import type { AST, Infer } from "../types.ts";
+import type { AST, Checker, Infer } from "../types.ts";
 
 const messages = {
   unnecessaryAssertion:
@@ -46,7 +46,7 @@ export const noUnnecessaryTypeAssertion = createRule({
         // we know it's a nullable type
         // so figure out if the variable is used in a place that accepts nullable types
 
-        const contextualType = context.checker.getContextualType(node);
+        const contextualType = getContextualType(context.checker, node);
         if (contextualType) {
           // in strict mode you can't assign null to undefined, so we have to make sure that
           // the two types share a nullable type
@@ -205,6 +205,58 @@ function isConstAssertion(node: AST.TypeNode): boolean {
     node.typeName.kind === SyntaxKind.Identifier &&
     node.typeName.text === "const"
   );
+}
+
+/**
+ * Returns the contextual type of a given node.
+ * Contextual type is the type of the target the node is going into.
+ * i.e. the type of a called function's parameter, or the defined type of a variable declaration
+ */
+export function getContextualType(
+  checker: Checker,
+  node: AST.Expression,
+): ts.Type | undefined {
+  const parent = node.parent;
+
+  if (
+    parent.kind === SyntaxKind.CallExpression ||
+    parent.kind === SyntaxKind.NewExpression
+  ) {
+    if (node === parent.expression) {
+      // is the callee, so has no contextual type
+      return;
+    }
+  } else if (
+    parent.kind === SyntaxKind.VariableDeclaration ||
+    parent.kind === SyntaxKind.PropertyDeclaration ||
+    parent.kind === SyntaxKind.Parameter
+  ) {
+    return parent.type ? checker.getTypeFromTypeNode(parent.type) : undefined;
+  } else if (parent.kind === SyntaxKind.JsxExpression) {
+    return checker.getContextualType(parent);
+  } else if (
+    parent.kind === SyntaxKind.PropertyAssignment &&
+    node.kind === SyntaxKind.Identifier
+  ) {
+    return checker.getContextualType(node);
+  } else if (
+    parent.kind === SyntaxKind.BinaryExpression &&
+    parent.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+    parent.right === node
+  ) {
+    // is RHS of assignment
+    return checker.getTypeAtLocation(parent.left);
+  } else if (
+    ![ts.SyntaxKind.TemplateSpan, ts.SyntaxKind.JsxExpression].includes(
+      parent.kind,
+    )
+  ) {
+    // parent is not something we know we can get the contextual type of
+    return;
+  }
+  // TODO - support return statement checking
+
+  return checker.getContextualType(node);
 }
 
 export const test = () =>

@@ -1,4 +1,4 @@
-import { isSymbolFlagSet } from "ts-api-utils";
+import { isIntrinsicAnyType, isSymbolFlagSet } from "ts-api-utils";
 import ts, { type NodeArray, SyntaxKind } from "typescript";
 import type { AnyNode, TypeNode } from "../ast.ts";
 import { createRule } from "../public-utils.ts";
@@ -79,6 +79,12 @@ function checkTSArgsAndParameters(
 
   const defaultType = context.checker.getTypeAtLocation(param.default);
   const argType = context.checker.getTypeAtLocation(arg);
+  const isDefaultAny = isIntrinsicAnyType(defaultType);
+  const isArgAny = isIntrinsicAnyType(argType);
+
+  if ((isDefaultAny || isArgAny) && !(isDefaultAny && isArgAny)) {
+    return;
+  }
   if (
     context.checker.isTypeAssignableTo(argType, defaultType) &&
     context.checker.isTypeAssignableTo(defaultType, argType)
@@ -262,6 +268,13 @@ type A = Map<string, string>;
 type B<T = A> = T;
 type C2 = B<Map<string, number>>;
     `,
+      `
+function call<T = any, U = string>() {}
+const fn = <TData>() => {
+  type SlackResponse = { ok: false } | ({ ok: true } & TData);
+  const r = call<SlackResponse>();
+}
+      `,
     ],
     invalid: [
       {

@@ -2,7 +2,7 @@ import { isTypeReference } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
-import { typeHasFlag } from "../types-utils.ts";
+import { isTypeAnyArrayType, typeHasFlag } from "../types-utils.ts";
 import type { AST, Checker, Context } from "../types.ts";
 
 const messages = {
@@ -62,13 +62,7 @@ const checkNode = (
             node: argument,
             message: messages.unsafeSpread,
           });
-        } else if (
-          context.checker.isArrayType(spreadArgType) &&
-          typeHasFlag(
-            context.checker.getTypeArguments(spreadArgType)[0],
-            TypeFlags.Any,
-          )
-        ) {
+        } else if (isTypeAnyArrayType(spreadArgType, context.checker)) {
           // foo(...any[])
 
           // TODO - we could break down the spread and compare the array type against each argument
@@ -253,7 +247,7 @@ class FunctionSignature {
  *
  * @returns false if it's safe, or an object with the two types if it's unsafe
  */
-function isUnsafeAssignment(
+export function isUnsafeAssignment(
   type: ts.Type,
   receiver: ts.Type,
   checker: Checker,
