@@ -19,3 +19,4 @@ no-unnecessary-non-null-expression ✅ (no crazy edge case for non-strict mode)
 no-unnecessary-qualifier ❌ (please move out of TS only concept)
 no-unnecessary-type-arguments ✅
 no-unnecessary-type-assertion ✅
+no-unsafe-argument ✅
