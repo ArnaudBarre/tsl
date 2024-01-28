@@ -25,3 +25,4 @@ no-unsafe-call ✅ (strict mode only)
 no-unsafe-enum-comparison ❌ (please move out of TS only concept)
 no-unsafe-member-access ✅ (strict mode only)
 no-unsafe-return ✅ (strict mode only)
+no-unsafe-unary-minus ✅
