@@ -15,3 +15,13 @@ export function isTypeAnyArrayType(type: ts.Type, checker: Checker): boolean {
     typeHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Any)
   );
 }
+
+export function isTypeUnknownArrayType(
+  type: ts.Type,
+  checker: Checker,
+): boolean {
+  return (
+    checker.isArrayType(type) &&
+    typeHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Unknown)
+  );
+}

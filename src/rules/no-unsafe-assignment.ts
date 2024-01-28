@@ -3,6 +3,7 @@ import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { isTypeAnyArrayType, typeHasFlag } from "../types-utils.ts";
 import type { AST, Context } from "../types.ts";
+import { getContextualType } from "./no-unnecessary-type-assertion.ts";
 import { isUnsafeAssignment } from "./no-unsafe-argument.ts";
 
 const messages = {
@@ -352,7 +353,7 @@ function checkAssignment(
 ): boolean {
   const receiverType =
     comparisonType === "Contextual"
-      ? context.checker.getContextualType(receiverNode as AST.Expression) ??
+      ? getContextualType(context.checker, receiverNode as AST.Expression) ??
         context.checker.getTypeAtLocation(receiverNode)
       : context.checker.getTypeAtLocation(receiverNode);
   const senderType = context.checker.getTypeAtLocation(senderNode);

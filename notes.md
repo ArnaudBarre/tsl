@@ -50,3 +50,12 @@
 | JSDocNamespaceDeclaration | ModuleDeclaration        |
 | NamespaceDeclaration      | ModuleDeclaration        |
 | JsxTagNamePropertyAccess  | PropertyAccessExpression |
+
+### Random notes for TSESLint maintainers
+
+- High usage of esquery, which often lead to type assertion and becomes counterproductive in `no-unsafe-assignment`
+- In `no-unsafe-return`, the signature loop doesn't loop (don't know if this is a bug or not)
+- `isTypeFlagSet` naming clashes with the one form `ts-api-utils` but applies to union
+- In `no-unnecessary-condition`, the edge case about "array access can "infect" deeper into the chain" is wrong. `arr2[42]?.x?.y?.z;`should be`arr2[42]?.x.y.z;`
+- `no-unnecessary-condition` was re-implemented from scratch using `isTypeAssignableTo`
+-
