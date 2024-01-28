@@ -22,3 +22,5 @@ no-unnecessary-type-assertion ✅
 no-unsafe-argument ✅
 no-unsafe-assignment ✅ (strict mode only)
 no-unsafe-call ✅ (strict mode only)
+no-unsafe-enum-comparison ❌ (please move out of TS only concept)
+no-unsafe-member-access ✅ (strict mode only)
