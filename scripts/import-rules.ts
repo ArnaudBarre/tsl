@@ -681,8 +681,11 @@ for (const rule of rules.slice(index, index + 1)) {
       const codeProp = getObjectValue(path.node, "code");
       if (codeProp) {
         const errorsProp = getObjectValue(path.node, "errors");
-        const optionsProp = getObjectValue(path.node, "options");
+        let optionsProp = getObjectValue(path.node, "options");
         if (optionsProp) {
+          if (optionsProp.value.type === "TSAsExpression") {
+            optionsProp.value = optionsProp.value.expression;
+          }
           assert(
             optionsProp.value.type === "ArrayExpression",
             "options is not an array",
@@ -697,10 +700,10 @@ for (const rule of rules.slice(index, index + 1)) {
           );
           optionsProp.value = optionsProp.value.elements[0];
         }
-        path.node.properties = path.node.properties.filter(
-          (prop) =>
-            prop === codeProp || prop === errorsProp || prop === optionsProp,
-        );
+        path.node.properties = [];
+        if (optionsProp) path.node.properties.push(optionsProp);
+        path.node.properties.push(codeProp);
+        if (errorsProp) path.node.properties.push(errorsProp);
       }
 
       const messageIdProp = getObjectValue(path.node, "messageId");
@@ -748,6 +751,8 @@ for (const rule of rules.slice(index, index + 1)) {
             return expr;
           } else if (expr.type === "Identifier") {
             return getMessageExpression(expr.name);
+          } else if (expr.type === "TSAsExpression") {
+            return replaceMessageId(expr.expression);
           } else {
             throw new Error(`Unexpected expr type: ${expr.type}`);
           }

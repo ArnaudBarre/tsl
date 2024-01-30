@@ -44,6 +44,15 @@ const defaultCompilerOptions: ts.CompilerOptions = {
 
 const typeFocus = process.argv[3];
 const indexFocus = process.argv[4];
+
+export type ValidTestCase<TRule extends AnyRule> = CaseProps<TRule> | string;
+export type InvalidTestCase<TRule extends AnyRule> = CaseProps<TRule> & {
+  error?: string;
+  errors?: (
+    | { message: string; line?: number; column?: number }
+    | [message: string, line?: number, column?: number]
+  )[];
+};
 export const ruleTester = <TRule extends AnyRule>({
   rule,
   tsx,
@@ -52,14 +61,8 @@ export const ruleTester = <TRule extends AnyRule>({
 }: {
   rule: TRule;
   tsx?: boolean;
-  valid: (CaseProps<TRule> | string)[];
-  invalid: (CaseProps<TRule> & {
-    error?: string;
-    errors?: (
-      | { message: string; line?: number; column?: number }
-      | [message: string, line?: number, column?: number]
-    )[];
-  })[];
+  valid: ValidTestCase<TRule>[];
+  invalid: InvalidTestCase<TRule>[];
 }) => {
   const compilerOptionsToFiles = new Map<string, string[]>();
   const filesMap = new Map<string, string>();

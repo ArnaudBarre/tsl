@@ -30,3 +30,4 @@ no-useless-template-literals ✅
 non-nullable-type-assertion-style ✅
 prefer-destructuring ❌ (type requirement is only for the case `x[0]` which is highly stylistic)
 prefer-includes ✅ (without /baz/.test(a), requires regex parsing and can be achived wihtout type information)
+prefer-nullish-coalescing ✅ (no crazy edge case for non-strict mode)
