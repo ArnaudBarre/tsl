@@ -1,33 +1,33 @@
 # Round 1: typed rules
 
-await-thenable ✅
-consistent-type-exports ❌ (use verbatimModuleSyntax compilerOption)
-dot-notation ✅ (without options)
-naming-convention: TODO?
-no-base-to-string: ✅ (without options, only `.toString()`, see `restrict-plus-operands` and `restrict-template-expressions` for other checks)
-no-duplicate-type-constituents ❌(merged with no-redundant-type-constituents)
-no-floating-promises ✅
-no-for-in-array ✅
-no-implied-eval ✅ (do not check for global shadowing)
-no-meaningless-void-operator ✅
-no-misused-promises ✅
-no-mixed-enums ❌ (type rule only to handle cases not supported in isolatedModules)
-no-redundant-type-constituents ✅ (smarter thanks to `isTypeAssignableTo`)
-no-throw-literal ✅
-no-unnecessary-boolean-literal-compare ✅
-no-unnecessary-non-null-expression ✅ (no crazy edge case for non-strict mode)
-no-unnecessary-qualifier ❌ (please move out of TS only concept)
-no-unnecessary-type-arguments ✅
-no-unnecessary-type-assertion ✅
-no-unsafe-argument ✅
-no-unsafe-assignment ✅ (strict mode only)
-no-unsafe-call ✅ (strict mode only)
-no-unsafe-enum-comparison ❌ (please move out of TS only concept)
-no-unsafe-member-access ✅ (strict mode only)
-no-unsafe-return ✅ (strict mode only)
-no-unsafe-unary-minus ✅
-no-useless-template-literals ✅
-non-nullable-type-assertion-style ✅
-prefer-destructuring ❌ (type requirement is only for the case `x[0]` which is highly stylistic)
-prefer-includes ✅ (without /baz/.test(a), requires regex parsing and can be achived wihtout type information)
-prefer-nullish-coalescing ✅ (no crazy edge case for non-strict mode)
+- await-thenable ✅
+- consistent-type-exports ❌ (use verbatimModuleSyntax compilerOption)
+- dot-notation ✅ (without options)
+- naming-convention: TODO?
+- no-base-to-string: ✅ (without options, only `.toString()`, see `restrict-plus-operands` and `restrict-template-expressions` for other checks)
+- no-duplicate-type-constituents ❌(merged with no-redundant-type-constituents)
+- no-floating-promises ✅
+- no-for-in-array ✅
+- no-implied-eval ✅ (do not check for global shadowing)
+- no-meaningless-void-operator ✅
+- no-misused-promises ✅
+- no-mixed-enums ❌ (type rule only to handle cases not supported in isolatedModules)
+- no-redundant-type-constituents ✅ (smarter thanks to `isTypeAssignableTo`)
+- no-throw-literal ✅
+- no-unnecessary-boolean-literal-compare ✅
+- no-unnecessary-non-null-expression ✅ (no crazy edge case for non-strict mode)
+- no-unnecessary-qualifier ❌ (please move out of TS only concept)
+- no-unnecessary-type-arguments ✅
+- no-unnecessary-type-assertion ✅
+- no-unsafe-argument ✅
+- no-unsafe-assignment ✅ (strict mode only)
+- no-unsafe-call ✅ (strict mode only)
+- no-unsafe-enum-comparison ❌ (please move out of TS only concept)
+- no-unsafe-member-access ✅ (strict mode only)
+- no-unsafe-return ✅ (strict mode only)
+- no-unsafe-unary-minus ✅
+- no-useless-template-literals ✅
+- non-nullable-type-assertion-style ✅
+- prefer-destructuring ❌ (type requirement is only for the case `x[0]` which is highly stylistic)
+- prefer-includes ✅ (without /baz/.test(a), requires regex parsing and can be achieved without type information)
+- prefer-nullish-coalescing ✅ (no crazy edge case for non-strict mode)

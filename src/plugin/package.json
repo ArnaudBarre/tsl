@@ -1,0 +1,8 @@
+{
+  "name": "type-lint-plugin",
+  "private": true,
+  "main": "index.js",
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
