@@ -1,4 +1,5 @@
 /.idea
 node_modules/
-src/plugin/index.js
-type-lint-logs.txt
+dev-plugin/index.js
+dev-plugin/get-plugin.mjs
+plugin-logs.txt

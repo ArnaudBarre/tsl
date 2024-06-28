@@ -21,6 +21,6 @@
     "useUnknownInCatchVariables": true,
     "noPropertyAccessFromIndexSignature": true,
 
-    "plugins": [{ "name": "type-lint-plugin" }]
+    "plugins": [{ "name": "dev-plugin" }]
   }
 }
