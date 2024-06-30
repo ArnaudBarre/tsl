@@ -1,0 +1,12 @@
+diff --git a/lib/typescript.js b/lib/typescript.js
+index 714953f466fc451735e2d6fe3d2c96f64c3f60d4..eaca138be99732666611829ae405bdf29d8b3c19 100644
+--- a/lib/typescript.js
++++ b/lib/typescript.js
+@@ -151123,6 +151123,7 @@ function registerCodeFix(reg) {
+     }
+   }
+ }
++registerCodeFix({ errorCodes: [61333], getCodeActions: () => undefined })
+ var errorCodeToFixesArray;
+ function getSupportedErrorCodes() {
+   return errorCodeToFixesArray ?? (errorCodeToFixesArray = arrayFrom(errorCodeToFixes.keys()));

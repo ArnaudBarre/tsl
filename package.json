@@ -32,5 +32,8 @@
     "@types/react": "^18.2.48",
     "prettier": "3.0.3",
     "typescript": "^5.5.2"
+  },
+  "patchedDependencies": {
+    "typescript@5.5.2": "patches/typescript@5.5.2.patch"
   }
 }

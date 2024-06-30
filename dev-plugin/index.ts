@@ -12,8 +12,8 @@ let plugin: ReturnType<typeof getPlugin> | undefined;
 
 context({
   bundle: true,
-  entryPoints: [join(process.cwd(), "src/plugin.ts")],
-  outfile: join(process.cwd(), "dev-plugin/get-plugin.mjs"),
+  entryPoints: [join(__dirname, "../src/plugin.ts")],
+  outfile: join(__dirname, "get-plugin.mjs"),
   platform: "node",
   format: "esm",
   external: ["typescript", "esbuild", "ts-api-utils"],
@@ -67,10 +67,17 @@ const init: ts.server.PluginModuleFactory = ({ typescript: ts }) => {
       }
       log?.(`create ${info.project.getProjectName()}`);
       currentProject = { ts, info };
-      const { getSemanticDiagnostics } = info.languageService;
+      const { getSemanticDiagnostics, getCodeFixesAtPosition } =
+        info.languageService;
       info.languageService.getSemanticDiagnostics = (fileName) => {
         if (!plugin) return getSemanticDiagnostics(fileName);
         return plugin.getSemanticDiagnostics(fileName, getSemanticDiagnostics);
+      };
+      info.languageService.getCodeFixesAtPosition = (...args) => {
+        if (!plugin) return getCodeFixesAtPosition(...args);
+        const customFixes = plugin.getCodeFixesAtPosition(...args);
+        if (!customFixes.length) return getCodeFixesAtPosition(...args);
+        return [...getCodeFixesAtPosition(...args), ...customFixes];
       };
       return info.languageService;
     },
