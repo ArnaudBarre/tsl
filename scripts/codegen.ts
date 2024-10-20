@@ -455,7 +455,7 @@ writeOrCheck(
   `/** Generated **/
 export const kindToNodeTypeMap: Record<string, string> = {
 ${visitorNodes.map((n) => `  ${n.kind}: "${n.node}",`).join("\n")}
-}
+};
 `,
 );
 

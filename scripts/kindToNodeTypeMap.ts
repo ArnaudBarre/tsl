@@ -193,4 +193,4 @@ export const kindToNodeTypeMap: Record<string, string> = {
   WhileStatement: "WhileStatement",
   WithStatement: "WithStatement",
   YieldExpression: "YieldExpression",
-}
+};

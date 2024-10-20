@@ -101,13 +101,24 @@ const start = performance.now();
 
 const lint = initRules(program, config);
 for (const it of program.getSourceFiles()) {
-  lint(it as unknown as SourceFile, ({ node, message, rule }) => {
-    const { line, character } = it.getLineAndCharacterOfPosition(
-      node.getStart(),
-    );
-    console.log(
-      `${it.fileName}(${line + 1},${character + 1}): ${message} (${rule.name})`,
-    );
+  lint(it as unknown as SourceFile, (report) => {
+    if (report.type === "rule") {
+      const { line, character } = it.getLineAndCharacterOfPosition(
+        report.node.getStart(),
+      );
+      console.log(
+        `${it.fileName}(${line + 1},${character + 1}): ${report.message} (${
+          report.rule.name
+        })`,
+      );
+    } else {
+      const { line, character } = it.getLineAndCharacterOfPosition(
+        report.start,
+      );
+      console.log(
+        `${it.fileName}(${line + 1},${character + 1}): ${report.message}`,
+      );
+    }
   });
 }
 

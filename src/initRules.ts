@@ -7,8 +7,10 @@ import type {
   Config,
   Context,
   ReportDescriptor,
+  Suggestion,
   UnknownRule,
 } from "./types.ts";
+import { run } from "./utils.ts";
 import { visitorEntries } from "./visitorEntries.ts";
 
 export const initRules = (
@@ -71,24 +73,120 @@ export const initRules = (
     }
   }
 
+  let ignoreComments: {
+    start: number;
+    end: number;
+    line: number;
+    ruleName: string | undefined;
+    local: boolean;
+    used: boolean;
+  }[] = [];
+  const commentsStarts = new Set<number>();
+  let lineStarts: readonly number[] = [];
+
   const visit = (node: AST.AnyNode) => {
+    const text = node.getFullText();
+    const nodeStart = node.getFullStart();
+    ts.forEachLeadingCommentRange(text, 0, (start, end, kind) => {
+      const commentStart = nodeStart + start;
+      if (commentsStarts.has(commentStart)) return;
+      commentsStarts.add(commentStart);
+      const comment = text.slice(start + 3, end);
+      if (comment.startsWith("type-lint-ignore")) {
+        const ruleName = comment.split(" ", 2).at(1);
+        const line =
+          lineStarts.findLastIndex((lineStart) => commentStart >= lineStart) +
+          1;
+        ignoreComments.push({
+          line,
+          start: commentStart,
+          end: nodeStart + end,
+          ruleName,
+          local: kind === ts.SyntaxKind.SingleLineCommentTrivia,
+          used: false,
+        });
+      }
+    });
+
     entryMap[node.kind]?.(node);
     // @ts-expect-error
     node.forEachChild(visit);
     exitMap[node.kind]?.(node);
   };
 
+  type Report = ReportDescriptor & { type: "rule"; rule: UnknownRule };
   return (
     sourceFile: SourceFile,
-    report: (descriptor: ReportDescriptor & { rule: UnknownRule }) => void,
+    onReport: (
+      report:
+        | Report
+        | {
+            type: "ignore";
+            start: number;
+            end: number;
+            message: string;
+            suggestions: Suggestion[];
+          },
+    ) => void,
   ) => {
     if (sourceFile.fileName.includes("node_modules")) return;
     if (config.ignore?.some((p) => sourceFile.fileName.includes(p))) return;
+    const reports: Report[] = [];
     for (const { rule, context } of rulesWithOptions) {
       context.sourceFile = sourceFile;
-      context.report = (props) => report({ ...props, rule });
+      context.report = (props) => {
+        reports.push({ type: "rule", rule, ...props });
+      };
       if (rule.createData) context.data = rule.createData(context);
     }
+    ignoreComments = [];
+    commentsStarts.clear();
+    lineStarts = sourceFile.getLineStarts();
     visit(sourceFile);
+    for (const report of reports) {
+      const start = report.node.getStart();
+      const line =
+        lineStarts.findLastIndex((lineStart) => start >= lineStart) + 1;
+      const ignoreComment = ignoreComments.find((comment) => {
+        if (comment.ruleName && comment.ruleName !== report.rule.name) {
+          return false;
+        }
+        return !comment.local || comment.line === line - 1;
+      });
+      if (ignoreComment) {
+        ignoreComment.used = true;
+        continue;
+      }
+      onReport(report);
+    }
+    for (const comment of ignoreComments) {
+      if (comment.used) continue;
+      const lineStart = lineStarts[comment.line - 1];
+      const lineEnd = lineStarts.at(comment.line);
+      const { start, length } = run(() => {
+        const fileText = sourceFile.getText();
+        const lineText = fileText.slice(lineStart, lineEnd).trim();
+        const commentText = fileText.slice(comment.start, comment.end);
+        if (lineText === commentText) {
+          return {
+            start: lineStart,
+            length: (lineEnd ?? comment.end) - lineStart,
+          };
+        }
+        return { start: comment.start, length: comment.end - comment.start };
+      });
+      onReport({
+        type: "ignore",
+        start: comment.start,
+        end: comment.end,
+        message: "Unused ignore comment",
+        suggestions: [
+          {
+            title: "Remove unused ignore comment",
+            changes: [{ start, length, newText: "" }],
+          },
+        ],
+      });
+    }
   };
 };

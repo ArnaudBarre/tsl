@@ -444,7 +444,8 @@ export type PropertyName =
   | NoSubstitutionTemplateLiteral
   | NumericLiteral
   | ComputedPropertyName
-  | PrivateIdentifier;
+  | PrivateIdentifier
+  | BigIntLiteral;
 export interface Identifier extends Node {
   readonly kind: SyntaxKind.Identifier;
   readonly parent:
@@ -528,22 +529,18 @@ export interface Identifier extends Node {
     | JSDocNamespaceDeclaration
     | NamespaceExport
     | ExportSpecifier
+    | ImportSpecifier
     | BreakStatement
     | ContinueStatement
     | LabeledStatement
     | ImportClause
-    | NamespaceImport
-    | ImportSpecifier;
+    | NamespaceImport;
   /**
    * Prefer to use `id.unescapedText`. (Note: This is available only in services, not internally to the TypeScript compiler.)
    * Text of identifier, but if the identifier begins with two underscores, this will begin with three.
    */
   readonly escapedText: __String;
   readonly text: string;
-  /** @deprecated Use `idKeyword(identifier)` instead. */
-  readonly originalKeywordKind?: SyntaxKind;
-  /** @deprecated Use `.parent` or the surrounding context to determine this instead. */
-  readonly isInJSDocNamespace?: boolean;
 }
 export interface StringLiteral extends Node {
   readonly kind: SyntaxKind.StringLiteral;
@@ -608,7 +605,10 @@ export interface StringLiteral extends Node {
     | PropertyAccessExpression
     | TaggedTemplateExpression
     | Decorator
-    | ModuleDeclaration;
+    | ModuleDeclaration
+    | NamespaceExport
+    | ExportSpecifier
+    | ImportSpecifier;
   text: string;
   isUnterminated?: boolean;
   hasExtendedUnicodeEscape?: boolean;
@@ -678,6 +678,22 @@ export interface PrivateIdentifier extends Node {
     | JsxTagNamePropertyAccess;
   readonly escapedText: __String;
   readonly text: string;
+}
+export interface BigIntLiteral extends Node {
+  readonly kind: SyntaxKind.BigIntLiteral;
+  readonly parent:
+    | LeftHandSideExpressionParent
+    | TypeElement
+    | FunctionOrConstructorTypeNodeBase
+    | JSDocFunctionType
+    | MethodDeclaration
+    | ConstructorDeclaration
+    | SemicolonClassElement
+    | ClassStaticBlockDeclaration
+    | LiteralTypeNode;
+  text: string;
+  isUnterminated?: boolean;
+  hasExtendedUnicodeEscape?: boolean;
 }
 export interface TypeParameterDeclaration extends Node {
   readonly kind: SyntaxKind.TypeParameter;
@@ -1141,13 +1157,6 @@ export type LiteralExpression =
   | BigIntLiteral;
 export interface RegularExpressionLiteral extends Node {
   readonly kind: SyntaxKind.RegularExpressionLiteral;
-  readonly parent: LeftHandSideExpressionParent | LiteralTypeNode;
-  text: string;
-  isUnterminated?: boolean;
-  hasExtendedUnicodeEscape?: boolean;
-}
-export interface BigIntLiteral extends Node {
-  readonly kind: SyntaxKind.BigIntLiteral;
   readonly parent: LeftHandSideExpressionParent | LiteralTypeNode;
   text: string;
   isUnterminated?: boolean;
@@ -2159,8 +2168,9 @@ export type NamedExportBindings = NamespaceExport | NamedExports;
 export interface NamespaceExport extends Node {
   readonly kind: SyntaxKind.NamespaceExport;
   readonly parent: ExportDeclaration;
-  readonly name: Identifier;
+  readonly name: ModuleExportName;
 }
+export type ModuleExportName = Identifier | StringLiteral;
 export interface NamedExports extends Node {
   readonly kind: SyntaxKind.NamedExports;
   readonly parent: ExportDeclaration;
@@ -2170,8 +2180,8 @@ export interface ExportSpecifier extends Node {
   readonly kind: SyntaxKind.ExportSpecifier;
   readonly parent: NamedExports;
   readonly isTypeOnly: boolean;
-  readonly propertyName?: Identifier;
-  readonly name: Identifier;
+  readonly propertyName?: ModuleExportName;
+  readonly name: ModuleExportName;
 }
 export interface ExportAssignment extends Node {
   readonly kind: SyntaxKind.ExportAssignment;
@@ -2364,7 +2374,7 @@ export interface NamedImports extends Node {
 export interface ImportSpecifier extends Node {
   readonly kind: SyntaxKind.ImportSpecifier;
   readonly parent: NamedImports;
-  readonly propertyName?: Identifier;
+  readonly propertyName?: ModuleExportName;
   readonly name: Identifier;
   readonly isTypeOnly: boolean;
 }

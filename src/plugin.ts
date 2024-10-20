@@ -4,8 +4,6 @@ import { initRules } from "./initRules.ts";
 import { defineConfig } from "./public-utils.ts";
 import type { Suggestion } from "./types.ts";
 
-const TYPE_LINT_ERROR_CODE = 61_333;
-
 export const getPlugin = (
   ts: typeof import("typescript"),
   languageService: LanguageService,
@@ -32,7 +30,7 @@ export const getPlugin = (
                 message: "Unexpected console usage",
                 suggestions: [
                   {
-                    title: "Remove the call",
+                    title: "Remove the log",
                     changes: [{ node: node.parent, newText: "" }],
                   },
                 ],
@@ -45,12 +43,96 @@ export const getPlugin = (
   });
   const lint = initRules(languageService.getProgram()!, config);
 
-  type FileSuggestions = (Suggestion & {
+  type FileSuggestion = Suggestion & {
     rule: string;
     start: number;
     end: number;
-  })[];
-  const suggestionsMap = new Map<string, FileSuggestions>();
+  };
+
+  const runLint = (fileName: string) => {
+    const diagnostics: Diagnostic[] = [];
+    const fileSuggestions: FileSuggestion[] = [];
+    const result = { diagnostics, fileSuggestions };
+
+    if (fileName.includes("/node_modules/")) return result;
+    const program = languageService.getProgram();
+    const sourceFile = program?.getSourceFile(fileName);
+    if (!sourceFile) {
+      log?.("No sourceFile");
+      return result;
+    }
+
+    lint(sourceFile as unknown as SourceFile, (report) => {
+      if (report.type === "rule") {
+        const { node, message, rule, suggestions } = report;
+        const start = node.getStart();
+        const end = node.getEnd();
+        diagnostics.push({
+          category: ts.DiagnosticCategory.Warning,
+          source: "type-lint",
+          code: 61_333,
+          messageText: `${message} (${rule.name})`,
+          file: sourceFile,
+          start,
+          length: end - start,
+        });
+        if (suggestions?.length) {
+          for (const suggestion of suggestions) {
+            fileSuggestions.push({
+              rule: rule.name,
+              start,
+              end,
+              title: suggestion.title,
+              changes: suggestion.changes,
+            });
+          }
+        }
+        const lineStart = sourceFile
+          .getLineStarts()
+          .findLast((it) => it <= start)!;
+        let nbSpaces = 0;
+        while (sourceFile.text[lineStart + nbSpaces] === " ") nbSpaces++;
+        fileSuggestions.push({
+          rule: rule.name,
+          start,
+          end,
+          title: `Ignore ${rule.name} rule`,
+          changes: [
+            {
+              start: lineStart,
+              length: 0,
+              newText: `${" ".repeat(nbSpaces)}// type-lint-ignore ${
+                rule.name
+              }\n`,
+            },
+          ],
+        });
+      } else {
+        const { message, suggestions, start, end } = report;
+        diagnostics.push({
+          category: ts.DiagnosticCategory.Warning,
+          source: "type-lint",
+          code: 61_333,
+          messageText: message,
+          file: sourceFile,
+          start,
+          length: end - start,
+        });
+        if (suggestions.length) {
+          for (const suggestion of suggestions) {
+            fileSuggestions.push({
+              rule: "ignore",
+              start,
+              end,
+              title: suggestion.title,
+              changes: suggestion.changes,
+            });
+          }
+        }
+      }
+    });
+    return result;
+  };
 
   return {
     getSemanticDiagnostics: (
@@ -58,48 +140,15 @@ export const getPlugin = (
       original: LanguageService["getSemanticDiagnostics"],
     ) => {
       const result = original(fileName);
-      if (fileName.includes("/node_modules/")) return result;
-      const program = languageService.getProgram();
-      const sourceFile = program?.getSourceFile(fileName);
-      if (!sourceFile) {
-        log?.("No sourceFile");
-        return result;
-      }
-      const fileSuggestions: FileSuggestions = [];
-      suggestionsMap.set(sourceFile.fileName, fileSuggestions);
-      lint(
-        sourceFile as unknown as SourceFile,
-        ({ node, message, rule, suggestions }) => {
-          result.push({
-            category: ts.DiagnosticCategory.Warning,
-            source: "type-lint",
-            code: TYPE_LINT_ERROR_CODE,
-            messageText: `${message} (${rule.name})`,
-            file: sourceFile,
-            start: node.getStart(),
-            length: node.getEnd() - node.getStart(),
-          });
-          if (suggestions?.length) {
-            for (const suggestion of suggestions) {
-              fileSuggestions.push({
-                rule: rule.name,
-                start: node.getStart(),
-                end: node.getEnd(),
-                title: suggestion.title,
-                changes: suggestion.changes,
-              });
-            }
-          }
-        },
-      );
-      return result;
+      const { diagnostics } = runLint(fileName);
+      if (!diagnostics.length) return result;
+      return [...result, ...diagnostics];
     },
-    getCodeFixesAtPosition: (fileName, start, end, errorCodes) => {
-      if (errorCodes[0] !== TYPE_LINT_ERROR_CODE) return [];
-      const suggestions = suggestionsMap.get(fileName);
-      if (!suggestions) return [];
+    getCodeFixesAtPosition: (fileName, start, end) => {
+      const { fileSuggestions } = runLint(fileName);
+      if (!fileSuggestions) return [];
       const result: CodeFixAction[] = [];
-      for (const suggestion of suggestions) {
+      for (const suggestion of fileSuggestions) {
         if (
           (suggestion.start >= start && suggestion.start <= end) ||
           (suggestion.end >= start && suggestion.end <= end) ||

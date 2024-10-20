@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "postinstall": "cd dev-plugin && bun link && cd .. && bun link dev-plugin --ignore-scripts",
-    "dev": "esbuild --bundle dev-plugin/index.ts --outfile=dev-plugin/index.js --platform=node --format=cjs --external:typescript --external:esbuild --external:ts-api-utils --watch",
+    "postinstall": "patch-package && cd dev-plugin && bun link && cd .. && bun link dev-plugin --ignore-scripts",
+    "dev": "esbuild --bundle dev-plugin/index.ts --outfile=dev-plugin/index.js --platform=node --format=cjs --external:typescript --external:esbuild --watch",
     "codegen": "bun scripts/codegen.ts",
     "prettier-all": "bun prettier-ci --write",
     "prettier-ci": "prettier --cache --check '**/*.{ts,json,md,yml}'",
@@ -16,24 +16,22 @@
     ]
   },
   "peerDependencies": {
-    "typescript": "^5.5.2"
+    "typescript": "^5.6.2"
   },
   "dependencies": {
-    "esbuild": "^0.21.5",
+    "esbuild": "^0.24.0",
     "ts-api-utils": "^1.3.0"
   },
   "devDependencies": {
     "@arnaud-barre/prettier-plugin-sort-imports": "^0.1.3",
-    "@babel/parser": "^7.23.6",
-    "@babel/traverse": "^7.23.6",
+    "@babel/parser": "^7.25.7",
+    "@babel/traverse": "^7.25.7",
     "@types/babel__generator": "^7.6.8",
-    "@types/babel__traverse": "^7.20.4",
-    "@types/bun": "^1.0.0",
-    "@types/react": "^18.2.48",
+    "@types/babel__traverse": "^7.20.6",
+    "@types/bun": "^1.1.10",
+    "@types/react": "^18.3.11",
+    "patch-package": "^8.0.0",
     "prettier": "3.0.3",
-    "typescript": "^5.5.2"
-  },
-  "patchedDependencies": {
-    "typescript@5.5.2": "patches/typescript@5.5.2.patch"
+    "typescript": "5.6.2"
   }
 }

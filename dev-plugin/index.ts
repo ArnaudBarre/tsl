@@ -2,11 +2,10 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { context } from "esbuild";
 import type * as ts from "typescript";
-import type { server } from "typescript";
 import type { getPlugin } from "../src/plugin.ts";
 
 let currentProject:
-  | { ts: typeof ts; info: server.PluginCreateInfo }
+  | { ts: typeof ts; info: ts.server.PluginCreateInfo }
   | undefined;
 let plugin: ReturnType<typeof getPlugin> | undefined;
 
@@ -49,7 +48,7 @@ context({
   ],
 }).then((ctx) => ctx.watch());
 
-const logs: string[] = [`Start at ${new Date()}`];
+const logs: string[] = [`Start at ${new Date().toISOString()}`];
 let logPath: string | undefined;
 const log = (v: string) => {
   logs.push(v);
@@ -65,7 +64,9 @@ const init: ts.server.PluginModuleFactory = ({ typescript: ts }) => {
           "plugin-logs.txt",
         );
       }
-      log?.(`create ${info.project.getProjectName()}`);
+      log?.(
+        `Create ${info.project.getProjectName()} (${info.project.projectKind})`,
+      );
       currentProject = { ts, info };
       const { getSemanticDiagnostics, getCodeFixesAtPosition } =
         info.languageService;
@@ -74,10 +75,9 @@ const init: ts.server.PluginModuleFactory = ({ typescript: ts }) => {
         return plugin.getSemanticDiagnostics(fileName, getSemanticDiagnostics);
       };
       info.languageService.getCodeFixesAtPosition = (...args) => {
-        if (!plugin) return getCodeFixesAtPosition(...args);
-        const customFixes = plugin.getCodeFixesAtPosition(...args);
-        if (!customFixes.length) return getCodeFixesAtPosition(...args);
-        return [...getCodeFixesAtPosition(...args), ...customFixes];
+        return args[3][0] === 61333
+          ? plugin?.getCodeFixesAtPosition(...args) ?? []
+          : getCodeFixesAtPosition(...args);
       };
       return info.languageService;
     },
