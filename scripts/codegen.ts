@@ -244,7 +244,7 @@ const visitType = (name: string): void => {
               throw new Error(
                 `Unexpected type ${
                   typeNode.type.kind
-                } for ${name}.${m.name?.getText()}`,
+                } for ${name}.${m.name.getText()}`,
               );
             }
           } else if (
@@ -453,7 +453,7 @@ writeOrCheck(
 writeOrCheck(
   "scripts/kindToNodeTypeMap.ts",
   `/** Generated **/
-export const kindToNodeTypeMap: Record<string, string> = {
+export const kindToNodeTypeMap: Record<string, string | undefined> = {
 ${visitorNodes.map((n) => `  ${n.kind}: "${n.node}",`).join("\n")}
 };
 `,

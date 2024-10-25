@@ -132,6 +132,7 @@ function getParentFunctionNode(
   node: AST.AnyNode,
 ): AST.ArrowFunction | AST.FunctionDeclaration | AST.FunctionExpression | null {
   let current = node.parent;
+  // type-lint-ignore no-unnecessary-condition
   while (current) {
     if (
       current.kind === SyntaxKind.ArrowFunction ||

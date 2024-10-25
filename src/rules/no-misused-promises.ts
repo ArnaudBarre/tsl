@@ -2,9 +2,13 @@
 import { isTypeFlagSet, unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
+import {
+  isAssignmentExpression,
+  isLogicalExpression,
+  run,
+} from "../rules-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Infer } from "../types.ts";
-import { isAssignmentExpression, isLogicalExpression, run } from "../utils.ts";
 
 interface ChecksVoidReturnOptions {
   arguments?: boolean;
@@ -73,18 +77,16 @@ export const noMisusedPromises = createRule({
     const conditionalChecks: RuleVisitor = options.checksConditionals
       ? {
           ConditionalExpression(node, context) {
-            if (node.condition) checkConditional(node.condition, true, context);
+            checkConditional(node.condition, true, context);
           },
           DoStatement(node, context) {
-            if (node.expression)
-              checkConditional(node.expression, true, context);
+            checkConditional(node.expression, true, context);
           },
           ForStatement(node, context) {
             if (node.condition) checkConditional(node.condition, true, context);
           },
           IfStatement(node, context) {
-            if (node.expression)
-              checkConditional(node.expression, true, context);
+            checkConditional(node.expression, true, context);
           },
           BinaryExpression(node, context) {
             if (isLogicalExpression(node.operatorToken)) {
@@ -95,8 +97,7 @@ export const noMisusedPromises = createRule({
             checkConditional(node.operand, true, context);
           },
           WhileStatement(node, context) {
-            if (node.expression)
-              checkConditional(node.expression, true, context);
+            checkConditional(node.expression, true, context);
           },
         }
       : {};
@@ -139,8 +140,8 @@ export const noMisusedPromises = createRule({
       ...voidReturnChecks,
       ...spreadChecks,
       BinaryExpression(node, context) {
-        conditionalChecks?.BinaryExpression?.(node, context);
-        voidReturnChecks?.BinaryExpression?.(node, context);
+        conditionalChecks.BinaryExpression?.(node, context);
+        voidReturnChecks.BinaryExpression?.(node, context);
       },
     };
   },

@@ -480,7 +480,7 @@ for (const rule of rules.slice(index, index + 1)) {
         path.node.left.name = path.node.right.name === "Node" ? "ts" : "AST";
         path.node.right.name = estreeToTSTree[path.node.right.name]
           ? kindToNodeTypeMap[estreeToTSTree[path.node.right.name]!] ??
-            estreeToTSTree[path.node.right.name]
+            estreeToTSTree[path.node.right.name]!
           : path.node.right.name;
         return;
       }

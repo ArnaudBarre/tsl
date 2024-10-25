@@ -9,10 +9,10 @@ import {
 } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
+import { isLiteralKind, isLogicalExpression } from "../rules-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { typeHasFlag } from "../types-utils.ts";
 import type { AST, Context as ContextGeneric } from "../types.ts";
-import { isLiteralKind, isLogicalExpression } from "../utils.ts";
 
 const messages = {
   alwaysTruthy: "Unnecessary conditional, value is always truthy.",

@@ -188,7 +188,6 @@ export const ruleTester = <TRule extends AnyRule>({
   for (const caseProps of cases) {
     const options = rule.parseOptions?.(caseProps.options);
     const program = compilerOptionsToProgram.get(caseProps.compilerOptionsKey)!;
-    const checker = program.getTypeChecker() as unknown as Checker;
     const compilerOptions = program.getCompilerOptions();
     const visitor =
       typeof rule.visitor === "function" ? rule.visitor(options) : rule.visitor;
@@ -202,9 +201,11 @@ export const ruleTester = <TRule extends AnyRule>({
     > = {
       sourceFile,
       program,
-      checker,
+      get checker() {
+        return program.getTypeChecker() as unknown as Checker;
+      },
       compilerOptions,
-      utils: getContextUtils(checker),
+      utils: getContextUtils(() => program),
       report(descriptor) {
         reports.push(descriptor);
       },

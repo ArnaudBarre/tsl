@@ -1,5 +1,5 @@
 /** Generated **/
-export const kindToNodeTypeMap: Record<string, string> = {
+export const kindToNodeTypeMap: Record<string, string | undefined> = {
   AnyKeyword: "AnyKeyword",
   ArrayBindingPattern: "ArrayBindingPattern",
   ArrayLiteralExpression: "ArrayLiteralExpression",

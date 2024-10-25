@@ -101,7 +101,7 @@ function getTypeParametersFromType(
   if (!symAtLocation) return;
 
   const sym = getAliasedSymbol(symAtLocation, context);
-  const declarations = sym.getDeclarations() as AnyNode[];
+  const declarations = sym.getDeclarations() as AnyNode[] | undefined;
 
   if (!declarations) return;
 

@@ -1,6 +1,7 @@
 import ts from "typescript";
 import type { AnyNode, SourceFile, Visitor } from "./ast.ts";
 import { getContextUtils } from "./getContextUtils.ts";
+import { run } from "./rules-utils.ts";
 import type {
   AST,
   Checker,
@@ -10,16 +11,13 @@ import type {
   Suggestion,
   UnknownRule,
 } from "./types.ts";
-import { run } from "./utils.ts";
 import { visitorEntries } from "./visitorEntries.ts";
 
 export const initRules = (
-  program: ts.Program,
+  getProgram: () => ts.Program,
   config: Config<UnknownRule[]>,
 ) => {
-  const checker = program.getTypeChecker() as unknown as Checker;
-  const compilerOptions = program.getCompilerOptions();
-  const contextUtils = getContextUtils(checker);
+  const contextUtils = getContextUtils(getProgram);
 
   const rulesWithOptions: {
     rule: UnknownRule;
@@ -34,9 +32,15 @@ export const initRules = (
       rule,
       context: {
         sourceFile: undefined as unknown as SourceFile,
-        program,
-        checker,
-        compilerOptions,
+        get program() {
+          return getProgram();
+        },
+        get checker() {
+          return getProgram().getTypeChecker() as unknown as Checker;
+        },
+        get compilerOptions() {
+          return getProgram().getCompilerOptions();
+        },
         utils: contextUtils,
         report: undefined as unknown as (descriptor: ReportDescriptor) => void,
         options,

@@ -22,8 +22,6 @@ export const noThrowLiteral = createRule({
   }),
   visitor: {
     ThrowStatement({ expression: node }, context) {
-      if (!node) return;
-
       if (
         node.kind === SyntaxKind.AwaitExpression ||
         node.kind === SyntaxKind.YieldExpression

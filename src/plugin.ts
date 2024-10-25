@@ -1,47 +1,22 @@
 import type { CodeFixAction, Diagnostic, LanguageService } from "typescript";
 import type { SourceFile } from "./ast.ts";
 import { initRules } from "./initRules.ts";
-import { defineConfig } from "./public-utils.ts";
+import { loadConfig } from "./loadConfig.ts";
 import type { Suggestion } from "./types.ts";
 
-export const getPlugin = (
+export const getPlugin = async (
   ts: typeof import("typescript"),
   languageService: LanguageService,
   log?: (v: string) => void,
-): {
+): Promise<{
   getSemanticDiagnostics(
     fileName: string,
     original: LanguageService["getSemanticDiagnostics"],
   ): Diagnostic[];
   getCodeFixesAtPosition: LanguageService["getCodeFixesAtPosition"];
-} => {
-  const config = defineConfig({
-    rules: [
-      {
-        name: "no-console",
-        visitor: {
-          PropertyAccessExpression(node, context) {
-            if (
-              node.expression.kind === ts.SyntaxKind.Identifier &&
-              node.expression.text === "console"
-            ) {
-              context.report({
-                node,
-                message: "Unexpected console usage",
-                suggestions: [
-                  {
-                    title: "Remove the log",
-                    changes: [{ node: node.parent, newText: "" }],
-                  },
-                ],
-              });
-            }
-          },
-        },
-      },
-    ],
-  });
-  const lint = initRules(languageService.getProgram()!, config);
+}> => {
+  const config = await loadConfig(languageService.getProgram()!);
+  const lint = initRules(() => languageService.getProgram()!, config, log);
 
   type FileSuggestion = Suggestion & {
     rule: string;
@@ -55,8 +30,7 @@ export const getPlugin = (
     const result = { diagnostics, fileSuggestions };
 
     if (fileName.includes("/node_modules/")) return result;
-    const program = languageService.getProgram();
-    const sourceFile = program?.getSourceFile(fileName);
+    const sourceFile = languageService.getProgram()?.getSourceFile(fileName);
     if (!sourceFile) {
       log?.("No sourceFile");
       return result;
@@ -146,7 +120,6 @@ export const getPlugin = (
     },
     getCodeFixesAtPosition: (fileName, start, end) => {
       const { fileSuggestions } = runLint(fileName);
-      if (!fileSuggestions) return [];
       const result: CodeFixAction[] = [];
       for (const suggestion of fileSuggestions) {
         if (

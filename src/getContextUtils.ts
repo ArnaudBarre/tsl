@@ -1,11 +1,11 @@
 import { unionTypeParts } from "ts-api-utils";
-import ts from "typescript";
-import type { Checker } from "./types.ts";
+import ts, { type Program } from "typescript";
 
 /* Credits: ts-api-utils, @typescript-eslint */
 export type ContextUtils = ReturnType<typeof getContextUtils>;
-export const getContextUtils = (checker: Checker) => ({
+export const getContextUtils = (getProgram: () => Program) => ({
   isThenableType(node: ts.Node, type: ts.Type): boolean {
+    const checker = getProgram().getTypeChecker();
     for (const typePart of unionTypeParts(checker.getApparentType(type))) {
       const then = typePart.getProperty("then");
       if (!then) continue;
@@ -35,6 +35,7 @@ export const getContextUtils = (checker: Checker) => ({
     return false;
   },
   getConstrainedTypeAtLocation(node: ts.Node): ts.Type {
+    const checker = getProgram().getTypeChecker();
     const nodeType = checker.getTypeAtLocation(node);
     return checker.getBaseConstraintOfType(nodeType) ?? nodeType;
   },

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "patch-package && cd dev-plugin && bun link && cd .. && bun link dev-plugin --ignore-scripts",
-    "dev": "esbuild --bundle dev-plugin/index.ts --outfile=dev-plugin/index.js --platform=node --format=cjs --external:typescript --external:esbuild --watch",
+    "dev": "esbuild --bundle dev-plugin/index.ts --outfile=dev-plugin/index.js --platform=node --format=cjs --external:esbuild --watch",
     "codegen": "bun scripts/codegen.ts",
     "prettier-all": "bun prettier-ci --write",
     "prettier-ci": "prettier --cache --check '**/*.{ts,json,md,yml}'",
@@ -16,7 +16,7 @@
     ]
   },
   "peerDependencies": {
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.3"
   },
   "dependencies": {
     "esbuild": "^0.24.0",
@@ -32,6 +32,6 @@
     "@types/react": "^18.3.11",
     "patch-package": "^8.0.0",
     "prettier": "3.0.3",
-    "typescript": "5.6.2"
+    "typescript": "5.6.3"
   }
 }

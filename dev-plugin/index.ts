@@ -7,7 +7,7 @@ import type { getPlugin } from "../src/plugin.ts";
 let currentProject:
   | { ts: typeof ts; info: ts.server.PluginCreateInfo }
   | undefined;
-let plugin: ReturnType<typeof getPlugin> | undefined;
+let plugin: Awaited<ReturnType<typeof getPlugin>> | undefined;
 
 context({
   bundle: true,
@@ -31,7 +31,7 @@ context({
             if (!currentProject) {
               log("get-plugin loaded before plugin start");
             } else {
-              plugin = module.getPlugin(
+              plugin = await module.getPlugin(
                 currentProject.ts,
                 currentProject.info.languageService,
                 log,
@@ -64,7 +64,7 @@ const init: ts.server.PluginModuleFactory = ({ typescript: ts }) => {
           "plugin-logs.txt",
         );
       }
-      log?.(
+      log(
         `Create ${info.project.getProjectName()} (${info.project.projectKind})`,
       );
       currentProject = { ts, info };

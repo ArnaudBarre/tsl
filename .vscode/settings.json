@@ -1,3 +1,5 @@
 {
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.tsserver.nodePath": "~/.bun/bin/bun",
+  "typescript.tsserver.experimental.enableProjectDiagnostics": true
 }
