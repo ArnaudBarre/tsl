@@ -52,7 +52,7 @@ allDiagnostics.forEach((diagnostic) => {
 
 const start = performance.now();
 
-const config = await loadConfig(program);
+const { config } = await loadConfig(program);
 console.log(`Config loaded in ${(performance.now() - start).toFixed(2)}ms`);
 
 const lint = initRules(() => program, config);

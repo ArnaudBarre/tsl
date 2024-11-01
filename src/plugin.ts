@@ -1,3 +1,4 @@
+import { type FSWatcher, watch } from "node:fs";
 import type { CodeFixAction, Diagnostic, LanguageService } from "typescript";
 import type { SourceFile } from "./ast.ts";
 import { initRules } from "./initRules.ts";
@@ -14,9 +15,31 @@ export const getPlugin = async (
     original: LanguageService["getSemanticDiagnostics"],
   ): Diagnostic[];
   getCodeFixesAtPosition: LanguageService["getCodeFixesAtPosition"];
+  cleanUp(): void;
 }> => {
-  const config = await loadConfig(languageService.getProgram()!);
-  const lint = initRules(() => languageService.getProgram()!, config, log);
+  const watchedFiles = new Map<string, FSWatcher>();
+  let lint: ReturnType<typeof initRules>;
+
+  const load = async () => {
+    const start = performance.now();
+    const { config, configFiles } = await loadConfig(
+      languageService.getProgram()!,
+    );
+    for (const watchedFile in watchedFiles) {
+      if (!configFiles.includes(watchedFile)) {
+        watchedFiles.get(watchedFile)!.close();
+        watchedFiles.delete(watchedFile);
+      }
+    }
+    for (const configFile of configFiles) {
+      if (!watchedFiles.has(configFile)) {
+        watchedFiles.set(configFile, watch(configFile, load));
+      }
+    }
+    lint = initRules(() => languageService.getProgram()!, config);
+    log?.(`Config loaded in ${(performance.now() - start).toFixed(2)}ms`);
+  };
+  await load();
 
   type FileSuggestion = Suggestion & {
     rule: string;
@@ -159,6 +182,9 @@ export const getPlugin = async (
         }
       }
       return result;
+    },
+    cleanUp() {
+      for (const [, watcher] of watchedFiles) watcher.close();
     },
   };
 };
