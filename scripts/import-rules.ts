@@ -1,5 +1,5 @@
 import assert from "node:assert";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import generate from "@babel/generator";
 import * as parser from "@babel/parser";
 import traverse from "@babel/traverse";
@@ -16,71 +16,121 @@ import type {
 import { format } from "prettier";
 import { kindToNodeTypeMap } from "./kindToNodeTypeMap.ts";
 
-const rules = [
-  "await-thenable",
-  "consistent-type-exports",
+const allTypedRules = {
+  "await-thenable": true,
+  "consistent-return": "use noImplicitReturns compilerOption",
+  "consistent-type-exports": "use verbatimModuleSyntax compilerOption",
+  "dot-notation": true, // without options
+  "naming-convention": "styling is out of core",
+  "no-array-delete": true,
+  "no-base-to-string": true, // without options, only `.toString()`, see `restrict-plus-operands` and `restrict-template-expressions` for other checks
+  "no-confusing-void-expression": true,
+  "no-deprecated": true,
+  "no-duplicate-type-constituents":
+    "merged with no-redundant-type-constituents",
+  "no-floating-promises": true,
+  "no-for-in-array": true,
+  "no-implied-eval": true, // do not check for global shadowing
+  "no-meaningless-void-operator": true,
+  "no-misused-promises": true,
+  "no-mixed-enums": true, // type rule only to handle cases not supported in isolatedModules
+  "no-redundant-type-constituents": true, // smarter thanks to `isTypeAssignableTo`
+  "no-unnecessary-boolean-literal-compare": true,
+  "no-unnecessary-condition": true,
+  "no-unnecessary-qualifier": "please move out of TS only concept",
+  "no-unnecessary-template-expression": true,
+  "no-unnecessary-type-arguments": true,
+  "no-unnecessary-type-assertion": true,
+  "no-unnecessary-type-parameters": true,
+  "no-unsafe-argument": true,
+  "no-unsafe-assignment": true, // strict mode only
+  "no-unsafe-call": true, // strict mode only
+  "no-unsafe-enum-comparison": "please move out of TS only concept",
+  "no-unsafe-member-access": true, // strict mode only
+  "no-unsafe-return": true, // strict mode only
+  "no-unsafe-unary-minus": true,
+  "non-nullable-type-assertion-style": true,
+  "only-throw-error": true,
+  "prefer-destructuring": "styling is out of core",
+  "prefer-find": true,
+  "prefer-includes": true, // without /baz/.test(a), requires regex parsing and can be achieved without type information
+  "prefer-nullish-coalescing": true, // strict mode only
+  "prefer-optional-chain": true,
+  "prefer-promise-reject-errors": true,
+  "prefer-readonly": true,
+  "prefer-readonly-parameter-types": true,
+  "prefer-reduce-type-parameter": true,
+  "prefer-regexp-exec": "small regex optimization are out of core",
+  "prefer-return-this-type": true,
+  "prefer-string-starts-ends-with": true,
+  "promise-function-async": true,
+  "require-array-sort-compare": true,
+  "require-await": true,
+  "restrict-plus-operands": true,
+  "restrict-template-expressions": true,
+  "return-await": true,
+  "strict-boolean-expressions": true,
+  "switch-exhaustiveness-check": true,
+  "unbound-method": "Out of scope, OOP edge cases are out of core",
+  "use-unknown-in-catch-callback-variable": "use global types instead",
+} satisfies Record<string, true | string>;
+
+const extensionsRules = [
+  "consistent-return",
   "dot-notation",
-  "naming-convention",
-  "no-base-to-string",
+  "no-implied-eval",
+  "only-throw-error",
+  "prefer-destructuring",
+  "prefer-promise-reject-errors",
+  "require-await",
+  "return-await",
+];
+
+const usedRules: (keyof typeof allTypedRules)[] = [
+  "await-thenable",
+  "dot-notation",
+  "no-array-delete",
   "no-confusing-void-expression",
-  "no-duplicate-type-constituents",
   "no-floating-promises",
   "no-for-in-array",
   "no-implied-eval",
   "no-meaningless-void-operator",
   "no-misused-promises",
-  "no-mixed-enums",
   "no-redundant-type-constituents",
-  "no-throw-literal",
-  "no-unnecessary-boolean-literal-compare",
   "no-unnecessary-condition",
-  "no-unnecessary-qualifier",
+  "no-unnecessary-template-expression",
   "no-unnecessary-type-arguments",
   "no-unnecessary-type-assertion",
-  "no-unsafe-argument",
-  "no-unsafe-assignment",
-  "no-unsafe-call",
-  "no-unsafe-enum-comparison",
-  "no-unsafe-member-access",
-  "no-unsafe-return",
   "no-unsafe-unary-minus",
-  "no-useless-template-literals",
   "non-nullable-type-assertion-style",
-  "prefer-destructuring",
+  "only-throw-error",
+  "prefer-find",
   "prefer-includes",
   "prefer-nullish-coalescing",
   "prefer-optional-chain",
-  "prefer-readonly",
-  "prefer-readonly-parameter-types",
+  "prefer-promise-reject-errors",
   "prefer-reduce-type-parameter",
-  "prefer-regexp-exec",
   "prefer-return-this-type",
   "prefer-string-starts-ends-with",
-  "promise-function-async",
-  "require-array-sort-compare",
   "require-await",
   "restrict-plus-operands",
   "restrict-template-expressions",
   "return-await",
-  "strict-boolean-expressions",
   "switch-exhaustiveness-check",
-  "unbound-method",
-];
+] as const;
+
+const firstIterationRules = readdirSync("src/rules-2024-01");
 
 const kebabCaseToCamelCase = (str: string) =>
   str.replace(/-([a-z])/gu, (_, c) => c.toUpperCase());
 
-const getObjectValue = (node: ObjectExpression, name: string) => {
-  const prop = node.properties.find(
+const getObjectValue = (node: ObjectExpression, name: string) =>
+  node.properties.find(
     (p): p is ObjectProperty =>
       p.type === "ObjectProperty" &&
       p.key.type === "Identifier" &&
       p.key.name === name,
   );
-  return prop;
-};
-
-const extensionsRules = ["dot-notation", "prefer-destructuring"];
 
 const estreeToTSTree: Record<
   string,
@@ -166,9 +216,10 @@ const astNodes = Object.values(kindToNodeTypeMap);
 
 const index = Number(process.argv[2]);
 
-for (const rule of rules.slice(index, index + 1)) {
+for (const rule of usedRules.slice(index, index + 1)) {
   const filename = `${rule}.ts`;
-  console.log(rule);
+  const inFirstIteration = firstIterationRules.includes(filename);
+  console.log(rule, { inFirstIteration });
   const srcContent = readFileSync(
     `../typescript-eslint/packages/eslint-plugin/src/rules/${filename}`,
     "utf-8",
@@ -758,16 +809,16 @@ for (const rule of rules.slice(index, index + 1)) {
           }
         };
         messageIdProp.value = replaceMessageId(messageIdProp.value);
-        const nodeProp = getObjectValue(path.node, "node");
-        const lineProp = getObjectValue(path.node, "line");
-        const columnProp = getObjectValue(path.node, "column");
-        path.node.properties = path.node.properties.filter(
-          (prop) =>
-            prop === messageIdProp ||
-            prop === nodeProp ||
-            prop === lineProp ||
-            prop === columnProp,
-        );
+        // const nodeProp = getObjectValue(path.node, "node");
+        // const lineProp = getObjectValue(path.node, "line");
+        // const columnProp = getObjectValue(path.node, "column");
+        // path.node.properties = path.node.properties.filter(
+        //   (prop) =>
+        //     prop === messageIdProp ||
+        //     prop === nodeProp ||
+        //     prop === lineProp ||
+        //     prop === columnProp,
+        // );
       }
     },
   });

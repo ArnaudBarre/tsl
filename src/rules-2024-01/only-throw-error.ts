@@ -9,9 +9,9 @@ const messages = {
   undef: "Do not throw undefined.",
 };
 
-type Context = Infer<typeof noThrowLiteral>["Context"];
-export const noThrowLiteral = createRule({
-  name: "no-throw-literal",
+type Context = Infer<typeof onlyThrowError>["Context"];
+export const onlyThrowError = createRule({
+  name: "only-throw-error",
   parseOptions: (options?: {
     allowThrowingAny?: boolean;
     allowThrowingUnknown?: boolean;
@@ -94,7 +94,7 @@ function isErrorLike(type: ts.Type, context: Context): boolean {
 
 export const test = () =>
   ruleTester({
-    rule: noThrowLiteral,
+    rule: onlyThrowError,
     valid: [
       "throw new Error();",
       "throw new Error('error');",

@@ -1,5 +1,5 @@
 import { defineConfig } from "./src/public-utils.ts";
-import { noUnnecessaryCondition } from "./src/rules/no-unnecessary-condition.ts";
+import { noUnnecessaryCondition } from "./src/rules-2024-01/no-unnecessary-condition.ts";
 
 export default defineConfig({
   rules: [

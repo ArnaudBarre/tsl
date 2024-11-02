@@ -5,12 +5,12 @@ import { ruleTester } from "../ruleTester.ts";
 import type { AST, Context } from "../types.ts";
 
 const messages = {
-  noUselessTemplateLiteral:
+  noUnnecessaryTemplateExpression:
     "Template literal expression is unnecessary and can be simplified.",
 };
 
-export const noUselessTemplateLiterals = createRule({
-  name: "no-useless-template-literals",
+export const noUnnecessaryTemplateExpression = createRule({
+  name: "no-unnecessary-template-expression",
   visitor: {
     TemplateExpression(node, context) {
       if (node.parent.kind === SyntaxKind.TaggedTemplateExpression) {
@@ -26,7 +26,7 @@ export const noUselessTemplateLiterals = createRule({
       if (hasSingleStringVariable) {
         context.report({
           node: node.templateSpans[0],
-          message: messages.noUselessTemplateLiteral,
+          message: messages.noUnnecessaryTemplateExpression,
         });
         return;
       }
@@ -44,7 +44,7 @@ export const noUselessTemplateLiterals = createRule({
         ) {
           context.report({
             node: span,
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
           });
         }
       }
@@ -75,7 +75,7 @@ function isUnderlyingTypeString(
 
 export const test = () =>
   ruleTester({
-    rule: noUselessTemplateLiterals,
+    rule: noUnnecessaryTemplateExpression,
     valid: [
       "const string = 'a';",
       "const string = `a`;",
@@ -175,7 +175,7 @@ export const test = () =>
         code: "`${1}`;",
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 1,
             column: 4,
           },
@@ -185,7 +185,7 @@ export const test = () =>
         code: "`${1n}`;",
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 1,
             column: 4,
           },
@@ -195,7 +195,7 @@ export const test = () =>
         code: "`${true}`;",
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 1,
             column: 4,
           },
@@ -205,7 +205,7 @@ export const test = () =>
         code: "`${null}`;",
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 1,
             column: 4,
           },
@@ -215,7 +215,7 @@ export const test = () =>
         code: "`${undefined}`;",
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 1,
             column: 4,
           },
@@ -225,12 +225,12 @@ export const test = () =>
         code: "`${'a'}${'b'}`;",
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 1,
             column: 4,
           },
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 1,
             column: 10,
           },
@@ -243,7 +243,7 @@ export const test = () =>
       `,
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 3,
             column: 17,
           },
@@ -253,7 +253,7 @@ export const test = () =>
         code: "`a${'b'}`;",
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 1,
             column: 5,
           },
@@ -263,12 +263,12 @@ export const test = () =>
         code: "`${'1 + 1 = '}${2}`;",
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 1,
             column: 4,
           },
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 1,
             column: 17,
           },
@@ -278,12 +278,12 @@ export const test = () =>
         code: "`${'a'}${true}`;",
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 1,
             column: 4,
           },
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 1,
             column: 10,
           },
@@ -296,7 +296,7 @@ export const test = () =>
       `,
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 3,
             column: 12,
           },
@@ -306,7 +306,7 @@ export const test = () =>
         code: "`${String(Symbol.for('test'))}`;",
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 1,
             column: 4,
           },
@@ -319,7 +319,7 @@ export const test = () =>
       `,
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 3,
             column: 12,
           },
@@ -333,7 +333,7 @@ export const test = () =>
       `,
         errors: [
           {
-            message: messages.noUselessTemplateLiteral,
+            message: messages.noUnnecessaryTemplateExpression,
             line: 3,
             column: 14,
           },
