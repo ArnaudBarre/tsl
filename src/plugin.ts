@@ -79,7 +79,7 @@ export const getPlugin = async (
               rule: rule.name,
               start,
               end,
-              title: suggestion.title,
+              message: suggestion.message,
               changes: suggestion.changes,
             });
           }
@@ -93,7 +93,7 @@ export const getPlugin = async (
           rule: rule.name,
           start,
           end,
-          title: `Ignore ${rule.name} rule`,
+          message: `Ignore ${rule.name} rule`,
           changes: [
             {
               start: lineStart,
@@ -121,7 +121,7 @@ export const getPlugin = async (
               rule: "ignore",
               start,
               end,
-              title: suggestion.title,
+              message: suggestion.message,
               changes: suggestion.changes,
             });
           }
@@ -153,7 +153,7 @@ export const getPlugin = async (
         ) {
           result.push({
             fixName: `type-lint:${suggestion.rule}`,
-            description: suggestion.title,
+            description: suggestion.message,
             changes: [
               {
                 fileName,

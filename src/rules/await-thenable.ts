@@ -1,8 +1,19 @@
-import { isIntrinsicAnyType, isIntrinsicUnknownType } from "ts-api-utils";
+import {
+  getWellKnownSymbolPropertyOfType,
+  isIntrinsicAnyType,
+  isIntrinsicUnknownType,
+  unionTypeParts,
+} from "ts-api-utils";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 
-const message = 'Unexpected `await` of a non-Promise (non-"Thenable") value.';
+const messages = {
+  await: 'Unexpected `await` of a non-Promise (non-"Thenable") value.',
+  convertToOrdinaryFor: "Convert to an ordinary `for...of` loop.",
+  forAwaitOfNonThenable:
+    "Unexpected `for await...of` of a value that is not async iterable.",
+  removeAwait: "Remove unnecessary `await`.",
+};
 
 export const awaitThenable = createRule({
   name: "await-thenable",
@@ -13,7 +24,51 @@ export const awaitThenable = createRule({
         return;
       }
       if (!context.utils.isThenableType(node.expression, type)) {
-        context.report({ message, node });
+        context.report({
+          node,
+          message: messages.await,
+          suggestions: [
+            {
+              message: messages.removeAwait,
+              changes: [
+                {
+                  start: node.getStart(),
+                  end: node.expression.getStart(),
+                  newText: "",
+                },
+              ],
+            },
+          ],
+        });
+      }
+    },
+    ForOfStatement(node, context) {
+      if (node.awaitModifier) {
+        const type = context.checker.getTypeAtLocation(node.expression);
+        if (isIntrinsicAnyType(type)) return;
+
+        const asyncIteratorSymbol = unionTypeParts(type)
+          .map((t) =>
+            getWellKnownSymbolPropertyOfType(
+              t,
+              "asyncIterator",
+              context.rawChecker,
+            ),
+          )
+          .find((symbol) => symbol != null);
+
+        if (asyncIteratorSymbol == null) {
+          context.report({
+            message: messages.forAwaitOfNonThenable,
+            node: node.awaitModifier,
+            suggestions: [
+              {
+                message: messages.convertToOrdinaryFor,
+                changes: [{ node: node.awaitModifier, newText: "" }],
+              },
+            ],
+          });
+        }
       }
     },
   },
@@ -178,7 +233,7 @@ declare class Bluebird<R> implements PromiseLike<R> {
   ): Bluebird<TResult1 | TResult2>;
 }
 
-declare const bluebird: Bluebird<number>;
+declare const bluebird: Bluebird;
 
 async function test() {
   await bluebird;
@@ -204,30 +259,117 @@ const doSomething = async (
   await callback?.();
 };
     `,
+      {
+        code: `
+async function* asyncYieldNumbers() {
+  yield 1;
+  yield 2;
+  yield 3;
+}
+for await (const value of asyncYieldNumbers()) {
+  console.log(value);
+}
+      `,
+      },
+      {
+        code: `
+declare const anee: any;
+async function forAwait() {
+  for await (const value of anee) {
+    console.log(value);
+  }
+}
+      `,
+      },
+      {
+        code: `
+declare const asyncIter: AsyncIterable<string> | Iterable<string>;
+for await (const s of asyncIter) {
+}
+      `,
+      },
     ],
     invalid: [
       {
         code: "await 0;",
-        errors: [{ line: 1, message }],
+        errors: [
+          {
+            line: 1,
+            message: messages.await,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: "0;",
+              },
+            ],
+          },
+        ],
       },
       {
         code: "await 'value';",
-        errors: [{ line: 1, message }],
+        errors: [
+          {
+            line: 1,
+            message: messages.await,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: "'value';",
+              },
+            ],
+          },
+        ],
       },
       {
         code: "async () => await (Math.random() > 0.5 ? '' : 0);",
-        errors: [{ line: 1, message }],
+        errors: [
+          {
+            line: 1,
+            message: messages.await,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: "async () => (Math.random() > 0.5 ? '' : 0);",
+              },
+            ],
+          },
+        ],
       },
       {
-        code: `async () => await(Math.random() > 0.5 ? '' : 0);`,
-        errors: [{ line: 1, message }],
+        code: "async () => await(Math.random() > 0.5 ? '' : 0);",
+        errors: [
+          {
+            line: 1,
+            message: messages.await,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: "async () => (Math.random() > 0.5 ? '' : 0);",
+              },
+            ],
+          },
+        ],
       },
       {
         code: `
 class NonPromise extends Array {}
 await new NonPromise();
       `,
-        errors: [{ line: 3, message }],
+        errors: [
+          {
+            line: 3,
+            message: messages.await,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: `
+class NonPromise extends Array {}
+new NonPromise();
+      `,
+              },
+            ],
+          },
+        ],
       },
       {
         code: `
@@ -240,28 +382,158 @@ async function test() {
   await thenable;
 }
       `,
-        errors: [{ line: 8, message }],
+        errors: [
+          {
+            line: 8,
+            message: messages.await,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: `
+async function test() {
+  class IncorrectThenable {
+    then() {}
+  }
+  const thenable = new IncorrectThenable();
+
+  thenable;
+}
+      `,
+              },
+            ],
+          },
+        ],
       },
       {
         code: `
 declare const callback: (() => void) | undefined;
 await callback?.();
       `,
-        errors: [{ line: 3, message }],
+        errors: [
+          {
+            line: 3,
+            message: messages.await,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: `
+declare const callback: (() => void) | undefined;
+callback?.();
+      `,
+              },
+            ],
+          },
+        ],
       },
       {
         code: `
 declare const obj: { a?: { b?: () => void } };
 await obj.a?.b?.();
       `,
-        errors: [{ line: 3, message }],
+        errors: [
+          {
+            line: 3,
+            message: messages.await,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: `
+declare const obj: { a?: { b?: () => void } };
+obj.a?.b?.();
+      `,
+              },
+            ],
+          },
+        ],
       },
       {
         code: `
 declare const obj: { a: { b: { c?: () => void } } } | undefined;
 await obj?.a.b.c?.();
       `,
-        errors: [{ line: 3, message }],
+        errors: [
+          {
+            line: 3,
+            message: messages.await,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: `
+declare const obj: { a: { b: { c?: () => void } } } | undefined;
+obj?.a.b.c?.();
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+function* yieldNumbers() {
+  yield 1;
+  yield 2;
+  yield 3;
+}
+for await (const value of yieldNumbers()) {
+  console.log(value);
+}
+      `,
+        errors: [
+          {
+            line: 7,
+            column: 4,
+            endLine: 7,
+            endColumn: 9,
+            message: messages.forAwaitOfNonThenable,
+            suggestions: [
+              {
+                message: messages.convertToOrdinaryFor,
+                output: `
+function* yieldNumbers() {
+  yield 1;
+  yield 2;
+  yield 3;
+}
+for  (const value of yieldNumbers()) {
+  console.log(value);
+}
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+function* yieldNumberPromises() {
+  yield Promise.resolve(1);
+  yield Promise.resolve(2);
+  yield Promise.resolve(3);
+}
+for await (const value of yieldNumberPromises()) {
+  console.log(value);
+}
+      `,
+        errors: [
+          {
+            message: messages.forAwaitOfNonThenable,
+            suggestions: [
+              {
+                message: messages.convertToOrdinaryFor,
+                output: `
+function* yieldNumberPromises() {
+  yield Promise.resolve(1);
+  yield Promise.resolve(2);
+  yield Promise.resolve(3);
+}
+for  (const value of yieldNumberPromises()) {
+  console.log(value);
+}
+      `,
+              },
+            ],
+          },
+        ],
       },
     ],
   });

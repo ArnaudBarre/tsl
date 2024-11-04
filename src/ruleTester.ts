@@ -18,7 +18,14 @@ type CaseProps<TRule extends Rule> = {
   options?: Infer<TRule>["OptionsInput"];
   compilerOptions?: ts.CompilerOptions;
 };
-type ErrorReport = { message: string; line?: number; column?: number };
+type ErrorReport = {
+  message: string;
+  line?: number;
+  column?: number;
+  endLine?: number;
+  endColumn?: number;
+  suggestions?: { message: string; output?: string }[];
+};
 type SetupCase<TRule extends Rule> = {
   compilerOptionsKey: string;
   filename: string;
@@ -49,7 +56,14 @@ export type ValidTestCase<TRule extends AnyRule> = CaseProps<TRule> | string;
 export type InvalidTestCase<TRule extends AnyRule> = CaseProps<TRule> & {
   error?: string;
   errors?: (
-    | { message: string; line?: number; column?: number }
+    | {
+        message: string;
+        line?: number;
+        column?: number;
+        endColumn?: number;
+        endLine?: number;
+        suggestions?: { message: string; output?: string }[];
+      }
     | [message: string, line?: number, column?: number]
   )[];
 };
@@ -63,7 +77,8 @@ export const ruleTester = <TRule extends AnyRule>({
   tsx?: boolean;
   valid: ValidTestCase<TRule>[];
   invalid: InvalidTestCase<TRule>[];
-}) => {
+}): boolean => {
+  let hasError = false;
   const compilerOptionsToFiles = new Map<string, string[]>();
   const filesMap = new Map<string, string>();
   const cases: SetupCase<TRule>[] = [];
@@ -118,7 +133,9 @@ export const ruleTester = <TRule extends AnyRule>({
     if (indexFocus && indexFocus !== index.toString()) continue;
     const errors = invalidCase.errors
       ? invalidCase.errors.map((e) =>
-          Array.isArray(e) ? { message: e[0], line: e[1], column: e[2] } : e,
+          Array.isArray(e)
+            ? { message: e[0], line: e[1], column: e[2], suggestions: [] }
+            : e,
         )
       : invalidCase.error
       ? [{ message: invalidCase.error }]
@@ -204,6 +221,9 @@ export const ruleTester = <TRule extends AnyRule>({
       get checker() {
         return program.getTypeChecker() as unknown as Checker;
       },
+      get rawChecker() {
+        return program.getTypeChecker();
+      },
       compilerOptions,
       utils: getContextUtils(() => program),
       report(descriptor) {
@@ -230,6 +250,7 @@ export const ruleTester = <TRule extends AnyRule>({
         console.error(
           `Reports for valid case ${caseProps.index} (${caseProps.code})`,
         );
+        hasError = true;
         for (const report of reports) {
           console.log(`  - ${report.message}`);
         }
@@ -239,6 +260,7 @@ export const ruleTester = <TRule extends AnyRule>({
         console.error(
           `No reports for invalid case ${caseProps.index} (${caseProps.code})`,
         );
+        hasError = true;
       } else {
         let introLogged = false;
         for (
@@ -246,20 +268,131 @@ export const ruleTester = <TRule extends AnyRule>({
           i < Math.max(caseProps.errors!.length, reports.length);
           i++
         ) {
-          if (caseProps.errors!.at(i)?.message !== reports.at(i)?.message) {
+          const log = (
+            prefix: string,
+            expected: string | undefined,
+            got: string | undefined,
+          ) => {
             if (!introLogged) {
               console.error(
                 `Report(s) mismatch for invalid case ${caseProps.index} (${caseProps.code})`,
               );
+              hasError = true;
               introLogged = true;
             }
             console.log(
-              `  #${i}: Expected: ${caseProps.errors!.at(i)?.message}
-           Got: ${reports.at(i)?.message}`,
+              `  #${i}${prefix}: Expected: ${expected}
+           ${" ".repeat(prefix.length)}Got: ${got}`,
             );
+          };
+          const expected = caseProps.errors!.at(i);
+          const got = reports.at(i);
+          if (expected?.message !== got?.message) {
+            log("", expected?.message, got?.message);
+            continue;
+          }
+          if (!expected || !got) continue;
+          if (expected.line !== undefined) {
+            const gotLine =
+              got.node
+                .getSourceFile()
+                .getLineAndCharacterOfPosition(got.node.getStart()).line + 1;
+            if (expected.line !== gotLine) {
+              log(" line", `${expected.line}`, `${gotLine}`);
+              continue;
+            }
+          }
+          if (expected.column !== undefined) {
+            const gotColumn = got.node
+              .getSourceFile()
+              .getLineAndCharacterOfPosition(got.node.getStart()).character;
+            if (expected.column !== gotColumn) {
+              log(" column", `${expected.column}`, `${gotColumn}`);
+              continue;
+            }
+          }
+          if (expected.endLine !== undefined) {
+            const gotEndLine =
+              got.node
+                .getSourceFile()
+                .getLineAndCharacterOfPosition(got.node.getEnd()).line + 1;
+            if (expected.endLine !== gotEndLine) {
+              log(" end line", `${expected.endLine}`, `${gotEndLine}`);
+              continue;
+            }
+          }
+          if (expected.endColumn !== undefined) {
+            const gotEndColumn = got.node
+              .getSourceFile()
+              .getLineAndCharacterOfPosition(got.node.getEnd()).character;
+            if (expected.endColumn !== gotEndColumn) {
+              log(" end column", `${expected.endColumn}`, `${gotEndColumn}`);
+              continue;
+            }
+          }
+          for (
+            let si = 0;
+            si <
+            Math.max(
+              expected.suggestions?.length ?? 0,
+              got.suggestions?.length ?? 0,
+            );
+            si++
+          ) {
+            const expectedSuggestion = expected.suggestions?.at(si);
+            const gotSuggestion = got.suggestions?.at(si);
+            if (expectedSuggestion?.message !== gotSuggestion?.message) {
+              log(
+                ` suggestion ${si}`,
+                expectedSuggestion?.message,
+                gotSuggestion?.message,
+              );
+            }
+            if (expectedSuggestion && gotSuggestion) {
+              const gotChanges = gotSuggestion.changes
+                .map((it) =>
+                  "node" in it
+                    ? {
+                        start: it.node.getStart(),
+                        end: it.node.getEnd(),
+                        newText: it.newText,
+                      }
+                    : "length" in it
+                    ? {
+                        start: it.start,
+                        end: it.start + it.length,
+                        newText: it.newText,
+                      }
+                    : {
+                        start: it.start,
+                        end: it.end,
+                        newText: it.newText,
+                      },
+                )
+                .sort((a, b) => a.start - b.start);
+              const hasOverlap = gotChanges.some(
+                (it, i) => i > 0 && it.start < gotChanges[i - 1].end,
+              );
+              if (hasOverlap) {
+                log(` suggestion ${si} changes`, "No overlap", "Overlap");
+              }
+              const gotOutput = gotChanges.reduce(
+                (acc, it) =>
+                  acc.slice(0, it.start) + it.newText + acc.slice(it.end),
+                caseProps.code,
+              );
+              if (expectedSuggestion.output !== gotOutput) {
+                log(
+                  ` suggestion ${si} output`,
+                  expectedSuggestion.output,
+                  gotOutput,
+                );
+              }
+            }
           }
         }
       }
     }
   }
+  return hasError;
 };

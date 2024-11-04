@@ -6,6 +6,7 @@
     "postinstall": "patch-package && cd dev-plugin && bun link && cd .. && bun link dev-plugin --ignore-scripts",
     "dev": "esbuild --bundle dev-plugin/index.ts --outfile=dev-plugin/index.js --platform=node --format=cjs --external:esbuild --watch",
     "codegen": "bun scripts/codegen.ts",
+    "test": "bun scripts/tests.ts",
     "prettier-all": "bun prettier-ci --write",
     "prettier-ci": "prettier --cache --check '**/*.{ts,json,md,yml}'",
     "ci": "bun prettier-ci && bun codegen --check && tsc"

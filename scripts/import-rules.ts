@@ -219,7 +219,10 @@ const index = Number(process.argv[2]);
 for (const rule of usedRules.slice(index, index + 1)) {
   const filename = `${rule}.ts`;
   const inFirstIteration = firstIterationRules.includes(filename);
-  console.log(rule, { inFirstIteration });
+  console.log(rule, {
+    inFirstIteration,
+    open: `cursor ../typescript-eslint/packages/eslint-plugin/src/rules/${filename}`,
+  });
   const srcContent = readFileSync(
     `../typescript-eslint/packages/eslint-plugin/src/rules/${filename}`,
     "utf-8",

@@ -101,7 +101,7 @@ export type Checker = Omit<
 };
 
 export type Suggestion = {
-  title: string;
+  message: string;
   changes: (
     | { start: number; length: number; newText: string }
     | { start: number; end: number; newText: string }
@@ -117,6 +117,7 @@ export type Context<OptionsOutput = undefined, Data = undefined> = {
   sourceFile: AST.SourceFile;
   program: Program;
   checker: Checker;
+  rawChecker: TypeChecker;
   compilerOptions: CompilerOptions;
   utils: ContextUtils;
   report(descriptor: ReportDescriptor): void;

@@ -38,6 +38,9 @@ export const initRules = (
         get checker() {
           return getProgram().getTypeChecker() as unknown as Checker;
         },
+        get rawChecker() {
+          return getProgram().getTypeChecker();
+        },
         get compilerOptions() {
           return getProgram().getCompilerOptions();
         },
@@ -186,7 +189,7 @@ export const initRules = (
         message: "Unused ignore comment",
         suggestions: [
           {
-            title: "Remove unused ignore comment",
+            message: "Remove unused ignore comment",
             changes: [{ start, length, newText: "" }],
           },
         ],
