@@ -1,11 +1,12 @@
 import { defineConfig } from "./src/public-utils.ts";
 import { noUnnecessaryCondition } from "./src/rules-2024-01/no-unnecessary-condition.ts";
 import { awaitThenable } from "./src/rules/await-thenable.ts";
+import { dotNotation } from "./src/rules/dot-notation.ts";
 
 export default defineConfig({
   rules: [
     awaitThenable,
-    // dotNotation,
+    dotNotation,
     // noBaseToString,
     // noConfusingVoidExpression,
     // noFloatingPromises,

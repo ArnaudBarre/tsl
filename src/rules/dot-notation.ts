@@ -29,7 +29,7 @@ export const dotNotation = createRule({
           return;
         }
         context.report({
-          node,
+          node: node.argumentExpression,
           message: `['${node.argumentExpression.text}'] is better written in dot notation.`,
         });
       }
@@ -41,8 +41,6 @@ export const test = () =>
   ruleTester({
     rule: dotNotation,
     valid: [
-      //  baseRule
-
       "a['12'];",
       "a[b];",
       "a[0];",
@@ -85,22 +83,22 @@ dingus?.nested['hello'];
         error: "['c'] is better written in dot notation.",
       },
       {
-        code:
-          "getResource()\n" +
-          "    .then(function(){})\n" +
-          '    ["catch"](function(){})\n' +
-          "    .then(function(){})\n" +
-          '    ["catch"](function(){});',
+        code: `
+getResource()
+  .then(function(){})
+  ["catch"](function(){})
+  .then(function(){})
+  ["catch"](function(){});`,
         errors: [
           {
             message: "['catch'] is better written in dot notation.",
-            line: 3,
-            column: 6,
+            line: 6,
+            column: 3,
           },
           {
             message: "['catch'] is better written in dot notation.",
-            line: 5,
-            column: 6,
+            line: 4,
+            column: 3,
           },
         ],
       },
