@@ -37,7 +37,11 @@ export const getPlugin = async (
       }
     }
     lint = initRules(() => languageService.getProgram()!, config);
-    log?.(`Config loaded in ${(performance.now() - start).toFixed(2)}ms`);
+    log?.(
+      `Config with ${config.rules.length} rules loaded in ${(
+        performance.now() - start
+      ).toFixed(2)}ms`,
+    );
   };
   await load();
 
@@ -73,8 +77,10 @@ export const getPlugin = async (
           start,
           length: end - start,
         });
-        if (suggestions?.length) {
-          for (const suggestion of suggestions) {
+        if (suggestions) {
+          const suggestionsArray =
+            typeof suggestions === "function" ? suggestions() : suggestions;
+          for (const suggestion of suggestionsArray) {
             fileSuggestions.push({
               rule: rule.name,
               start,

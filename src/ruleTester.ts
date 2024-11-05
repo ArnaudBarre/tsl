@@ -303,9 +303,11 @@ export const ruleTester = <TRule extends AnyRule>({
             }
           }
           if (expected.column !== undefined) {
-            const gotColumn = got.node
-              .getSourceFile()
-              .getLineAndCharacterOfPosition(got.node.getStart()).character;
+            const gotColumn =
+              got.node
+                .getSourceFile()
+                .getLineAndCharacterOfPosition(got.node.getStart()).character +
+              1;
             if (expected.column !== gotColumn) {
               log(" column", `${expected.column}`, `${gotColumn}`);
               continue;
@@ -322,25 +324,30 @@ export const ruleTester = <TRule extends AnyRule>({
             }
           }
           if (expected.endColumn !== undefined) {
-            const gotEndColumn = got.node
-              .getSourceFile()
-              .getLineAndCharacterOfPosition(got.node.getEnd()).character;
+            const gotEndColumn =
+              got.node
+                .getSourceFile()
+                .getLineAndCharacterOfPosition(got.node.getEnd()).character + 1;
             if (expected.endColumn !== gotEndColumn) {
               log(" end column", `${expected.endColumn}`, `${gotEndColumn}`);
               continue;
             }
           }
+          const gotSuggestions =
+            typeof got.suggestions === "function"
+              ? got.suggestions()
+              : got.suggestions;
           for (
             let si = 0;
             si <
             Math.max(
               expected.suggestions?.length ?? 0,
-              got.suggestions?.length ?? 0,
+              gotSuggestions?.length ?? 0,
             );
             si++
           ) {
             const expectedSuggestion = expected.suggestions?.at(si);
-            const gotSuggestion = got.suggestions?.at(si);
+            const gotSuggestion = gotSuggestions?.at(si);
             if (expectedSuggestion?.message !== gotSuggestion?.message) {
               log(
                 ` suggestion ${si}`,

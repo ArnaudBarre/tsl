@@ -93,12 +93,12 @@ getResource()
           {
             message: "['catch'] is better written in dot notation.",
             line: 6,
-            column: 3,
+            column: 4,
           },
           {
             message: "['catch'] is better written in dot notation.",
             line: 4,
-            column: 3,
+            column: 4,
           },
         ],
       },
@@ -122,7 +122,7 @@ dingus?.nested['property'];
           {
             message: "['property'] is better written in dot notation.",
             line: 13,
-            column: 15,
+            column: 16,
           },
         ],
       },

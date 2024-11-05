@@ -481,9 +481,9 @@ for await (const value of yieldNumbers()) {
         errors: [
           {
             line: 7,
-            column: 4,
+            column: 5,
             endLine: 7,
-            endColumn: 9,
+            endColumn: 10,
             message: messages.forAwaitOfNonThenable,
             suggestions: [
               {

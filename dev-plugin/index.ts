@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { context } from "esbuild";
 import type * as ts from "typescript";
@@ -9,10 +9,13 @@ let currentProject:
   | undefined;
 let plugin: Awaited<ReturnType<typeof getPlugin>> | undefined;
 
+const outfile = join(__dirname, "get-plugin.mjs");
+rmSync(outfile, { force: true });
+
 context({
   bundle: true,
   entryPoints: [join(__dirname, "../src/plugin.ts")],
-  outfile: join(__dirname, "get-plugin.mjs"),
+  outfile,
   platform: "node",
   format: "esm",
   external: ["typescript", "esbuild", "ts-api-utils"],

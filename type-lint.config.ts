@@ -2,11 +2,13 @@ import { defineConfig } from "./src/public-utils.ts";
 import { noUnnecessaryCondition } from "./src/rules-2024-01/no-unnecessary-condition.ts";
 import { awaitThenable } from "./src/rules/await-thenable.ts";
 import { dotNotation } from "./src/rules/dot-notation.ts";
+import { noArrayDelete } from "./src/rules/no-array-delete.ts";
 
 export default defineConfig({
   rules: [
     awaitThenable,
     dotNotation,
+    noArrayDelete,
     // noBaseToString,
     // noConfusingVoidExpression,
     // noFloatingPromises,
