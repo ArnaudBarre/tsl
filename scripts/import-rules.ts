@@ -218,15 +218,17 @@ const index = Number(process.argv[2]);
 
 for (const rule of usedRules.slice(index, index + 1)) {
   const filename = `${rule}.ts`;
-  const inFirstIteration = firstIterationRules.includes(filename);
+  const srcPath = `../typescript-eslint/packages/eslint-plugin/src/rules/${filename}`;
+  const testPath = `../typescript-eslint/packages/eslint-plugin/tests/rules/${rule}.test.ts`;
   console.log(rule, {
-    inFirstIteration,
-    open: `cursor ../typescript-eslint/packages/eslint-plugin/src/rules/${filename}`,
+    new: `./src/rules/${filename}`,
+    previousIteration: firstIterationRules.includes(filename)
+      ? `./src/rules-2024-01/${filename}`
+      : undefined,
+    src: srcPath,
+    test: testPath,
   });
-  const srcContent = readFileSync(
-    `../typescript-eslint/packages/eslint-plugin/src/rules/${filename}`,
-    "utf-8",
-  );
+  const srcContent = readFileSync(srcPath, "utf-8");
   const srcAST = parser.parse(srcContent, {
     sourceFilename: filename,
     plugins: ["typescript"],
@@ -254,6 +256,14 @@ for (const rule of usedRules.slice(index, index + 1)) {
           assert(id.type === "Identifier");
           parserServicesName = id.name;
         }
+        path.remove();
+      }
+      if (
+        init?.type === "CallExpression" &&
+        init.callee.type === "MemberExpression" &&
+        init.callee.property.type === "Identifier" &&
+        init.callee.property.name === "getTypeChecker"
+      ) {
         path.remove();
       }
     },
@@ -497,6 +507,34 @@ for (const rule of usedRules.slice(index, index + 1)) {
         path.node.arguments.shift();
         return;
       }
+      // context.sourceCode.getText(returnValue) -> returnValue.getText()
+      if (
+        path.node.callee.type === "MemberExpression" &&
+        path.node.callee.object.type === "MemberExpression" &&
+        path.node.callee.object.object.type === "Identifier" &&
+        path.node.callee.object.object.name === "context" &&
+        path.node.callee.object.property.type === "Identifier" &&
+        path.node.callee.object.property.name === "sourceCode" &&
+        path.node.callee.property.type === "Identifier" &&
+        path.node.callee.property.name === "getText" &&
+        path.node.arguments.length === 1 &&
+        path.node.arguments[0].type === "Identifier"
+      ) {
+        path.replaceWith({
+          type: "CallExpression",
+          callee: {
+            type: "MemberExpression",
+            object: {
+              type: "Identifier",
+              name: path.node.arguments[0].name,
+            },
+            property: { type: "Identifier", name: "getText" },
+            computed: false,
+          },
+          arguments: [],
+        });
+        return;
+      }
     },
     TSTypeAliasDeclaration(path) {
       // get Options type
@@ -585,6 +623,19 @@ for (const rule of usedRules.slice(index, index + 1)) {
         }
         return;
       }
+      // checker -> context.checker
+      if (
+        path.node.object.type === "Identifier" &&
+        path.node.object.name === "checker"
+      ) {
+        path.node.object = {
+          type: "MemberExpression",
+          object: { type: "Identifier", name: "context" },
+          property: { type: "Identifier", name: "checker" },
+          computed: false,
+        };
+        return;
+      }
     },
     ObjectExpression(path) {
       let messageProp: ObjectProperty | undefined;
@@ -601,6 +652,9 @@ for (const rule of usedRules.slice(index, index + 1)) {
           if (p.key.name === "messageId") {
             messageProp = p;
             p.key.name = "message";
+          }
+          if (p.key.name === "suggest") {
+            p.key.name = "suggestions";
           }
         }
       }
@@ -634,10 +688,6 @@ for (const rule of usedRules.slice(index, index + 1)) {
       };
       if (messageProp) {
         messageProp.value = replaceMessageId(messageProp.value);
-        const nodeProp = getObjectValue(path.node, "node");
-        path.node.properties = path.node.properties.filter(
-          (prop) => prop === messageProp || prop === nodeProp,
-        );
       }
     },
     FunctionDeclaration(path) {
@@ -685,12 +735,9 @@ for (const rule of usedRules.slice(index, index + 1)) {
     },
   });
 
-  const testContent = readFileSync(
-    `../typescript-eslint/packages/eslint-plugin/tests/rules/${rule}.test.ts`,
-    "utf-8",
-  );
+  const testContent = readFileSync(testPath, "utf-8");
   const testAST = parser.parse(testContent, {
-    sourceFilename: filename,
+    sourceFilename: `${rule}.test.ts`,
     plugins: ["typescript"],
     sourceType: "module",
   });
@@ -699,9 +746,11 @@ for (const rule of usedRules.slice(index, index + 1)) {
       path.remove();
     },
     VariableDeclaration(path) {
+      const firstDeclaration = path.node.declarations.at(0);
       if (
-        path.node.declarations[0]?.id.type === "Identifier" &&
-        path.node.declarations[0]?.id.name === "ruleTester"
+        firstDeclaration?.id.type === "Identifier" &&
+        (firstDeclaration.id.name === "ruleTester" ||
+          firstDeclaration.id.name === "rootPath")
       ) {
         path.remove();
       }
@@ -736,6 +785,11 @@ for (const rule of usedRules.slice(index, index + 1)) {
       if (codeProp) {
         const errorsProp = getObjectValue(path.node, "errors");
         let optionsProp = getObjectValue(path.node, "options");
+        const languageOptionsProp = getObjectValue(
+          path.node,
+          "languageOptions",
+        );
+        let languageOptionsHandled = false;
         if (optionsProp) {
           if (optionsProp.value.type === "TSAsExpression") {
             optionsProp.value = optionsProp.value.expression;
@@ -754,10 +808,64 @@ for (const rule of usedRules.slice(index, index + 1)) {
           );
           optionsProp.value = optionsProp.value.elements[0];
         }
+        const prevProperties = path.node.properties;
         path.node.properties = [];
         if (optionsProp) path.node.properties.push(optionsProp);
+        if (
+          languageOptionsProp &&
+          languageOptionsProp.value.type === "ObjectExpression" &&
+          languageOptionsProp.value.properties.length === 1 &&
+          languageOptionsProp.value.properties[0].type === "ObjectProperty" &&
+          languageOptionsProp.value.properties[0].key.type === "Identifier" &&
+          languageOptionsProp.value.properties[0].key.name ===
+            "parserOptions" &&
+          languageOptionsProp.value.properties[0].value.type ===
+            "ObjectExpression"
+        ) {
+          const parserOptions = languageOptionsProp.value.properties[0].value;
+          if (
+            parserOptions.properties.length === 1 &&
+            parserOptions.properties[0].type === "ObjectProperty" &&
+            parserOptions.properties[0].key.type === "Identifier" &&
+            parserOptions.properties[0].key.name === "ecmaFeatures" &&
+            parserOptions.properties[0].value.type === "ObjectExpression"
+          ) {
+            const ecmaFeatures = parserOptions.properties[0].value;
+            if (
+              ecmaFeatures.properties.length === 1 &&
+              ecmaFeatures.properties[0].type === "ObjectProperty" &&
+              ecmaFeatures.properties[0].key.type === "Identifier" &&
+              ecmaFeatures.properties[0].key.name === "jsx" &&
+              ecmaFeatures.properties[0].value.type === "BooleanLiteral" &&
+              ecmaFeatures.properties[0].value.value
+            ) {
+              // tsx: true
+              path.node.properties.push({
+                type: "ObjectProperty",
+                key: { type: "Identifier", name: "tsx" },
+                value: { type: "BooleanLiteral", value: true },
+                computed: false,
+                shorthand: false,
+              });
+              languageOptionsHandled = true;
+            }
+          }
+        }
+        if (codeProp.value.type === "TaggedTemplateExpression") {
+          codeProp.value = codeProp.value.quasi; // Drop noFormat
+        }
         path.node.properties.push(codeProp);
         if (errorsProp) path.node.properties.push(errorsProp);
+        for (const p of prevProperties) {
+          if (
+            p !== optionsProp &&
+            p !== codeProp &&
+            p !== errorsProp &&
+            (languageOptionsHandled ? p !== languageOptionsProp : true)
+          ) {
+            path.node.properties.push(p);
+          }
+        }
       }
 
       const messageIdProp = getObjectValue(path.node, "messageId");
@@ -812,16 +920,6 @@ for (const rule of usedRules.slice(index, index + 1)) {
           }
         };
         messageIdProp.value = replaceMessageId(messageIdProp.value);
-        // const nodeProp = getObjectValue(path.node, "node");
-        // const lineProp = getObjectValue(path.node, "line");
-        // const columnProp = getObjectValue(path.node, "column");
-        // path.node.properties = path.node.properties.filter(
-        //   (prop) =>
-        //     prop === messageIdProp ||
-        //     prop === nodeProp ||
-        //     prop === lineProp ||
-        //     prop === columnProp,
-        // );
       }
     },
   });
@@ -859,7 +957,10 @@ for (const rule of usedRules.slice(index, index + 1)) {
     .join("\n");
 
   const tsApiUtilsImports = tsutils.length
-    ? `\nimport { ${tsutils.join(", ")} } from "ts-api-utils";`
+    ? `\nimport { ${tsutils
+        .filter((u, i) => tsutils.indexOf(u) === i)
+        .sort()
+        .join(", ")} } from "ts-api-utils";`
     : "";
   const content =
     `import ts, { SyntaxKind, SymbolFlags } from "typescript";${tsApiUtilsImports}

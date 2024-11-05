@@ -1,6 +1,7 @@
 import { isIntrinsicAnyType } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
+import { getParentFunctionNode } from "../rules-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import {
   isTypeAnyArrayType,
@@ -126,28 +127,6 @@ function checkReturn(
       }),
     });
   }
-}
-
-function getParentFunctionNode(
-  node: AST.AnyNode,
-): AST.ArrowFunction | AST.FunctionDeclaration | AST.FunctionExpression | null {
-  let current = node.parent;
-  // type-lint-ignore no-unnecessary-condition
-  while (current) {
-    if (
-      current.kind === SyntaxKind.ArrowFunction ||
-      current.kind === SyntaxKind.FunctionDeclaration ||
-      current.kind === SyntaxKind.FunctionExpression
-    ) {
-      return current;
-    }
-
-    current = current.parent;
-  }
-
-  // this shouldn't happen in correct code, but someone may attempt to parse bad code
-  // the parser won't error, so we shouldn't throw here
-  return null;
 }
 
 export function isAnyOrAnyArrayTypeDiscriminated(

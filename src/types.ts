@@ -100,18 +100,18 @@ export type Checker = Omit<
   getTypeOfPropertyOfType(type: Type, propertyName: string): Type | undefined;
 };
 
-export type Suggestion = {
-  message: string;
-  changes: (
-    | { start: number; length: number; newText: string }
-    | { start: number; end: number; newText: string }
-    | { node: Node; newText: string }
-  )[];
-};
+type Change =
+  | { start: number; length: number; newText: string }
+  | { start: number; end: number; newText: string }
+  | { node: Node; newText: string };
+
+export type Suggestion = { message: string; changes: Change[] };
+
 export type ReportDescriptor = {
   node: Node;
   message: string;
   suggestions?: Suggestion[] | (() => Suggestion[]);
+  fix?: Change[] | (() => Change[]);
 };
 export type Context<OptionsOutput = undefined, Data = undefined> = {
   sourceFile: AST.SourceFile;

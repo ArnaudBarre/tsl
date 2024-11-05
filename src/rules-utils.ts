@@ -1,5 +1,6 @@
 import ts, { SyntaxKind } from "typescript";
 import type { BinaryOperatorToken } from "./ast.ts";
+import type { AST } from "./types.ts";
 
 export const run = <T>(cb: () => T) => cb();
 
@@ -56,3 +57,31 @@ const assignmentOperators = Object.values(
 ) as ts.BinaryOperator[];
 export const isAssignmentExpression = (token: BinaryOperatorToken) =>
   assignmentOperators.includes(token.kind);
+
+export function getParentFunctionNode(
+  node: AST.AnyNode,
+):
+  | AST.ArrowFunction
+  | AST.FunctionDeclaration
+  | AST.FunctionExpression
+  | AST.MethodDeclaration
+  | null {
+  let current = node.parent;
+  // type-lint-ignore no-unnecessary-condition
+  while (current) {
+    if (
+      current.kind === SyntaxKind.ArrowFunction ||
+      current.kind === SyntaxKind.FunctionDeclaration ||
+      current.kind === SyntaxKind.MethodDeclaration ||
+      current.kind === SyntaxKind.FunctionExpression
+    ) {
+      return current;
+    }
+
+    current = current.parent;
+  }
+
+  // this shouldn't happen in correct code, but someone may attempt to parse bad code
+  // the parser won't error, so we shouldn't throw here
+  return null;
+}
