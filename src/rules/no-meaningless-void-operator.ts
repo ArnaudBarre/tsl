@@ -18,30 +18,27 @@ export const noMeaninglessVoidOperator = createRule({
     VoidExpression(node, context) {
       const argType = context.checker.getTypeAtLocation(node.expression);
       const unionParts = unionTypeParts(argType);
-      if (
-        unionParts.every(
-          (part) => part.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined),
-        )
-      ) {
+      const checkFlags = context.options.checkNever
+        ? ts.TypeFlags.Void | ts.TypeFlags.Undefined | ts.TypeFlags.Never
+        : ts.TypeFlags.Void | ts.TypeFlags.Undefined;
+      if (unionParts.every((part) => part.flags & checkFlags)) {
         context.report({
           node,
           message: messages.meaninglessVoidOperator({
             type: context.checker.typeToString(argType),
           }),
-        });
-      } else if (
-        context.options.checkNever &&
-        unionParts.every(
-          (part) =>
-            part.flags &
-            (ts.TypeFlags.Void | ts.TypeFlags.Undefined | ts.TypeFlags.Never),
-        )
-      ) {
-        context.report({
-          node,
-          message: messages.meaninglessVoidOperator({
-            type: context.checker.typeToString(argType),
-          }),
+          suggestions: [
+            {
+              message: messages.removeVoid,
+              changes: [
+                {
+                  start: node.getStart(),
+                  end: node.expression.getStart(),
+                  newText: "",
+                },
+              ],
+            },
+          ],
         });
       }
     },
@@ -70,16 +67,17 @@ function bar(x: never) {
 }
     `,
     ],
-
     invalid: [
       {
         code: "void (() => {})();",
-
         errors: [
           {
             message: messages.meaninglessVoidOperator({ type: "void" }),
             line: 1,
             column: 1,
+            suggestions: [
+              { message: messages.removeVoid, output: "(() => {})();" },
+            ],
           },
         ],
       },
@@ -88,12 +86,20 @@ function bar(x: never) {
 function foo() {}
 void foo();
       `,
-
         errors: [
           {
             message: messages.meaninglessVoidOperator({ type: "void" }),
             line: 3,
             column: 1,
+            suggestions: [
+              {
+                message: messages.removeVoid,
+                output: `
+function foo() {}
+foo();
+      `,
+              },
+            ],
           },
         ],
       },
@@ -109,6 +115,16 @@ function bar(x: never) {
             message: messages.meaninglessVoidOperator({ type: "never" }),
             line: 3,
             column: 3,
+            suggestions: [
+              {
+                message: messages.removeVoid,
+                output: `
+function bar(x: never) {
+  x;
+}
+      `,
+              },
+            ],
           },
         ],
       },

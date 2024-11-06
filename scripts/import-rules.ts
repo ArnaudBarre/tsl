@@ -120,6 +120,9 @@ const usedRules: (keyof typeof allTypedRules)[] = [
 ] as const;
 
 const firstIterationRules = readdirSync("src/rules-2024-01");
+const alreadyImportedRules = readdirSync("src/rules").map((it) =>
+  it.replace(".ts", ""),
+);
 
 const kebabCaseToCamelCase = (str: string) =>
   str.replace(/-([a-z])/gu, (_, c) => c.toUpperCase());
@@ -214,9 +217,9 @@ const estreeToTSTree: Record<
 };
 const astNodes = Object.values(kindToNodeTypeMap);
 
-const index = Number(process.argv[2]);
-
-for (const rule of usedRules.slice(index, index + 1)) {
+for (const rule of usedRules
+  .filter((r) => !alreadyImportedRules.includes(r))
+  .slice(0, 1)) {
   const filename = `${rule}.ts`;
   const srcPath = `../typescript-eslint/packages/eslint-plugin/src/rules/${filename}`;
   const testPath = `../typescript-eslint/packages/eslint-plugin/tests/rules/${rule}.test.ts`;
