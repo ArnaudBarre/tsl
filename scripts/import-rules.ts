@@ -11,6 +11,7 @@ import type {
   ObjectMethod,
   ObjectProperty,
   PatternLike,
+  SpreadElement,
   TSType,
 } from "@babel/types";
 import { format } from "prettier";
@@ -879,7 +880,8 @@ for (const rule of usedRules
           "messageId is not a string",
         );
         messageIdProp.key.name = "message";
-        let dataProp: ObjectExpression | undefined;
+        let dataProp: ObjectProperty | undefined;
+        let dataPropValue: ObjectExpression | undefined;
         for (const p of path.node.properties) {
           if (p.type === "ObjectProperty" && p.key.type === "Identifier") {
             if (p.key.name === "data") {
@@ -887,7 +889,8 @@ for (const rule of usedRules
                 p.value.type === "ObjectExpression",
                 "data is not an object",
               );
-              dataProp = p.value;
+              dataProp = p;
+              dataPropValue = p.value;
             }
           }
         }
@@ -898,11 +901,11 @@ for (const rule of usedRules
             property: { type: "Identifier", name: value },
             computed: false,
           };
-          return dataProp
+          return dataPropValue
             ? {
                 type: "CallExpression",
                 callee: memberExpr,
-                arguments: [dataProp],
+                arguments: [dataPropValue],
               }
             : memberExpr;
         };
@@ -924,6 +927,21 @@ for (const rule of usedRules
           }
         };
         messageIdProp.value = replaceMessageId(messageIdProp.value);
+
+        const getOrder = (p: ObjectMethod | ObjectProperty | SpreadElement) => {
+          if (p.type !== "ObjectProperty") return 100;
+          if (p.key.type !== "Identifier") return 100;
+          if (p.key.name === "message") return 0;
+          if (p.key.name === "line") return 1;
+          if (p.key.name === "column") return 2;
+          if (p.key.name === "lineEnd") return 3;
+          if (p.key.name === "columnEnd") return 4;
+          if (p.key.name === "suggestions") return 5;
+          return 100;
+        };
+        path.node.properties = path.node.properties
+          .filter((p) => p !== dataProp)
+          .sort((a, b) => getOrder(a) - getOrder(b));
       }
     },
   });
@@ -983,7 +1001,7 @@ ${
 ` +
     generate(srcAST, { retainLines: true, filename }).code +
     "\n\n/** Tests */\n" +
-    generate(testAST, { filename }).code.replace(
+    generate(testAST, { filename, compact: true }).code.replace(
       "ruleTester(",
       "export const test = () => ruleTester(",
     );

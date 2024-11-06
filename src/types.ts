@@ -98,6 +98,10 @@ export type Checker = Omit<
    * Return the type of the given property in the given type, or undefined if no such property exists
    */
   getTypeOfPropertyOfType(type: Type, propertyName: string): Type | undefined;
+  /**
+   * TS internal api
+   */
+  getContextualTypeForArgumentAtIndex(node: Node, argIndex: number): Type;
 };
 
 type Change =
