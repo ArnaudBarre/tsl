@@ -1,7 +1,8 @@
 import { isSymbolFlagSet } from "ts-api-utils";
-import ts, { SymbolFlags, SyntaxKind } from "typescript";
+import ts, { SyntaxKind } from "typescript";
 import type { AnyNode } from "../ast.ts";
 import { createRule } from "../public-utils.ts";
+import { isBuiltinSymbolLike } from "../rules-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Context } from "../types.ts";
 
@@ -12,23 +13,22 @@ const messages = {
 };
 
 const FUNCTION_CONSTRUCTOR = "Function";
-const GLOBAL_CANDIDATES = new Set(["global", "window", "globalThis"]);
+const GLOBAL_CANDIDATES = new Set(["global", "globalThis", "window"]);
 const EVAL_LIKE_METHODS = new Set([
+  "execScript",
   "setImmediate",
   "setInterval",
   "setTimeout",
-  "execScript",
 ]);
-
 export const noImpliedEval = createRule({
   name: "no-implied-eval",
   visitor: {
-    NewExpression: checkImpliedEval,
     CallExpression: checkImpliedEval,
+    NewExpression: checkImpliedEval,
   },
 });
 
-function getCalleeName(node: AST.LeftHandSideExpression): string | null {
+function getCalleeName(node: AST.Expression): string | null {
   if (node.kind === SyntaxKind.Identifier) {
     return node.text;
   }
@@ -60,20 +60,13 @@ function isFunctionType(node: AnyNode, context: Context): boolean {
 
   if (
     symbol &&
-    isSymbolFlagSet(symbol, SymbolFlags.Function | SymbolFlags.Method)
+    isSymbolFlagSet(symbol, ts.SymbolFlags.Function | ts.SymbolFlags.Method)
   ) {
     return true;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-  if (symbol && symbol.escapedName === FUNCTION_CONSTRUCTOR) {
-    const declarations = symbol.getDeclarations() ?? [];
-    for (const declaration of declarations) {
-      const sourceFile = declaration.getSourceFile();
-      if (context.program.isSourceFileDefaultLibrary(sourceFile)) {
-        return true;
-      }
-    }
+  if (isBuiltinSymbolLike(context.program, type, FUNCTION_CONSTRUCTOR)) {
+    return true;
   }
 
   const signatures = context.checker.getSignaturesOfType(
@@ -82,6 +75,12 @@ function isFunctionType(node: AnyNode, context: Context): boolean {
   );
 
   return signatures.length > 0;
+}
+
+function isBind(node: AnyNode, context: Context): boolean {
+  return node.kind === SyntaxKind.PropertyAccessExpression
+    ? isBind(node.name, context)
+    : node.kind === SyntaxKind.Identifier && node.text === "bind";
 }
 
 function isFunction(node: AnyNode, context: Context): boolean {
@@ -99,12 +98,7 @@ function isFunction(node: AnyNode, context: Context): boolean {
       return false;
 
     case SyntaxKind.CallExpression:
-      return (
-        (node.expression.kind === SyntaxKind.PropertyAccessExpression &&
-          node.expression.name.kind === SyntaxKind.Identifier &&
-          node.expression.name.text === "bind") ||
-        isFunctionType(node, context)
-      );
+      return isBind(node.expression, context) || isFunctionType(node, context);
 
     default:
       return isFunctionType(node, context);
@@ -116,19 +110,17 @@ function checkImpliedEval(
   context: Context,
 ): void {
   const calleeName = getCalleeName(node.expression);
-  if (calleeName == null) return;
+  if (calleeName == null) {
+    return;
+  }
 
   if (calleeName === FUNCTION_CONSTRUCTOR) {
     const type = context.checker.getTypeAtLocation(node.expression);
     const symbol = type.getSymbol();
     if (symbol) {
-      const declarations = symbol.getDeclarations() ?? [];
-      for (const declaration of declarations) {
-        const sourceFile = declaration.getSourceFile();
-        if (context.program.isSourceFileDefaultLibrary(sourceFile)) {
-          context.report({ node, message: messages.noFunctionConstructor });
-          return;
-        }
+      if (isBuiltinSymbolLike(context.program, type, "FunctionConstructor")) {
+        context.report({ node, message: messages.noFunctionConstructor });
+        return;
       }
     } else {
       context.report({ node, message: messages.noFunctionConstructor });
@@ -141,9 +133,29 @@ function checkImpliedEval(
   }
 
   const [handler] = node.arguments;
-  if (EVAL_LIKE_METHODS.has(calleeName) && !isFunction(handler, context)) {
+  if (
+    EVAL_LIKE_METHODS.has(calleeName) &&
+    !isFunction(handler, context) &&
+    isReferenceToGlobalFunction(node.expression, context)
+  ) {
     context.report({ node: handler, message: messages.noImpliedEvalError });
   }
+}
+
+function isReferenceToGlobalFunction(node: AnyNode, context: Context): boolean {
+  const symbol = context.checker.getSymbolAtLocation(node);
+
+  // If we can't find a symbol, assume it's global
+  if (!symbol) return true;
+
+  // If there are no declarations, it's likely global
+  if (!symbol.declarations || symbol.declarations.length === 0) {
+    return true;
+  }
+
+  return symbol.declarations.some(
+    (decl) => decl.getSourceFile().isDeclarationFile,
+  );
 }
 
 export const test = () =>
@@ -156,23 +168,18 @@ export const test = () =>
       "foo.setTimeout(null);",
       "foo();",
       "(function () {})();",
-
       "setTimeout(() => {}, 0);",
       "window.setTimeout(() => {}, 0);",
       "window['setTimeout'](() => {}, 0);",
-
       "setInterval(() => {}, 0);",
       "window.setInterval(() => {}, 0);",
       "window['setInterval'](() => {}, 0);",
-
       "setImmediate(() => {});",
       "window.setImmediate(() => {});",
       "window['setImmediate'](() => {});",
-
       "execScript(() => {});",
       "window.execScript(() => {});",
       "window['execScript'](() => {});",
-
       `
 const foo = () => {};
 
@@ -410,8 +417,35 @@ class Foo {
   }
 }
     `,
-    ],
+      `
+function setTimeout(input: string, value: number) {}
 
+setTimeout('', 0);
+    `,
+      `
+declare module 'my-timers-promises' {
+  export function setTimeout(ms: number): void;
+}
+
+import { setTimeout } from 'my-timers-promises';
+
+setTimeout(1000);
+    `,
+      `
+function setTimeout() {}
+
+{
+  setTimeout(100);
+}
+    `,
+      `
+function setTimeout() {}
+
+{
+  setTimeout("alert('evil!')");
+}
+    `,
+    ],
     invalid: [
       {
         code: `
@@ -452,24 +486,24 @@ execScript(undefined);
       `,
         errors: [
           {
-            message: messages.noImpliedEvalError,
+            column: 12,
             line: 2,
-            column: 12,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 3,
             column: 13,
+            line: 3,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 4,
             column: 14,
+            line: 4,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 5,
             column: 12,
+            line: 5,
+            message: messages.noImpliedEvalError,
           },
         ],
       },
@@ -482,24 +516,24 @@ execScript(1 + '' + (() => {}));
       `,
         errors: [
           {
-            message: messages.noImpliedEvalError,
+            column: 12,
             line: 2,
-            column: 12,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 3,
             column: 13,
+            line: 3,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 4,
             column: 14,
+            line: 4,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 5,
             column: 12,
+            line: 5,
+            message: messages.noImpliedEvalError,
           },
         ],
       },
@@ -514,24 +548,24 @@ execScript(foo);
       `,
         errors: [
           {
-            message: messages.noImpliedEvalError,
+            column: 12,
             line: 4,
-            column: 12,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 5,
             column: 13,
+            line: 5,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 6,
             column: 14,
+            line: 6,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 7,
             column: 12,
+            line: 7,
+            message: messages.noImpliedEvalError,
           },
         ],
       },
@@ -548,24 +582,24 @@ execScript(foo());
       `,
         errors: [
           {
-            message: messages.noImpliedEvalError,
+            column: 12,
             line: 6,
-            column: 12,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 7,
             column: 13,
+            line: 7,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 8,
             column: 14,
+            line: 8,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 9,
             column: 12,
+            line: 9,
+            message: messages.noImpliedEvalError,
           },
         ],
       },
@@ -582,24 +616,24 @@ execScript(foo()());
       `,
         errors: [
           {
-            message: messages.noImpliedEvalError,
+            column: 12,
             line: 6,
-            column: 12,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 7,
             column: 13,
+            line: 7,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 8,
             column: 14,
+            line: 8,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 9,
             column: 12,
+            line: 9,
+            message: messages.noImpliedEvalError,
           },
         ],
       },
@@ -614,24 +648,24 @@ execScript(fn + '');
       `,
         errors: [
           {
-            message: messages.noImpliedEvalError,
+            column: 12,
             line: 4,
-            column: 12,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 5,
             column: 13,
+            line: 5,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 6,
             column: 14,
+            line: 6,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 7,
             column: 12,
+            line: 7,
+            message: messages.noImpliedEvalError,
           },
         ],
       },
@@ -646,24 +680,24 @@ execScript(foo);
       `,
         errors: [
           {
-            message: messages.noImpliedEvalError,
+            column: 12,
             line: 4,
-            column: 12,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 5,
             column: 13,
+            line: 5,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 6,
             column: 14,
+            line: 6,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 7,
             column: 12,
+            line: 7,
+            message: messages.noImpliedEvalError,
           },
         ],
       },
@@ -678,24 +712,24 @@ execScript(foo);
       `,
         errors: [
           {
-            message: messages.noImpliedEvalError,
+            column: 12,
             line: 4,
-            column: 12,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 5,
             column: 13,
+            line: 5,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 6,
             column: 14,
+            line: 6,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 7,
             column: 12,
+            line: 7,
+            message: messages.noImpliedEvalError,
           },
         ],
       },
@@ -710,24 +744,24 @@ execScript(foo as any);
       `,
         errors: [
           {
-            message: messages.noImpliedEvalError,
+            column: 12,
             line: 4,
-            column: 12,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 5,
             column: 13,
+            line: 5,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 6,
             column: 14,
+            line: 6,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 7,
             column: 12,
+            line: 7,
+            message: messages.noImpliedEvalError,
           },
         ],
       },
@@ -742,24 +776,24 @@ const fn = (foo: string | any) => {
       `,
         errors: [
           {
-            message: messages.noImpliedEvalError,
+            column: 14,
             line: 3,
-            column: 14,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 4,
             column: 15,
+            line: 4,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 5,
             column: 16,
+            line: 5,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 6,
             column: 14,
+            line: 6,
+            message: messages.noImpliedEvalError,
           },
         ],
       },
@@ -772,9 +806,9 @@ setTimeout(Math.radom() > 0.5 ? foo : bar, 0);
       `,
         errors: [
           {
-            message: messages.noImpliedEvalError,
-            line: 5,
             column: 12,
+            line: 5,
+            message: messages.noImpliedEvalError,
           },
         ],
       },
@@ -794,24 +828,24 @@ window['execScript'](\`\`);
       `,
         errors: [
           {
-            message: messages.noImpliedEvalError,
-            line: 2,
             column: 19,
+            line: 2,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 3,
             column: 22,
+            line: 3,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 5,
             column: 20,
+            line: 5,
+            message: messages.noImpliedEvalError,
           },
           {
-            message: messages.noImpliedEvalError,
-            line: 6,
             column: 23,
+            line: 6,
+            message: messages.noImpliedEvalError,
           },
           {
             message: messages.noImpliedEvalError,

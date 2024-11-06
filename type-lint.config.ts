@@ -5,6 +5,7 @@ import { dotNotation } from "./src/rules/dot-notation.ts";
 import { noArrayDelete } from "./src/rules/no-array-delete.ts";
 import { noFloatingPromises } from "./src/rules/no-floating-promises.ts";
 import { noForInArray } from "./src/rules/no-for-in-array.ts";
+import { noImpliedEval } from "./src/rules/no-implied-eval.ts";
 
 export default defineConfig({
   rules: [
@@ -13,9 +14,9 @@ export default defineConfig({
     noArrayDelete,
     noFloatingPromises,
     noForInArray,
+    noImpliedEval,
     // noBaseToString,
     // noConfusingVoidExpression,
-    // noImpliedEval,
     // noMeaninglessVoidOperator,
     // noMisusedPromises,
     // noRedundantTypeConstituents,
