@@ -9,6 +9,7 @@ import { noForInArray } from "./src/rules/no-for-in-array.ts";
 import { noImpliedEval } from "./src/rules/no-implied-eval.ts";
 import { noMeaninglessVoidOperator } from "./src/rules/no-meaningless-void-operator.ts";
 import { noMisusedPromises } from "./src/rules/no-misused-promises.ts";
+import { noRedundantTypeConstituents } from "./src/rules/no-redundant-type-constituents.ts";
 
 export default defineConfig({
   rules: [
@@ -22,6 +23,7 @@ export default defineConfig({
     noMeaninglessVoidOperator,
     noMisusedPromises,
     noUnnecessaryCondition,
+    noRedundantTypeConstituents,
   ],
   options: {
     "no-misused-promises": {
