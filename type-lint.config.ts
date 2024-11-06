@@ -3,15 +3,16 @@ import { noUnnecessaryCondition } from "./src/rules-2024-01/no-unnecessary-condi
 import { awaitThenable } from "./src/rules/await-thenable.ts";
 import { dotNotation } from "./src/rules/dot-notation.ts";
 import { noArrayDelete } from "./src/rules/no-array-delete.ts";
+import { noFloatingPromises } from "./src/rules/no-floating-promises.ts";
 
 export default defineConfig({
   rules: [
     awaitThenable,
     dotNotation,
     noArrayDelete,
+    noFloatingPromises,
     // noBaseToString,
     // noConfusingVoidExpression,
-    // noFloatingPromises,
     // noForInArray,
     // noImpliedEval,
     // noMeaninglessVoidOperator,

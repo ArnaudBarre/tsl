@@ -383,7 +383,7 @@ export const ruleTester = <TRule extends AnyRule>({
               if (hasOverlap) {
                 log(` suggestion ${si} changes`, "No overlap", "Overlap");
               }
-              const gotOutput = gotChanges.reduce(
+              const gotOutput = gotChanges.reduceRight(
                 (acc, it) =>
                   acc.slice(0, it.start) + it.newText + acc.slice(it.end),
                 caseProps.code,

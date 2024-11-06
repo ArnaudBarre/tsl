@@ -50,7 +50,10 @@ context({
       },
     },
   ],
-}).then((ctx) => ctx.watch());
+}).then(
+  (ctx) => ctx.watch(),
+  (e) => log(e.message),
+);
 
 const logs: string[] = [`Start at ${new Date().toISOString()}`];
 let logPath: string | undefined;

@@ -750,7 +750,8 @@ for (const rule of usedRules.slice(index, index + 1)) {
       if (
         firstDeclaration?.id.type === "Identifier" &&
         (firstDeclaration.id.name === "ruleTester" ||
-          firstDeclaration.id.name === "rootPath")
+          firstDeclaration.id.name === "rootPath" ||
+          firstDeclaration.id.name === "rootDir")
       ) {
         path.remove();
       }
