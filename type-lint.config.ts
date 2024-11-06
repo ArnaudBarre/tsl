@@ -4,6 +4,7 @@ import { awaitThenable } from "./src/rules/await-thenable.ts";
 import { dotNotation } from "./src/rules/dot-notation.ts";
 import { noArrayDelete } from "./src/rules/no-array-delete.ts";
 import { noFloatingPromises } from "./src/rules/no-floating-promises.ts";
+import { noForInArray } from "./src/rules/no-for-in-array.ts";
 
 export default defineConfig({
   rules: [
@@ -11,9 +12,9 @@ export default defineConfig({
     dotNotation,
     noArrayDelete,
     noFloatingPromises,
+    noForInArray,
     // noBaseToString,
     // noConfusingVoidExpression,
-    // noForInArray,
     // noImpliedEval,
     // noMeaninglessVoidOperator,
     // noMisusedPromises,
