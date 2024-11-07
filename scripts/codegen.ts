@@ -67,6 +67,7 @@ const outputParts: (
   | { name: string; kind: string; members?: ts.TypeElement[] }
 )[] = [
   "/** Generated **/",
+  "/* type-lint-ignore no-redundant-type-constituents */",
   `import type { ${importedTypes.join(", ")} } from "typescript";`,
   'import type { Context } from "./types.ts";',
   "",
@@ -127,11 +128,17 @@ const visitType = (name: string): void => {
 
   const props = typeChecker.getTypeAtLocation(int).getApparentProperties();
   const kind = props.find((p) => p.name === "kind" && p !== baseKind);
-  if (!kind) return visitEnum(name);
+  if (!kind) {
+    visitEnum(name);
+    return;
+  }
   assert(kind.valueDeclaration);
   assert(ts.isPropertySignature(kind.valueDeclaration));
   assert(kind.valueDeclaration.type);
-  if (ts.isUnionTypeNode(kind.valueDeclaration.type)) return visitEnum(name);
+  if (ts.isUnionTypeNode(kind.valueDeclaration.type)) {
+    visitEnum(name);
+    return;
+  }
   assert(ts.isTypeReferenceNode(kind.valueDeclaration.type));
 
   const allMembers: ts.TypeElement[] = [];

@@ -96,16 +96,17 @@ export const noConfusingVoidExpression = createRule({
 
         if (options.ignoreVoidOperator) {
           // handle wrapping with `void`
-          return context.report({
+          context.report({
             node,
             message: messages.invalidVoidExprArrowWrapVoid,
             fix: wrapVoidFix(node),
           });
+          return;
         }
 
         // handle wrapping with braces
         const arrowFunction = invalidAncestor;
-        return context.report({
+        context.report({
           node,
           message: messages.invalidVoidExprArrow,
           fix: canFix(arrowFunction, context)
@@ -123,6 +124,7 @@ export const noConfusingVoidExpression = createRule({
               ]
             : undefined,
         });
+        return;
       }
 
       if (invalidAncestor.kind === SyntaxKind.ReturnStatement) {
@@ -145,16 +147,17 @@ export const noConfusingVoidExpression = createRule({
 
         if (options.ignoreVoidOperator) {
           // handle wrapping with `void`
-          return context.report({
+          context.report({
             node,
             message: messages.invalidVoidExprReturnWrapVoid,
             fix: wrapVoidFix(node),
           });
+          return;
         }
 
         if (isFinalReturn(invalidAncestor)) {
           // remove the `return` keyword
-          return context.report({
+          context.report({
             node,
             message: messages.invalidVoidExprReturnLast,
             fix: canFix(invalidAncestor, context)
@@ -172,10 +175,11 @@ export const noConfusingVoidExpression = createRule({
                 }
               : undefined,
           });
+          return;
         }
 
         // move before the `return` keyword
-        return context.report({
+        context.report({
           node,
           message: messages.invalidVoidExprReturn,
           fix: () => {
@@ -194,18 +198,19 @@ export const noConfusingVoidExpression = createRule({
             return [{ node: invalidAncestor, newText: newReturnStmtText }];
           },
         });
+        return;
       }
 
       // handle generic case
       if (options.ignoreVoidOperator) {
-        // this would be reported by this rule btw. such irony
-        return context.report({
+        context.report({
           node,
           message: messages.invalidVoidExprWrapVoid,
           suggestions: [
             { message: messages.voidExprWrapVoid, changes: wrapVoidFix(node) },
           ],
         });
+        return;
       }
 
       context.report({

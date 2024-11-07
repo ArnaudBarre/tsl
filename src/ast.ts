@@ -1,4 +1,5 @@
 /** Generated **/
+/* type-lint-ignore no-redundant-type-constituents */
 import type {
   __String,
   AmdDependency,

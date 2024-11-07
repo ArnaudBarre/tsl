@@ -118,7 +118,7 @@ export const noUnsafeAssignment = createRule({
       if (
         node.initializer.kind !== SyntaxKind.JsxExpression ||
         !node.initializer.expression ||
-        node.initializer.expression?.kind === SyntaxKind.JsxExpression
+        node.initializer.expression.kind === SyntaxKind.JsxExpression
       ) {
         return;
       }

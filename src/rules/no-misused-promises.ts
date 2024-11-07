@@ -1,12 +1,8 @@
-import {
-  getPropertyOfType,
-  intersectionTypeParts,
-  isTypeFlagSet,
-  unionTypeParts,
-} from "ts-api-utils";
+import { getPropertyOfType, isTypeFlagSet, unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
 import {
+  isArrayMethodCallWithPredicate,
   isAssignmentExpression,
   isLogicalExpression,
   run,
@@ -220,42 +216,6 @@ function checkArrayPredicates(
       }
     }
   }
-}
-
-const ARRAY_PREDICATE_FUNCTIONS = [
-  "every",
-  "filter",
-  "find",
-  "findIndex",
-  "findLast",
-  "findLastIndex",
-  "some",
-];
-
-function isArrayMethodCallWithPredicate(
-  context: Context,
-  node: AST.CallExpression,
-): boolean {
-  if (node.expression.kind !== SyntaxKind.PropertyAccessExpression) {
-    return false;
-  }
-
-  if (node.expression.name.kind !== SyntaxKind.Identifier) {
-    return false;
-  }
-
-  if (!ARRAY_PREDICATE_FUNCTIONS.includes(node.expression.name.text)) {
-    return false;
-  }
-
-  const type = context.utils.getConstrainedTypeAtLocation(
-    node.expression.expression,
-  );
-  return unionTypeParts(type)
-    .flatMap((part) => intersectionTypeParts(part))
-    .some(
-      (t) => context.checker.isArrayType(t) || context.checker.isTupleType(t),
-    );
 }
 
 function checkArguments(

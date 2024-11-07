@@ -20,7 +20,7 @@ const messages = {
 type Context = Infer<typeof noUnnecessaryBooleanLiteralCompare>["Context"];
 
 interface BooleanComparison {
-  expression: AST.Expression | AST.PrivateIdentifier;
+  expression: AST.Expression;
   literalBooleanInComparison: boolean;
   negated: boolean;
 }

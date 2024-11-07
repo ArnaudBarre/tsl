@@ -1,5 +1,4 @@
 import { defineConfig } from "./src/public-utils.ts";
-import { noUnnecessaryCondition } from "./src/rules-2024-01/no-unnecessary-condition.ts";
 import { awaitThenable } from "./src/rules/await-thenable.ts";
 import { dotNotation } from "./src/rules/dot-notation.ts";
 import { noArrayDelete } from "./src/rules/no-array-delete.ts";
@@ -10,6 +9,7 @@ import { noImpliedEval } from "./src/rules/no-implied-eval.ts";
 import { noMeaninglessVoidOperator } from "./src/rules/no-meaningless-void-operator.ts";
 import { noMisusedPromises } from "./src/rules/no-misused-promises.ts";
 import { noRedundantTypeConstituents } from "./src/rules/no-redundant-type-constituents.ts";
+import { noUnnecessaryCondition } from "./src/rules/no-unnecessary-condition.ts";
 
 export default defineConfig({
   rules: [
@@ -22,8 +22,8 @@ export default defineConfig({
     noImpliedEval,
     noMeaninglessVoidOperator,
     noMisusedPromises,
-    noUnnecessaryCondition,
     noRedundantTypeConstituents,
+    noUnnecessaryCondition,
   ],
   options: {
     "no-misused-promises": {

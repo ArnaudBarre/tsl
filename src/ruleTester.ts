@@ -62,7 +62,7 @@ export type InvalidTestCase<TRule extends AnyRule> = CaseProps<TRule> & {
         column?: number;
         endColumn?: number;
         endLine?: number;
-        suggestions?: { message: string; output?: string }[];
+        suggestions?: { message: string; output: string }[];
       }
     | [message: string, line?: number, column?: number]
   )[];

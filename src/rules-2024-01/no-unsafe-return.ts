@@ -98,12 +98,13 @@ function checkReturn(
     }
 
     // If the function return type was not unknown/unknown[], mark usage as unsafeReturn.
-    return context.report({
+    context.report({
       node: reportingNode,
       message: messages.unsafeReturn({
         type: anyType === "Any" ? "any" : "any[]",
       }),
     });
+    return;
   }
 
   for (const signature of functionType.getCallSignatures()) {
@@ -119,13 +120,14 @@ function checkReturn(
     }
 
     const { sender, receiver } = result;
-    return context.report({
+    context.report({
       node: reportingNode,
       message: messages.unsafeReturnAssignment({
         sender: context.checker.typeToString(sender),
         receiver: context.checker.typeToString(receiver),
       }),
     });
+    return;
   }
 }
 
