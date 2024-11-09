@@ -12,6 +12,7 @@ import { noRedundantTypeConstituents } from "./src/rules/no-redundant-type-const
 import { noUnnecessaryCondition } from "./src/rules/no-unnecessary-condition.ts";
 import { noUnnecessaryTemplateExpression } from "./src/rules/no-unnecessary-template-expression.ts";
 import { noUnnecessaryTypeArguments } from "./src/rules/no-unnecessary-type-arguments.ts";
+import { noUnnecessaryTypeAssertion } from "./src/rules/no-unnecessary-type-assertion.ts";
 
 export default defineConfig({
   rules: [
@@ -28,6 +29,7 @@ export default defineConfig({
     noUnnecessaryCondition,
     noUnnecessaryTemplateExpression,
     noUnnecessaryTypeArguments,
+    noUnnecessaryTypeAssertion,
   ],
   options: {
     "no-misused-promises": {

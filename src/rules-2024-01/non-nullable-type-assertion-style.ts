@@ -1,10 +1,10 @@
 import { isTypeFlagSet } from "ts-api-utils";
 import { TypeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
+import { isConstAssertion } from "../rules-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { typeHasFlag } from "../types-utils.ts";
 import type { AST, Context } from "../types.ts";
-import { isConstAssertion } from "./no-unnecessary-type-assertion.ts";
 
 const messages = {
   preferNonNullAssertion:

@@ -1,9 +1,9 @@
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
+import { getContextualType } from "../rules-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { isTypeAnyArrayType, typeHasFlag } from "../types-utils.ts";
 import type { AST, Context } from "../types.ts";
-import { getContextualType } from "./no-unnecessary-type-assertion.ts";
 import { isUnsafeAssignment } from "./no-unsafe-argument.ts";
 
 const messages = {

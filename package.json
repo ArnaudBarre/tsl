@@ -8,9 +8,10 @@
     "codegen": "bun scripts/codegen.ts",
     "import": "bun scripts/import-rules.ts",
     "test": "bun scripts/tests.ts",
+    "lint": "bun src/index.ts",
     "prettier-all": "bun prettier-ci --write",
     "prettier-ci": "prettier --cache --check '**/*.{ts,json,md,yml}'",
-    "ci": "bun prettier-ci && bun codegen --check && tsc"
+    "ci": "bun prettier-ci && bun codegen --check && bun run test && bun lint "
   },
   "prettier": {
     "plugins": [

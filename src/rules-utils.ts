@@ -5,7 +5,7 @@ import {
 } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import type { BinaryOperatorToken } from "./ast.ts";
-import type { AST, Context } from "./types.ts";
+import type { AST, Checker, Context } from "./types.ts";
 
 export const run = <T>(cb: () => T) => cb();
 
@@ -278,4 +278,64 @@ export function getTypeName(
   }
 
   return typeChecker.typeToString(type);
+}
+
+export function isConstAssertion(node: AST.TypeNode): boolean {
+  return (
+    node.kind === SyntaxKind.TypeReference &&
+    node.typeName.kind === SyntaxKind.Identifier &&
+    node.typeName.text === "const"
+  );
+}
+
+/**
+ * Returns the contextual type of a given node.
+ * Contextual type is the type of the target the node is going into.
+ * i.e. the type of a called function's parameter, or the defined type of a variable declaration
+ */
+export function getContextualType(
+  checker: Checker,
+  node: AST.Expression,
+): ts.Type | undefined {
+  const parent = node.parent;
+
+  if (
+    parent.kind === SyntaxKind.CallExpression ||
+    parent.kind === SyntaxKind.NewExpression
+  ) {
+    if (node === parent.expression) {
+      // is the callee, so has no contextual type
+      return;
+    }
+  } else if (
+    parent.kind === SyntaxKind.VariableDeclaration ||
+    parent.kind === SyntaxKind.PropertyDeclaration ||
+    parent.kind === SyntaxKind.Parameter
+  ) {
+    return parent.type ? checker.getTypeFromTypeNode(parent.type) : undefined;
+  } else if (parent.kind === SyntaxKind.JsxExpression) {
+    return checker.getContextualType(parent);
+  } else if (
+    parent.kind === SyntaxKind.PropertyAssignment &&
+    node.kind === SyntaxKind.Identifier
+  ) {
+    return checker.getContextualType(node);
+  } else if (
+    parent.kind === SyntaxKind.BinaryExpression &&
+    parent.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+    parent.right === node
+  ) {
+    // is RHS of assignment
+    return checker.getTypeAtLocation(parent.left);
+  } else if (
+    ![ts.SyntaxKind.TemplateSpan, ts.SyntaxKind.JsxExpression].includes(
+      parent.kind,
+    )
+  ) {
+    // parent is not something we know we can get the contextual type of
+    return;
+  }
+  // TODO - support return statement checking
+
+  return checker.getContextualType(node);
 }

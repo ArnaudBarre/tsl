@@ -34,7 +34,7 @@ assert(
   "Unexpected params for KeywordTypeNode",
 );
 const keywordTypeName =
-  keywordTypeInterface.typeParameters![0].default.typeName.text;
+  keywordTypeInterface.typeParameters[0].default.typeName.text;
 const keywordType = types.find((t) => t.name.text === keywordTypeName);
 assert(keywordType && ts.isUnionTypeNode(keywordType.type));
 const typeKeywordNames = keywordType.type.types.map((t) => {
