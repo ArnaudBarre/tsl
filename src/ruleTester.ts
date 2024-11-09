@@ -13,10 +13,10 @@ import type {
 import { visitorEntries } from "./visitorEntries.ts";
 
 type CaseProps<TRule extends Rule> = {
-  code: string;
   tsx?: boolean;
-  options?: Infer<TRule>["OptionsInput"];
   compilerOptions?: ts.CompilerOptions;
+  options?: Infer<TRule>["OptionsInput"];
+  code: string;
 };
 type ErrorReport = {
   message: string;

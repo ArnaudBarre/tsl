@@ -4,6 +4,7 @@ import generate from "@babel/generator";
 import * as parser from "@babel/parser";
 import traverse from "@babel/traverse";
 import type {
+  BlockStatement,
   Expression,
   Identifier,
   MemberExpression,
@@ -125,6 +126,14 @@ const alreadyImportedRules = readdirSync("src/rules").map((it) =>
   it.replace(".ts", ""),
 );
 
+const arg = process.argv[2];
+if (!arg) throw new Error("No rule provided");
+
+const stillToImport = usedRules.filter(
+  (r) => !alreadyImportedRules.includes(r),
+);
+const rulesToImport = arg === "next" ? stillToImport.slice(0, 1) : [arg];
+
 const kebabCaseToCamelCase = (str: string) =>
   str.replace(/-([a-z])/gu, (_, c) => c.toUpperCase());
 
@@ -218,9 +227,7 @@ const estreeToTSTree: Record<
 };
 const astNodes = Object.values(kindToNodeTypeMap);
 
-for (const rule of usedRules
-  .filter((r) => !alreadyImportedRules.includes(r))
-  .slice(0, 1)) {
+for (const rule of rulesToImport) {
   const filename = `${rule}.ts`;
   const srcPath = `../typescript-eslint/packages/eslint-plugin/src/rules/${filename}`;
   const testPath = `../typescript-eslint/packages/eslint-plugin/tests/rules/${rule}.test.ts`;
@@ -246,6 +253,7 @@ for (const rule of usedRules
   let exportName = "";
   const fnWithInjectedContext: string[] = [];
   const tsutils: string[] = [];
+  let hasAutofix = false as boolean;
   traverse(srcAST, {
     ImportDeclaration(path) {
       path.remove();
@@ -647,6 +655,8 @@ for (const rule of usedRules
       let messageProp: ObjectProperty | undefined;
       let dataProp: ObjectProperty | undefined;
       let dataPropValue: ObjectExpression | undefined;
+      let fixProp: ObjectMethod | undefined;
+      let fixBody: BlockStatement | undefined;
       for (const p of path.node.properties) {
         if (p.type === "ObjectProperty" && p.key.type === "Identifier") {
           if (p.key.name === "data") {
@@ -665,40 +675,105 @@ for (const rule of usedRules
             p.key.name = "suggestions";
           }
         }
-      }
-      const getMessageExpression = (value: string): Expression => {
-        const memberExpr: MemberExpression = {
-          type: "MemberExpression",
-          object: { type: "Identifier", name: "messages" },
-          property: { type: "Identifier", name: value },
-          computed: false,
-        };
-        return dataPropValue
-          ? {
-              type: "CallExpression",
-              callee: memberExpr,
-              arguments: [dataPropValue],
-            }
-          : memberExpr;
-      };
-      const replaceMessageId = (expr: Expression | PatternLike): Expression => {
-        if (expr.type === "StringLiteral") {
-          return getMessageExpression(expr.value);
-        } else if (expr.type === "ConditionalExpression") {
-          expr.consequent = replaceMessageId(expr.consequent);
-          expr.alternate = replaceMessageId(expr.alternate);
-          return expr;
-        } else if (expr.type === "Identifier") {
-          return getMessageExpression(expr.name);
-        } else {
-          throw new Error(`Unexpected expr type: ${expr.type}`);
+        if (
+          p.type === "ObjectMethod" &&
+          p.key.type === "Identifier" &&
+          p.key.name === "fix"
+        ) {
+          fixProp = p;
+          fixBody = p.body;
+          hasAutofix = true;
         }
-      };
+      }
       if (messageProp) {
+        const getMessageExpression = (value: string): Expression => {
+          const memberExpr: MemberExpression = {
+            type: "MemberExpression",
+            object: { type: "Identifier", name: "messages" },
+            property: { type: "Identifier", name: value },
+            computed: false,
+          };
+          return dataPropValue
+            ? {
+                type: "CallExpression",
+                callee: memberExpr,
+                arguments: [dataPropValue],
+              }
+            : memberExpr;
+        };
+        const replaceMessageId = (
+          expr: Expression | PatternLike,
+        ): Expression => {
+          if (expr.type === "StringLiteral") {
+            return getMessageExpression(expr.value);
+          } else if (expr.type === "ConditionalExpression") {
+            expr.consequent = replaceMessageId(expr.consequent);
+            expr.alternate = replaceMessageId(expr.alternate);
+            return expr;
+          } else if (expr.type === "Identifier") {
+            return getMessageExpression(expr.name);
+          } else {
+            throw new Error(`Unexpected expr type: ${expr.type}`);
+          }
+        };
         messageProp.value = replaceMessageId(messageProp.value);
         path.node.properties = path.node.properties.filter(
-          (p) => p !== dataProp,
+          (p) => p !== dataProp && p !== fixProp,
         );
+        if (fixBody) {
+          const lastStatement = fixBody.body.at(-1);
+          if (lastStatement?.type === "ReturnStatement") {
+            fixBody.body[fixBody.body.length - 1] = {
+              type: "ExpressionStatement",
+              expression: lastStatement.argument!,
+            };
+          }
+          fixBody.body.push({
+            type: "ReturnStatement",
+            argument: {
+              type: "ArrayExpression",
+              elements: [
+                {
+                  type: "ObjectExpression",
+                  properties: [
+                    {
+                      type: "ObjectProperty",
+                      key: { type: "Identifier", name: "message" },
+                      value: {
+                        type: "MemberExpression",
+                        object: { type: "Identifier", name: "messages" },
+                        property: { type: "Identifier", name: "fix" },
+                        computed: false,
+                      },
+                      computed: false,
+                      shorthand: false,
+                    },
+                    {
+                      type: "ObjectProperty",
+                      key: { type: "Identifier", name: "changes" },
+                      value: { type: "ArrayExpression", elements: [] },
+                      computed: false,
+                      shorthand: false,
+                    },
+                  ],
+                },
+              ],
+            },
+          });
+          path.node.properties.push({
+            type: "ObjectProperty",
+            key: { type: "Identifier", name: "suggestions" },
+            computed: false,
+            shorthand: false,
+            value: {
+              type: "ArrowFunctionExpression",
+              params: [],
+              body: fixBody,
+              async: false,
+              expression: true,
+            },
+          });
+        }
       }
     },
     FunctionDeclaration(path) {
@@ -797,6 +872,7 @@ for (const rule of usedRules
       if (codeProp) {
         const errorsProp = getObjectValue(path.node, "errors");
         let optionsProp = getObjectValue(path.node, "options");
+        const outputProp = getObjectValue(path.node, "output");
         const languageOptionsProp = getObjectValue(
           path.node,
           "languageOptions",
@@ -822,7 +898,6 @@ for (const rule of usedRules
         }
         const prevProperties = path.node.properties;
         path.node.properties = [];
-        if (optionsProp) path.node.properties.push(optionsProp);
         if (
           languageOptionsProp &&
           languageOptionsProp.value.type === "ObjectExpression" &&
@@ -863,16 +938,54 @@ for (const rule of usedRules
             }
           }
         }
+        if (optionsProp) path.node.properties.push(optionsProp);
         if (codeProp.value.type === "TaggedTemplateExpression") {
           codeProp.value = codeProp.value.quasi; // Drop noFormat
         }
         path.node.properties.push(codeProp);
+        if (outputProp) {
+          if (!errorsProp) throw new Error("Output without errors");
+          assert(errorsProp.value.type === "ArrayExpression");
+          for (const error of errorsProp.value.elements) {
+            assert(error?.type === "ObjectExpression");
+            error.properties.push({
+              type: "ObjectProperty",
+              key: { type: "Identifier", name: "suggestions" },
+              computed: false,
+              shorthand: false,
+              value: {
+                type: "ArrayExpression",
+                elements: [
+                  {
+                    type: "ObjectExpression",
+                    properties: [
+                      {
+                        type: "ObjectProperty",
+                        key: { type: "Identifier", name: "message" },
+                        computed: false,
+                        shorthand: false,
+                        value: {
+                          type: "MemberExpression",
+                          object: { type: "Identifier", name: "messages" },
+                          property: { type: "Identifier", name: "fix" },
+                          computed: false,
+                        },
+                      },
+                      outputProp,
+                    ],
+                  },
+                ],
+              },
+            });
+          }
+        }
         if (errorsProp) path.node.properties.push(errorsProp);
         for (const p of prevProperties) {
           if (
             p !== optionsProp &&
             p !== codeProp &&
             p !== errorsProp &&
+            p !== outputProp &&
             (languageOptionsHandled ? p !== languageOptionsProp : true)
           ) {
             path.node.properties.push(p);
@@ -952,6 +1065,10 @@ for (const rule of usedRules
       }
     },
   });
+
+  if (messages && hasAutofix) {
+    messages.push(["fix", { type: "StringLiteral", value: "Fix" }]);
+  }
 
   const toTemplateStrings = messages
     ?.map(([key, value]) => {

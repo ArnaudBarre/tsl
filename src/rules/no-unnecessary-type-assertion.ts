@@ -519,6 +519,7 @@ declare const arr: (object | undefined)[];
 const item = <object>arr[0];
     `,
       {
+        compilerOptions: { noUncheckedIndexedAccess: true },
         code: `
 function foo(item: string) {}
 function bar(items: string[]) {
@@ -527,61 +528,62 @@ function bar(items: string[]) {
   }
 }
       `,
-        compilerOptions: { noUncheckedIndexedAccess: true },
-      }, // https://github.com/typescript-eslint/typescript-eslint/issues/8737
+      },
+      // https://github.com/typescript-eslint/typescript-eslint/issues/8737
       `
 let myString = 'foo';
 const templateLiteral = \`\${myString}-somethingElse\` as const;
-    `, // https://github.com/typescript-eslint/typescript-eslint/issues/8737
+    `,
+      // https://github.com/typescript-eslint/typescript-eslint/issues/8737
       `
 let myString = 'foo';
 const templateLiteral = <const>\`\${myString}-somethingElse\`;
     `,
       "let a = `a` as const;",
       {
+        compilerOptions: { exactOptionalPropertyTypes: true },
         code: `
 declare const foo: {
   a?: string;
 };
 const bar = foo.a as string;
       `,
-        compilerOptions: { exactOptionalPropertyTypes: true },
       },
       {
+        compilerOptions: { exactOptionalPropertyTypes: true },
         code: `
 declare const foo: {
   a?: string | undefined;
 };
 const bar = foo.a as string;
       `,
-        compilerOptions: { exactOptionalPropertyTypes: true },
       },
       {
+        compilerOptions: { exactOptionalPropertyTypes: true },
         code: `
 declare const foo: {
   a: string;
 };
 const bar = foo.a as string | undefined;
       `,
-        compilerOptions: { exactOptionalPropertyTypes: true },
       },
       {
+        compilerOptions: { exactOptionalPropertyTypes: true },
         code: `
 declare const foo: {
   a?: string | null | number;
 };
 const bar = foo.a as string | undefined;
       `,
-        compilerOptions: { exactOptionalPropertyTypes: true },
       },
       {
+        compilerOptions: { exactOptionalPropertyTypes: true },
         code: `
 declare const foo: {
   a?: string | number;
 };
 const bar = foo.a as string | undefined | bigint;
       `,
-        compilerOptions: { exactOptionalPropertyTypes: true },
       },
       {
         code: `

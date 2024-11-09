@@ -4,6 +4,8 @@ import type { SourceFile } from "./ast.ts";
 import { initRules } from "./initRules.ts";
 import { loadConfig } from "./loadConfig.ts";
 
+const start = performance.now();
+
 const formatDiagnostics = (diagnostics: ts.Diagnostic[]) =>
   ts.formatDiagnostics(diagnostics, {
     getCanonicalFileName: (f) => f,
@@ -50,13 +52,19 @@ allDiagnostics.forEach((diagnostic) => {
   }
 });
 
-const start = performance.now();
+console.log(`Typecheck in ${(performance.now() - start).toFixed(2)}ms`);
+
+const configStart = performance.now();
 
 const { config } = await loadConfig(program);
-console.log(`Config loaded in ${(performance.now() - start).toFixed(2)}ms`);
-
 const lint = initRules(() => program, config);
-console.log(`Lint initialized in ${(performance.now() - start).toFixed(2)}ms`);
+console.log(
+  `Config (${config.rules.length} ${
+    config.rules.length === 1 ? "rule" : "rules"
+  }) loaded in ${(performance.now() - configStart).toFixed(2)}ms`,
+);
+
+const lintStart = performance.now();
 
 for (const it of program.getSourceFiles()) {
   lint(it as unknown as SourceFile, (report) => {
@@ -80,4 +88,5 @@ for (const it of program.getSourceFiles()) {
   });
 }
 
-console.log(`Lint ran in ${(performance.now() - start).toFixed(2)}ms`);
+console.log(`Lint ran in ${(performance.now() - lintStart).toFixed(2)}ms`);
+console.log(`Total time: ${(performance.now() - start).toFixed(2)}ms`);

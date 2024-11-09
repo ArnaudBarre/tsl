@@ -51,6 +51,7 @@ export const test = () =>
       "a[b()];",
       "a[/(?<zero>0)/];",
       {
+        compilerOptions: { noPropertyAccessFromIndexSignature: true },
         code: `
 interface Nested {
   property: string;
@@ -66,7 +67,6 @@ let dingus: Dingus | undefined;
 dingus?.nested.property;
 dingus?.nested['hello'];
       `,
-        compilerOptions: { noPropertyAccessFromIndexSignature: true },
       },
     ],
     invalid: [
@@ -103,6 +103,7 @@ getResource()
         ],
       },
       {
+        compilerOptions: { noPropertyAccessFromIndexSignature: true },
         code: `
 interface Nested {
   property: string;
@@ -117,7 +118,6 @@ let dingus: Dingus | undefined;
 
 dingus?.nested['property'];
       `,
-        compilerOptions: { noPropertyAccessFromIndexSignature: true },
         errors: [
           {
             message: "['property'] is better written in dot notation.",

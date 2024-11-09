@@ -1466,6 +1466,7 @@ declare const key: Key;
 foo?.[key]?.trim();
     `,
       {
+        compilerOptions: { noUncheckedIndexedAccess: true },
         code: `
 type BrandedKey = string & { __brand: string };
 type Foo = { [key: BrandedKey]: string } | null;
@@ -1473,9 +1474,9 @@ declare const foo: Foo;
 const key = '1' as BrandedKey;
 foo?.[key]?.trim();
       `,
-        compilerOptions: { noUncheckedIndexedAccess: true },
       },
       {
+        compilerOptions: { noUncheckedIndexedAccess: true },
         code: `
 type BrandedKey<S extends string> = S & { __brand: string };
 type Foo = { [key: string]: string; foo: 'foo'; bar: 'bar' } | null;
@@ -1484,9 +1485,9 @@ declare const foo: Foo;
 declare const key: Key;
 foo?.[key].trim();
       `,
-        compilerOptions: { noUncheckedIndexedAccess: true },
       },
       {
+        compilerOptions: { noUncheckedIndexedAccess: true },
         code: `
 type BrandedKey = string & { __brand: string };
 interface Outer {
@@ -1498,9 +1499,9 @@ function Foo(outer: Outer, key: BrandedKey): number | undefined {
   return outer.inner?.[key]?.charCodeAt(0);
 }
       `,
-        compilerOptions: { noUncheckedIndexedAccess: true },
       },
       {
+        compilerOptions: { noUncheckedIndexedAccess: true },
         code: `
 interface Outer {
   inner?: {
@@ -1513,9 +1514,9 @@ function Foo(outer: Outer, key: Foo): number | undefined {
   return outer.inner?.[key]?.charCodeAt(0);
 }
       `,
-        compilerOptions: { noUncheckedIndexedAccess: true },
       },
       {
+        compilerOptions: { noUncheckedIndexedAccess: true },
         code: `
 type BrandedKey<S extends string> = S & { __brand: string };
 type Foo = { [key: string]: string; foo: 'foo'; bar: 'bar' } | null;
@@ -1524,7 +1525,6 @@ declare const foo: Foo;
 declare const key: Key;
 foo?.[key]?.trim();
       `,
-        compilerOptions: { noUncheckedIndexedAccess: true },
       },
       `
 let latencies: number[][] = [];
@@ -1616,27 +1616,27 @@ declare const key: Keys;
 foo[key] ??= 1;
     `,
       {
+        compilerOptions: { exactOptionalPropertyTypes: true },
         code: `
 declare const foo: { bar?: number };
 foo.bar ??= 1;
       `,
-        compilerOptions: { exactOptionalPropertyTypes: true },
       },
       {
+        compilerOptions: { exactOptionalPropertyTypes: true },
         code: `
 declare const foo: { bar: { baz?: number } };
 foo['bar'].baz ??= 1;
       `,
-        compilerOptions: { exactOptionalPropertyTypes: true },
       },
       {
+        compilerOptions: { exactOptionalPropertyTypes: true },
         code: `
 declare const foo: { bar: { baz?: number; qux: number } };
 type Key = 'baz' | 'qux';
 declare const key: Key;
 foo.bar[key] ??= 1;
       `,
-        compilerOptions: { exactOptionalPropertyTypes: true },
       },
       `
 declare let foo: number;
@@ -1659,6 +1659,7 @@ function get<Obj, Key extends keyof Obj>(obj: Obj, key: Key) {
 get({ foo: null }, 'foo');
     `,
       {
+        compilerOptions: { noUncheckedIndexedAccess: true },
         code: `
 function getElem(dict: Record<string, { foo: string }>, key: string) {
   if (dict[key]) {
@@ -1668,7 +1669,6 @@ function getElem(dict: Record<string, { foo: string }>, key: string) {
   }
 }
       `,
-        compilerOptions: { noUncheckedIndexedAccess: true },
       },
       `
 type Foo = { bar: () => number | undefined } | null;
@@ -1702,6 +1702,7 @@ declare function foo(): void | fn;
 const bar = foo()?.();
     `,
       {
+        compilerOptions: { exactOptionalPropertyTypes: true },
         code: `
 class ConsistentRand {
   #rand?: number;
@@ -1712,7 +1713,6 @@ class ConsistentRand {
   }
 }
       `,
-        compilerOptions: { exactOptionalPropertyTypes: true },
       },
       {
         options: { checkTypePredicates: true },
@@ -3632,6 +3632,7 @@ foo &&= null;
         ],
       },
       {
+        compilerOptions: { exactOptionalPropertyTypes: true },
         code: `
 declare const foo: { bar: number };
 foo.bar ??= 1;
@@ -3645,7 +3646,6 @@ foo.bar ??= 1;
             endLine: 3,
           },
         ],
-        compilerOptions: { exactOptionalPropertyTypes: true },
       },
       {
         code: `

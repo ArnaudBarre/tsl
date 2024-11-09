@@ -1,5 +1,5 @@
 import { isTypeFlagSet } from "ts-api-utils";
-import { TypeFlags } from "typescript";
+import { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { isConstAssertion } from "../rules-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
@@ -9,6 +9,7 @@ import type { AST, Context } from "../types.ts";
 const messages = {
   preferNonNullAssertion:
     "Use a ! assertion to more succinctly remove null and undefined from the type.",
+  fix: "Fix",
 };
 
 export const nonNullableTypeAssertionStyle = createRule({
@@ -50,6 +51,32 @@ const checkAssertion = (
     context.report({
       message: messages.preferNonNullAssertion,
       node,
+      suggestions: [
+        {
+          message: messages.fix,
+          changes:
+            node.kind === SyntaxKind.AsExpression
+              ? [
+                  {
+                    start: node.type.getFullStart() - 3, // " as"
+                    end: node.getEnd(),
+                    newText: "!",
+                  },
+                ]
+              : [
+                  {
+                    start: node.getStart(),
+                    end: node.expression.getFullStart(),
+                    newText: "",
+                  },
+                  {
+                    start: node.expression.getEnd(),
+                    length: 0,
+                    newText: "!",
+                  },
+                ],
+        },
+      ],
     });
   }
 };
@@ -136,8 +163,8 @@ function first<T extends A | B | null>(array: ArrayLike<T>): T | null {
 }
       `,
       ].map((code) => ({
-        code,
         compilerOptions: { noUncheckedIndexedAccess: true },
+        code,
       })),
     ],
     invalid: [
@@ -148,9 +175,18 @@ const bar = maybe as string;
       `,
         errors: [
           {
-            column: 13,
-            line: 3,
             message: messages.preferNonNullAssertion,
+            line: 3,
+            column: 13,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+declare const maybe: string | undefined;
+const bar = maybe!;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -161,9 +197,18 @@ const bar = maybe as string;
       `,
         errors: [
           {
-            column: 13,
-            line: 3,
             message: messages.preferNonNullAssertion,
+            line: 3,
+            column: 13,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+declare const maybe: string | null;
+const bar = maybe!;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -174,9 +219,18 @@ const bar = maybe as string;
       `,
         errors: [
           {
-            column: 13,
-            line: 3,
             message: messages.preferNonNullAssertion,
+            line: 3,
+            column: 13,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+declare const maybe: string | null | undefined;
+const bar = maybe!;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -188,9 +242,19 @@ const bar = maybe as Type;
       `,
         errors: [
           {
-            column: 13,
-            line: 4,
             message: messages.preferNonNullAssertion,
+            line: 4,
+            column: 13,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+type Type = { value: string };
+declare const maybe: Type | undefined;
+const bar = maybe!;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -204,9 +268,21 @@ const bar = maybe as Interface;
       `,
         errors: [
           {
-            column: 13,
-            line: 6,
             message: messages.preferNonNullAssertion,
+            line: 6,
+            column: 13,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+interface Interface {
+  value: string;
+}
+declare const maybe: Interface | undefined;
+const bar = maybe!;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -219,9 +295,20 @@ const y = x as NonNullable<T>;
       `,
         errors: [
           {
-            column: 11,
-            line: 5,
             message: messages.preferNonNullAssertion,
+            line: 5,
+            column: 11,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+type T = string | null;
+declare const x: T;
+
+const y = x!;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -234,9 +321,20 @@ const y = x as NonNullable<T>;
       `,
         errors: [
           {
-            column: 11,
-            line: 5,
             message: messages.preferNonNullAssertion,
+            line: 5,
+            column: 11,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+type T = string | null | undefined;
+declare const x: T;
+
+const y = x!;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -250,9 +348,21 @@ async function fn(): Promise<string> {
       `,
         errors: [
           {
-            column: 10,
-            line: 5,
             message: messages.preferNonNullAssertion,
+            line: 5,
+            column: 10,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+declare function nullablePromise(): Promise<string | null>;
+
+async function fn(): Promise<string> {
+  return (await nullablePromise())!;
+}
+      `,
+              },
+            ],
           },
         ],
       },
@@ -264,9 +374,19 @@ const b = (a || undefined) as string;
       `,
         errors: [
           {
-            column: 11,
-            line: 4,
             message: messages.preferNonNullAssertion,
+            line: 4,
+            column: 11,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+declare const a: string | null;
+
+const b = (a || undefined)!;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -279,9 +399,19 @@ function first<T extends string | number>(array: ArrayLike<T>): T | null {
         `,
         errors: [
           {
-            column: 30,
-            line: 3,
             message: messages.preferNonNullAssertion,
+            line: 3,
+            column: 30,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+function first<T extends string | number>(array: ArrayLike<T>): T | null {
+  return array.length > 0 ? (array[0]!) : null;
+}
+        `,
+              },
+            ],
           },
         ],
       },
