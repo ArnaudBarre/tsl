@@ -13,6 +13,7 @@ import { noUnnecessaryCondition } from "./src/rules/no-unnecessary-condition.ts"
 import { noUnnecessaryTemplateExpression } from "./src/rules/no-unnecessary-template-expression.ts";
 import { noUnnecessaryTypeArguments } from "./src/rules/no-unnecessary-type-arguments.ts";
 import { noUnnecessaryTypeAssertion } from "./src/rules/no-unnecessary-type-assertion.ts";
+import { noUnsafeUnaryMinus } from "./src/rules/no-unsafe-unary-minus.ts";
 
 export default defineConfig({
   rules: [
@@ -30,6 +31,7 @@ export default defineConfig({
     noUnnecessaryTemplateExpression,
     noUnnecessaryTypeArguments,
     noUnnecessaryTypeAssertion,
+    noUnsafeUnaryMinus,
   ],
   options: {
     "no-misused-promises": {
