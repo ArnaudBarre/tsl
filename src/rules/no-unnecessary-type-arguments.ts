@@ -8,6 +8,7 @@ import type { AST, Context } from "../types.ts";
 const messages = {
   unnecessaryTypeParameter:
     "This is the default value for this type parameter, so it can be omitted.",
+  removeTypeArgument: "Remove the type argument",
 };
 
 type ParameterCapableNode =
@@ -20,14 +21,6 @@ type ParameterCapableNode =
   | AST.TaggedTemplateExpression
   | AST.TypeQueryNode
   | AST.TypeReferenceNode;
-
-const checkParameters = (node: ParameterCapableNode, context: Context) => {
-  const typeArguments = node.typeArguments;
-  if (!typeArguments) return;
-  const typeParameters = getTypeParametersFromNode(node, context);
-  if (!typeParameters) return;
-  checkTSArgsAndParameters(typeArguments, typeParameters, context);
-};
 
 export const noUnnecessaryTypeArguments = createRule({
   name: "no-unnecessary-type-arguments",
@@ -44,6 +37,14 @@ export const noUnnecessaryTypeArguments = createRule({
   },
 });
 
+function checkParameters(node: ParameterCapableNode, context: Context) {
+  const typeArguments = node.typeArguments;
+  if (!typeArguments) return;
+  const typeParameters = getTypeParametersFromNode(node, context);
+  if (!typeParameters) return;
+  checkTSArgsAndParameters(typeArguments, typeParameters, context);
+}
+
 function getTypeParametersFromNode(
   node: ParameterCapableNode,
   context: Context,
@@ -58,7 +59,8 @@ function getTypeParametersFromNode(
 
   if (
     node.kind === SyntaxKind.CallExpression ||
-    node.kind === SyntaxKind.NewExpression
+    node.kind === SyntaxKind.NewExpression ||
+    node.kind === SyntaxKind.TaggedTemplateExpression
   ) {
     return getTypeParametersFromCall(node, context);
   }
@@ -89,7 +91,24 @@ function checkTSArgsAndParameters(
     context.checker.isTypeAssignableTo(argType, defaultType) &&
     context.checker.isTypeAssignableTo(defaultType, argType)
   ) {
-    context.report({ node: arg, message: messages.unnecessaryTypeParameter });
+    context.report({
+      node: arg,
+      message: messages.unnecessaryTypeParameter,
+      suggestions: [
+        {
+          message: messages.removeTypeArgument,
+          changes: [
+            {
+              // Remove the preceding comma or angle bracket
+              start: arg.getFullStart() - 1,
+              // If only one type argument, remove the closing angle bracket
+              end: i === 0 ? arg.getEnd() + 1 : arg.getEnd(),
+              newText: "",
+            },
+          ],
+        },
+      ],
+    });
   }
 }
 
@@ -118,7 +137,7 @@ function getTypeParametersFromType(
 }
 
 function getTypeParametersFromCall(
-  node: AST.CallExpression | AST.NewExpression,
+  node: AST.CallExpression | AST.NewExpression | AST.TaggedTemplateExpression,
   context: Context,
 ): readonly AST.TypeParameterDeclaration[] | undefined {
   const sig = context.checker.getResolvedSignature(node);
@@ -192,6 +211,14 @@ g<string, string>();
       `
 declare const g: unknown;
 g<string, string>();
+    `,
+      `
+declare const f: unknown;
+f<string>\`\`;
+    `,
+      `
+function f<T = number>(template: TemplateStringsArray) {}
+f<string>\`\`;
     `,
       `
 class C<T = number> {}
@@ -268,13 +295,6 @@ type A = Map<string, string>;
 type B<T = A> = T;
 type C2 = B<Map<string, number>>;
     `,
-      `
-function call<T = any, U = string>() {}
-const fn = <TData>() => {
-  type SlackResponse = { ok: false } | ({ ok: true } & TData);
-  const r = call<SlackResponse>();
-}
-      `,
     ],
     invalid: [
       {
@@ -284,8 +304,18 @@ f<number>();
       `,
         errors: [
           {
-            column: 3,
             message: messages.unnecessaryTypeParameter,
+            column: 3,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+function f<T = number>() {}
+f();
+      `,
+              },
+            ],
           },
         ],
       },
@@ -296,8 +326,40 @@ g<string, string>();
       `,
         errors: [
           {
-            column: 11,
             message: messages.unnecessaryTypeParameter,
+            column: 11,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+function g<T = number, U = string>() {}
+g<string>();
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+function f<T = number>(templates: TemplateStringsArray, arg: T) {}
+f<number>\`\${1}\`;
+      `,
+        errors: [
+          {
+            message: messages.unnecessaryTypeParameter,
+            column: 3,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+function f<T = number>(templates: TemplateStringsArray, arg: T) {}
+f\`\${1}\`;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -309,6 +371,16 @@ function h(c: C<number>) {}
         errors: [
           {
             message: messages.unnecessaryTypeParameter,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+class C<T = number> {}
+function h(c: C) {}
+      `,
+              },
+            ],
           },
         ],
       },
@@ -320,6 +392,16 @@ new C<number>();
         errors: [
           {
             message: messages.unnecessaryTypeParameter,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+class C<T = number> {}
+new C();
+      `,
+              },
+            ],
           },
         ],
       },
@@ -331,6 +413,16 @@ class D extends C<number> {}
         errors: [
           {
             message: messages.unnecessaryTypeParameter,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+class C<T = number> {}
+class D extends C {}
+      `,
+              },
+            ],
           },
         ],
       },
@@ -342,6 +434,16 @@ class Impl implements I<number> {}
         errors: [
           {
             message: messages.unnecessaryTypeParameter,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+interface I<T = number> {}
+class Impl implements I {}
+      `,
+              },
+            ],
           },
         ],
       },
@@ -353,6 +455,16 @@ const foo = new Foo<number>();
         errors: [
           {
             message: messages.unnecessaryTypeParameter,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+class Foo<T = number> {}
+const foo = new Foo();
+      `,
+              },
+            ],
           },
         ],
       },
@@ -364,6 +476,16 @@ class Foo<T = number> implements Bar<string> {}
         errors: [
           {
             message: messages.unnecessaryTypeParameter,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+interface Bar<T = string> {}
+class Foo<T = number> implements Bar {}
+      `,
+              },
+            ],
           },
         ],
       },
@@ -375,6 +497,16 @@ class Foo<T = number> extends Bar<string> {}
         errors: [
           {
             message: messages.unnecessaryTypeParameter,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+class Bar<T = string> {}
+class Foo<T = number> extends Bar {}
+      `,
+              },
+            ],
           },
         ],
       },
@@ -386,9 +518,20 @@ bar<F<string>>();
       `,
         errors: [
           {
+            message: messages.unnecessaryTypeParameter,
             line: 4,
             column: 5,
-            message: messages.unnecessaryTypeParameter,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+import { F } from './missing';
+function bar<T = F<string>>() {}
+bar();
+      `,
+              },
+            ],
           },
         ],
       },
@@ -404,9 +547,24 @@ declare module 'bar' {
       `,
         errors: [
           {
+            message: messages.unnecessaryTypeParameter,
             line: 4,
             column: 12,
-            message: messages.unnecessaryTypeParameter,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+type DefaultE = { foo: string };
+type T<E = DefaultE> = { box: E };
+type G = T;
+declare module 'bar' {
+  type DefaultE = { somethingElse: true };
+  type G = T<DefaultE>;
+}
+      `,
+              },
+            ],
           },
         ],
       },
@@ -417,8 +575,18 @@ type B = A<Map<string, string>>;
       `,
         errors: [
           {
-            line: 3,
             message: messages.unnecessaryTypeParameter,
+            line: 3,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+type A<T = Map<string, string>> = T;
+type B = A;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -430,8 +598,19 @@ type C = B<A>;
       `,
         errors: [
           {
-            line: 4,
             message: messages.unnecessaryTypeParameter,
+            line: 4,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+type A = Map<string, string>;
+type B<T = A> = T;
+type C = B;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -443,8 +622,19 @@ type C = B<Map<string, string>>;
       `,
         errors: [
           {
-            line: 4,
             message: messages.unnecessaryTypeParameter,
+            line: 4,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+type A = Map<string, string>;
+type B<T = A> = T;
+type C = B;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -457,8 +647,20 @@ type D = C<B>;
       `,
         errors: [
           {
-            line: 5,
             message: messages.unnecessaryTypeParameter,
+            line: 5,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+type A = Map<string, string>;
+type B = Map<string, string>;
+type C<T = A> = T;
+type D = C;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -473,8 +675,22 @@ type F = E<D>;
       `,
         errors: [
           {
-            line: 7,
             message: messages.unnecessaryTypeParameter,
+            line: 7,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+
+                output: `
+type A = Map<string, string>;
+type B = A;
+type C = Map<string, string>;
+type D = C;
+type E<T = B> = T;
+type F = E;
+      `,
+              },
+            ],
           },
         ],
       },

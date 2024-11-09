@@ -212,10 +212,7 @@ export const ruleTester = <TRule extends AnyRule>({
     const sourceFile = program.getSourceFile(
       caseProps.filename,
     ) as unknown as SourceFile;
-    const context: Context<
-      Infer<TRule>["OptionsOutput"],
-      Infer<TRule>["Data"]
-    > = {
+    const context: Context = {
       sourceFile,
       program,
       get checker() {
