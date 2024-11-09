@@ -5,8 +5,12 @@ import { ruleTester } from "../ruleTester.ts";
 import type { AST, Context } from "../types.ts";
 
 const messages = {
-  noUnnecessaryTemplateExpression:
+  unnecessaryTemplateString: "Template string is unnecessary.",
+  removeUnnecessaryTemplateString: "Remove unnecessary template string.",
+  unnecessaryTemplateExpression:
     "Template literal expression is unnecessary and can be simplified.",
+  removeUnnecessaryTemplateExpression:
+    "Remove unnecessary template expression.",
 };
 
 export const noUnnecessaryTemplateExpression = createRule({
@@ -26,7 +30,18 @@ export const noUnnecessaryTemplateExpression = createRule({
       if (hasSingleStringVariable) {
         context.report({
           node: node.templateSpans[0],
-          message: messages.noUnnecessaryTemplateExpression,
+          message: messages.unnecessaryTemplateString,
+          suggestions: [
+            {
+              message: messages.removeUnnecessaryTemplateString,
+              changes: [
+                {
+                  node,
+                  newText: node.templateSpans[0].expression.getFullText(),
+                },
+              ],
+            },
+          ],
         });
         return;
       }
@@ -42,9 +57,32 @@ export const noUnnecessaryTemplateExpression = createRule({
           (span.expression.kind === SyntaxKind.Identifier &&
             span.expression.text === "undefined")
         ) {
+          // Skip if contains a comment
+          if (span.literal.getLeadingTriviaWidth()) continue;
           context.report({
             node: span,
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
+            suggestions: () => {
+              const expressionText =
+                span.expression.kind === SyntaxKind.StringLiteral
+                  ? span.expression.getText().slice(1, -1)
+                  : span.expression.kind === SyntaxKind.BigIntLiteral
+                  ? parseInt(span.expression.getText()).toString()
+                  : span.expression.getText();
+              const isLastSpan = span === node.templateSpans.at(-1);
+              return [
+                {
+                  message: messages.removeUnnecessaryTemplateExpression,
+                  changes: [
+                    {
+                      start: span.getStart() - 2,
+                      end: span.getEnd() - (isLastSpan ? 1 : 2),
+                      newText: expressionText + span.literal.text,
+                    },
+                  ],
+                },
+              ];
+            },
           });
         }
       }
@@ -55,7 +93,7 @@ export const noUnnecessaryTemplateExpression = createRule({
 function isUnderlyingTypeString(
   expression: AST.Expression,
   context: Context,
-): expression is AST.StringLiteral | AST.Identifier {
+): expression is AST.Identifier | AST.StringLiteral {
   const type = context.utils.getConstrainedTypeAtLocation(expression);
 
   const isString = (t: ts.Type): boolean => {
@@ -169,15 +207,22 @@ export const test = () =>
       `
       \`with windows \r new line\`;
     `,
+      "`24 * ${7 /* days in week */}`",
     ],
     invalid: [
       {
-        code: "`${1}`;",
+        code: "`${1}2`;",
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
             line: 1,
             column: 4,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: "`12`;",
+              },
+            ],
           },
         ],
       },
@@ -185,9 +230,15 @@ export const test = () =>
         code: "`${1n}`;",
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
             line: 1,
             column: 4,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: "`1`;",
+              },
+            ],
           },
         ],
       },
@@ -195,9 +246,15 @@ export const test = () =>
         code: "`${true}`;",
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
             line: 1,
             column: 4,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: "`true`;",
+              },
+            ],
           },
         ],
       },
@@ -205,9 +262,15 @@ export const test = () =>
         code: "`${null}`;",
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
             line: 1,
             column: 4,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: "`null`;",
+              },
+            ],
           },
         ],
       },
@@ -215,9 +278,15 @@ export const test = () =>
         code: "`${undefined}`;",
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
             line: 1,
             column: 4,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: "`undefined`;",
+              },
+            ],
           },
         ],
       },
@@ -225,14 +294,26 @@ export const test = () =>
         code: "`${'a'}${'b'}`;",
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
             line: 1,
             column: 4,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: "`a${'b'}`;",
+              },
+            ],
           },
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
             line: 1,
             column: 10,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: "`${'a'}b`;",
+              },
+            ],
           },
         ],
       },
@@ -243,9 +324,18 @@ export const test = () =>
       `,
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
             line: 3,
             column: 17,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: `
+        declare const b: 'b';
+        \`a\${b}c\`;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -253,9 +343,15 @@ export const test = () =>
         code: "`a${'b'}`;",
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
             line: 1,
             column: 5,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: "`ab`;",
+              },
+            ],
           },
         ],
       },
@@ -263,14 +359,26 @@ export const test = () =>
         code: "`${'1 + 1 = '}${2}`;",
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
             line: 1,
             column: 4,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: "`1 + 1 = ${2}`;",
+              },
+            ],
           },
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
             line: 1,
             column: 17,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: "`${'1 + 1 = '}2`;",
+              },
+            ],
           },
         ],
       },
@@ -278,14 +386,26 @@ export const test = () =>
         code: "`${'a'}${true}`;",
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
             line: 1,
             column: 4,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: "`a${true}`;",
+              },
+            ],
           },
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateExpression,
             line: 1,
             column: 10,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: "`${'a'}true`;",
+              },
+            ],
           },
         ],
       },
@@ -296,9 +416,18 @@ export const test = () =>
       `,
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateString,
             line: 3,
             column: 12,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateString,
+                output: `
+        declare const string: 'a';
+        string;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -306,9 +435,15 @@ export const test = () =>
         code: "`${String(Symbol.for('test'))}`;",
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateString,
             line: 1,
             column: 4,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateString,
+                output: "String(Symbol.for('test'));",
+              },
+            ],
           },
         ],
       },
@@ -319,9 +454,18 @@ export const test = () =>
       `,
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateString,
             line: 3,
             column: 12,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateString,
+                output: `
+        declare const intersection: string & { _brand: 'test-brand' };
+        intersection;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -333,9 +477,19 @@ export const test = () =>
       `,
         errors: [
           {
-            message: messages.noUnnecessaryTemplateExpression,
+            message: messages.unnecessaryTemplateString,
             line: 3,
             column: 14,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateString,
+                output: `
+        function func<T extends string>(arg: T) {
+          arg;
+        }
+      `,
+              },
+            ],
           },
         ],
       },

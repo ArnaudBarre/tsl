@@ -231,6 +231,8 @@ for (const rule of usedRules
       : undefined,
     src: srcPath,
     test: testPath,
+    gitHistorySrc: `https://github.com/typescript-eslint/typescript-eslint/commits/main/packages/eslint-plugin/src/rules/${rule}.ts`,
+    gitHistoryTest: `https://github.com/typescript-eslint/typescript-eslint/commits/main/packages/eslint-plugin/tests/rules/${rule}.test.ts`,
   });
   const srcContent = readFileSync(srcPath, "utf-8");
   const srcAST = parser.parse(srcContent, {
@@ -643,7 +645,8 @@ for (const rule of usedRules
     },
     ObjectExpression(path) {
       let messageProp: ObjectProperty | undefined;
-      let dataProp: ObjectExpression | undefined;
+      let dataProp: ObjectProperty | undefined;
+      let dataPropValue: ObjectExpression | undefined;
       for (const p of path.node.properties) {
         if (p.type === "ObjectProperty" && p.key.type === "Identifier") {
           if (p.key.name === "data") {
@@ -651,7 +654,8 @@ for (const rule of usedRules
               p.value.type === "ObjectExpression",
               "data is not an object",
             );
-            dataProp = p.value;
+            dataProp = p;
+            dataPropValue = p.value;
           }
           if (p.key.name === "messageId") {
             messageProp = p;
@@ -669,11 +673,11 @@ for (const rule of usedRules
           property: { type: "Identifier", name: value },
           computed: false,
         };
-        return dataProp
+        return dataPropValue
           ? {
               type: "CallExpression",
               callee: memberExpr,
-              arguments: [dataProp],
+              arguments: [dataPropValue],
             }
           : memberExpr;
       };
@@ -692,6 +696,9 @@ for (const rule of usedRules
       };
       if (messageProp) {
         messageProp.value = replaceMessageId(messageProp.value);
+        path.node.properties = path.node.properties.filter(
+          (p) => p !== dataProp,
+        );
       }
     },
     FunctionDeclaration(path) {

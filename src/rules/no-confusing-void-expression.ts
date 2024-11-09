@@ -35,6 +35,9 @@ const messages = {
     "must be moved to its own statement " +
     "or marked explicitly with the `void` operator.",
   voidExprWrapVoid: "Mark with an explicit `void` operator.",
+  addBraces: "Add braces.",
+  removeReturn: "Remove the `return` keyword.",
+  moveBeforeReturn: "Move before the `return` keyword.",
 };
 
 type Context = Infer<typeof noConfusingVoidExpression>["Context"];
@@ -99,7 +102,12 @@ export const noConfusingVoidExpression = createRule({
           context.report({
             node,
             message: messages.invalidVoidExprArrowWrapVoid,
-            fix: wrapVoidFix(node),
+            suggestions: [
+              {
+                message: messages.voidExprWrapVoid,
+                changes: wrapVoidFix(node),
+              },
+            ],
           });
           return;
         }
@@ -109,17 +117,22 @@ export const noConfusingVoidExpression = createRule({
         context.report({
           node,
           message: messages.invalidVoidExprArrow,
-          fix: canFix(arrowFunction, context)
+          suggestions: canFix(arrowFunction, context)
             ? [
                 {
-                  start: arrowFunction.body.getStart(),
-                  length: 0,
-                  newText: "{ ",
-                },
-                {
-                  start: arrowFunction.body.getEnd() + 1,
-                  length: 0,
-                  newText: " }",
+                  message: messages.addBraces,
+                  changes: [
+                    {
+                      start: arrowFunction.body.getStart(),
+                      length: 0,
+                      newText: "{ ",
+                    },
+                    {
+                      start: arrowFunction.body.getEnd() + 1,
+                      length: 0,
+                      newText: " }",
+                    },
+                  ],
                 },
               ]
             : undefined,
@@ -150,7 +163,12 @@ export const noConfusingVoidExpression = createRule({
           context.report({
             node,
             message: messages.invalidVoidExprReturnWrapVoid,
-            fix: wrapVoidFix(node),
+            suggestions: [
+              {
+                message: messages.voidExprWrapVoid,
+                changes: wrapVoidFix(node),
+              },
+            ],
           });
           return;
         }
@@ -160,17 +178,22 @@ export const noConfusingVoidExpression = createRule({
           context.report({
             node,
             message: messages.invalidVoidExprReturnLast,
-            fix: canFix(invalidAncestor, context)
+            suggestions: canFix(invalidAncestor, context)
               ? () => {
                   const returnValue = invalidAncestor.expression!;
-                  const returnValueText = returnValue.getFullText();
+                  const returnValueText = returnValue.getFullText().trimStart();
                   let newReturnStmtText = `${returnValueText};`;
                   if (isPreventingASI(returnValueText)) {
                     // put a semicolon at the beginning of the line
                     newReturnStmtText = `;${newReturnStmtText}`;
                   }
                   return [
-                    { node: invalidAncestor, newText: newReturnStmtText },
+                    {
+                      message: messages.removeReturn,
+                      changes: [
+                        { node: invalidAncestor, newText: newReturnStmtText },
+                      ],
+                    },
                   ];
                 }
               : undefined,
@@ -182,9 +205,9 @@ export const noConfusingVoidExpression = createRule({
         context.report({
           node,
           message: messages.invalidVoidExprReturn,
-          fix: () => {
+          suggestions: () => {
             const returnValue = invalidAncestor.expression!;
-            const returnValueText = returnValue.getFullText();
+            const returnValueText = returnValue.getFullText().trimStart();
             let newReturnStmtText = `${returnValueText}; return;`;
             if (isPreventingASI(returnValueText)) {
               // put a semicolon at the beginning of the line
@@ -195,7 +218,14 @@ export const noConfusingVoidExpression = createRule({
               // add braces if not inside a block
               newReturnStmtText = `{ ${newReturnStmtText} }`;
             }
-            return [{ node: invalidAncestor, newText: newReturnStmtText }];
+            return [
+              {
+                message: messages.moveBeforeReturn,
+                changes: [
+                  { node: invalidAncestor, newText: newReturnStmtText },
+                ],
+              },
+            ];
           },
         });
         return;
@@ -1004,6 +1034,16 @@ function notcool(input: string) {
             column: 17,
             line: 3,
             message: messages.invalidVoidExprReturnLast,
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+function notcool(input: string) {
+  input, console.log(input);
+}
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1094,6 +1134,17 @@ function notcool(input: string) {
             column: 18,
             line: 3,
             message: messages.invalidVoidExprReturn,
+            suggestions: [
+              {
+                message: messages.moveBeforeReturn,
+                output: `
+        function f() {
+          console.log('foo'); return;
+          console.log('bar');
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1110,6 +1161,18 @@ function notcool(input: string) {
             column: 18,
             line: 4,
             message: messages.invalidVoidExprReturn,
+            suggestions: [
+              {
+                message: messages.moveBeforeReturn,
+                output: `
+        function f() {
+          console.log('foo')
+          ;['bar', 'baz'].forEach(console.log); return;
+          console.log('quux')
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1125,6 +1188,17 @@ function notcool(input: string) {
             column: 18,
             line: 4,
             message: messages.invalidVoidExprReturnLast,
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+        function f() {
+          console.log('foo');
+          console.log('bar');
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1140,6 +1214,17 @@ function notcool(input: string) {
             column: 18,
             line: 4,
             message: messages.invalidVoidExprReturnLast,
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+        function f() {
+          console.log('foo')
+          ;['bar', 'baz'].forEach(console.log);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1157,6 +1242,19 @@ function notcool(input: string) {
             column: 20,
             line: 4,
             message: messages.invalidVoidExprReturn,
+            suggestions: [
+              {
+                message: messages.moveBeforeReturn,
+                output: `
+        const f = () => {
+          if (cond) {
+            console.error('foo'); return;
+          }
+          console.log('bar');
+        };
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1172,6 +1270,17 @@ function notcool(input: string) {
             column: 28,
             line: 3,
             message: messages.invalidVoidExprReturn,
+            suggestions: [
+              {
+                message: messages.moveBeforeReturn,
+                output: `
+        const f = function () {
+          if (cond) { console.error('foo'); return; }
+          console.log('bar');
+        };
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1202,6 +1311,17 @@ function notcool(input: string) {
             column: 26,
             line: 4,
             message: messages.invalidVoidExprReturnLast,
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+        const f = function () {
+          let undef = undefined;
+          undef ? console.log('foo') : undef;
+        };
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1232,6 +1352,17 @@ function notcool(input: string) {
             column: 25,
             line: 4,
             message: messages.invalidVoidExprReturnLast,
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+        const f = function () {
+          let bar = void 0;
+          bar || console.log('foo');
+        };
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1271,6 +1402,12 @@ function notcool(input: string) {
             column: 8,
             line: 1,
             message: messages.invalidVoidExprReturnWrapVoid,
+            suggestions: [
+              {
+                message: messages.voidExprWrapVoid,
+                output: "return void console.log('foo');",
+              },
+            ],
           },
         ],
       },
@@ -1341,6 +1478,12 @@ function notcool(input: string) {
             column: 15,
             line: 1,
             message: messages.invalidVoidExprArrowWrapVoid,
+            suggestions: [
+              {
+                message: messages.voidExprWrapVoid,
+                output: "foo => foo || void console.log(foo);",
+              },
+            ],
           },
         ],
       },
@@ -1377,6 +1520,16 @@ function test() {
             column: 10,
             line: 3,
             message: messages.invalidVoidExprReturnLast,
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+function test() {
+  console.log('foo');
+}
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1407,6 +1560,16 @@ const test = () => {
             column: 10,
             line: 3,
             message: messages.invalidVoidExprReturnLast,
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+const test = () => {
+  console.log('foo');
+};
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1426,6 +1589,18 @@ function foo(): void {
             column: 12,
             line: 4,
             message: messages.invalidVoidExprReturnLast,
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+function foo(): void {
+  const bar = () => {
+    console.log();
+  };
+}
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1539,6 +1714,16 @@ function test(): unknown {
             column: 10,
             line: 3,
             message: messages.invalidVoidExprReturnLast,
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+function test(): unknown {
+  console.log();
+}
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1556,6 +1741,16 @@ function test(): any {
             column: 10,
             line: 3,
             message: messages.invalidVoidExprReturnLast,
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+function test(): any {
+  console.log();
+}
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1641,6 +1836,20 @@ const foo: Foo = function () {
             column: 12,
             line: 6,
             message: messages.invalidVoidExprReturnLast,
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+type Foo = () => void;
+
+const foo: Foo = function () {
+  function bar() {
+    console.log();
+  }
+};
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1660,21 +1869,18 @@ const foo = function () {
             column: 12,
             line: 4,
             message: messages.invalidVoidExprReturnLast,
-          },
-        ],
-      },
-      {
-        options: {
-          ignoreVoidReturningFunctions: true,
-        },
-        code: `
-return console.log('foo');
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+const foo = function () {
+  function bar() {
+    console.log();
+  }
+};
       `,
-        errors: [
-          {
-            column: 8,
-            line: 2,
-            message: messages.invalidVoidExprReturn,
+              },
+            ],
           },
         ],
       },
@@ -1697,6 +1903,21 @@ function test(arg?: string): any | void {
             column: 10,
             line: 8,
             message: messages.invalidVoidExprReturnLast,
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+function test(): void;
+function test(arg: string): any;
+function test(arg?: string): any | void {
+  if (arg) {
+    return arg;
+  }
+  console.log();
+}
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1719,6 +1940,21 @@ function test(arg?: string): any | void {
             column: 10,
             line: 8,
             message: messages.invalidVoidExprReturnLast,
+            suggestions: [
+              {
+                message: messages.removeReturn,
+                output: `
+function test(arg: string): any;
+function test(): void;
+function test(arg?: string): any | void {
+  if (arg) {
+    return arg;
+  }
+  console.log();
+}
+      `,
+              },
+            ],
           },
         ],
       },

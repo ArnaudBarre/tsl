@@ -115,7 +115,6 @@ export type ReportDescriptor = {
   node: Node;
   message: string;
   suggestions?: Suggestion[] | (() => Suggestion[]);
-  fix?: Change[] | (() => Change[]);
 };
 export type Context<OptionsOutput = undefined, Data = undefined> = {
   sourceFile: AST.SourceFile;
