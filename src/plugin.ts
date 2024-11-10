@@ -18,7 +18,7 @@ export const getPlugin = async (
   cleanUp(): void;
 }> => {
   const watchedFiles = new Map<string, FSWatcher>();
-  let lint: ReturnType<typeof initRules>;
+  let lint: ReturnType<typeof initRules>["lint"];
 
   const load = async () => {
     const start = performance.now();
@@ -36,7 +36,7 @@ export const getPlugin = async (
         watchedFiles.set(configFile, watch(configFile, load));
       }
     }
-    lint = initRules(() => languageService.getProgram()!, config);
+    lint = initRules(() => languageService.getProgram()!, config).lint;
     log?.(
       `Config with ${config.rules.length} rules loaded in ${(
         performance.now() - start
