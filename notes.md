@@ -59,3 +59,4 @@
 - In `no-unnecessary-condition`, the edge case about "array access can "infect" deeper into the chain" is wrong. `arr2[42]?.x?.y?.z;`should be`arr2[42]?.x.y.z;`
 - `no-unnecessary-condition` & `non-nullable-type-assertion-style` were re-implemented from scratch using `isTypeAssignableTo`
 - `no-unsafe-unary-minus` is using `import * as util`
+- `prefer-find`: Nobody writes code like `arr['filter']?.(-0.2n)`, why are you doing this to yourself?
