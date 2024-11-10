@@ -4,7 +4,7 @@ import { ruleTester } from "../ruleTester.ts";
 
 const messages = {
   preferIncludes: "Use 'includes()' method instead.",
-  preferStringIncludes: "Use `String#includes()` method with a string instead.",
+  fix: "Replace 'indexOf()' with 'includes()'.",
 };
 
 export const preferIncludes = createRule({
@@ -15,11 +15,13 @@ export const preferIncludes = createRule({
       if (node.name.text !== "indexOf") return;
       if (node.parent.kind !== SyntaxKind.CallExpression) return;
       if (node.parent.parent.kind !== SyntaxKind.BinaryExpression) return;
-      const compareNode =
-        node.parent.parent.left === node.parent
-          ? node.parent.parent.right
-          : node.parent.parent.left;
-      switch (node.parent.parent.operatorToken.kind) {
+      const isLeft = node.parent.parent.left === node.parent;
+      const compareNode = isLeft
+        ? node.parent.parent.right
+        : node.parent.parent.left;
+      let notIncludes = false;
+      const operator = node.parent.parent.operatorToken.kind;
+      switch (operator) {
         case SyntaxKind.EqualsEqualsToken:
         case SyntaxKind.EqualsEqualsEqualsToken:
         case SyntaxKind.ExclamationEqualsEqualsToken:
@@ -29,11 +31,16 @@ export const preferIncludes = createRule({
           if (compareNode.kind !== SyntaxKind.PrefixUnaryExpression) return;
           if (compareNode.operand.kind !== SyntaxKind.NumericLiteral) return;
           if (compareNode.operand.text !== "1") return;
+          notIncludes =
+            operator === SyntaxKind.EqualsEqualsToken ||
+            operator === SyntaxKind.EqualsEqualsEqualsToken ||
+            operator === SyntaxKind.LessThanEqualsToken;
           break;
         case SyntaxKind.GreaterThanEqualsToken:
         case SyntaxKind.LessThanToken:
           if (compareNode.kind !== SyntaxKind.NumericLiteral) return;
           if (compareNode.text !== "0") return;
+          notIncludes = operator === SyntaxKind.LessThanToken;
           break;
         default:
           return;
@@ -69,6 +76,32 @@ export const preferIncludes = createRule({
       context.report({
         node: node.parent.parent,
         message: messages.preferIncludes,
+        suggestions: node.questionDotToken
+          ? []
+          : [
+              {
+                message: messages.fix,
+                changes: [
+                  { node: node.name, newText: "includes" },
+                  {
+                    start: node.parent.getStart(),
+                    length: 0,
+                    newText: notIncludes ? "!" : "",
+                  },
+                  isLeft
+                    ? {
+                        start: node.parent.end,
+                        end: node.parent.parent.getEnd(),
+                        newText: "",
+                      }
+                    : {
+                        start: node.parent.parent.getStart(),
+                        end: node.parent.end,
+                        newText: "",
+                      },
+                ],
+              },
+            ],
       });
     },
   },
@@ -167,6 +200,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: string): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -179,6 +222,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: string): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -191,6 +244,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: string): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -203,10 +266,19 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: string): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
-      },
-      // negative
+      }, // negative
       {
         code: `
         function f(a: string): void {
@@ -216,6 +288,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: string): void {
+          !a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -228,6 +310,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: string): void {
+          !a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -240,6 +332,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: string): void {
+          !a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -252,6 +354,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: string): void {
+          !a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -289,6 +401,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: any[]): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -301,6 +423,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: ReadonlyArray<any>): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -313,6 +445,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: Int8Array): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -325,6 +467,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: Int16Array): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -337,6 +489,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: Int32Array): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -349,6 +511,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: Uint8Array): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -361,6 +533,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: Uint16Array): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -373,6 +555,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: Uint32Array): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -385,6 +577,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: Float32Array): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -397,6 +599,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: Float64Array): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -409,6 +621,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f<T>(a: T[] | ReadonlyArray<T>): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -434,6 +656,29 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f<
+          T,
+          U extends
+            | T[]
+            | ReadonlyArray<T>
+            | Int8Array
+            | Uint8Array
+            | Int16Array
+            | Uint16Array
+            | Int32Array
+            | Uint32Array
+            | Float32Array
+            | Float64Array,
+        >(a: U): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -450,6 +695,20 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        type UserDefined = {
+          indexOf(x: any): number;
+          includes(x: any): boolean;
+        };
+        function f(a: UserDefined): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -462,6 +721,16 @@ export const test = () =>
         errors: [
           {
             message: messages.preferIncludes,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        function f(a: Readonly<any[]>): void {
+          a.includes(b);
+        }
+      `,
+              },
+            ],
           },
         ],
       },
