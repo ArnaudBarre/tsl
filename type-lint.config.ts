@@ -18,6 +18,7 @@ import { nonNullableTypeAssertionStyle } from "./src/rules/non-nullable-type-ass
 import { onlyThrowError } from "./src/rules/only-throw-error.ts";
 import { preferFind } from "./src/rules/prefer-find.ts";
 import { preferIncludes } from "./src/rules/prefer-includes.ts";
+import { preferNullishCoalescing } from "./src/rules/prefer-nullish-coalescing.ts";
 
 export default defineConfig({
   rules: [
@@ -40,6 +41,7 @@ export default defineConfig({
     onlyThrowError,
     preferFind,
     preferIncludes,
+    preferNullishCoalescing,
   ],
   options: {
     "no-misused-promises": {
