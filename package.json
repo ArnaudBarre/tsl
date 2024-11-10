@@ -11,7 +11,8 @@
     "lint": "bun src/index.ts",
     "prettier-all": "bun prettier-ci --write",
     "prettier-ci": "prettier --cache --check '**/*.{ts,json,md,yml}'",
-    "ci": "bun prettier-ci && bun codegen --check && bun run test && bun lint "
+    "check": "bun prettier-ci && bun run test && bun lint",
+    "ci": "bun check && bun codegen --check"
   },
   "prettier": {
     "plugins": [

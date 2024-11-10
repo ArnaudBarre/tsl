@@ -1,20 +1,20 @@
 import { isIntrinsicAnyType, isIntrinsicUnknownType } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
+import { isBuiltinSymbolLike } from "../rules-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
-import type { Infer } from "../types.ts";
 
 const messages = {
   object: "Expected an error object to be thrown.",
   undef: "Do not throw undefined.",
 };
 
-type Context = Infer<typeof onlyThrowError>["Context"];
 export const onlyThrowError = createRule({
   name: "only-throw-error",
   parseOptions: (options?: {
     allowThrowingAny?: boolean;
     allowThrowingUnknown?: boolean;
+    allow?: string[];
   }) => ({
     allowThrowingAny: true,
     allowThrowingUnknown: true,
@@ -30,6 +30,17 @@ export const onlyThrowError = createRule({
       }
 
       const type = context.checker.getTypeAtLocation(node);
+
+      if (context.options.allow) {
+        const identifier =
+          node.kind === SyntaxKind.NewExpression ||
+          node.kind === SyntaxKind.CallExpression
+            ? node.expression
+            : node;
+        if (context.options.allow.includes(identifier.getText())) {
+          return;
+        }
+      }
 
       if (type.flags & ts.TypeFlags.Undefined) {
         context.report({ node, message: messages.undef });
@@ -47,7 +58,7 @@ export const onlyThrowError = createRule({
         return;
       }
 
-      if (isErrorLike(type, context)) {
+      if (isBuiltinSymbolLike(context.program, type, "Error")) {
         return;
       }
 
@@ -55,42 +66,6 @@ export const onlyThrowError = createRule({
     },
   },
 });
-
-function isErrorLike(type: ts.Type, context: Context): boolean {
-  if (type.isIntersection()) {
-    return type.types.some((t) => isErrorLike(t, context));
-  }
-  if (type.isUnion()) {
-    return type.types.every((t) => isErrorLike(t, context));
-  }
-
-  const symbol = type.getSymbol();
-  if (!symbol) {
-    return false;
-  }
-
-  if (symbol.getName() === "Error") {
-    const declarations = symbol.getDeclarations() ?? [];
-    for (const declaration of declarations) {
-      const sourceFile = declaration.getSourceFile();
-      if (context.program.isSourceFileDefaultLibrary(sourceFile)) {
-        return true;
-      }
-    }
-  }
-
-  if (symbol.flags & (ts.SymbolFlags.Class | ts.SymbolFlags.Interface)) {
-    for (const baseType of context.checker.getBaseTypes(
-      type as ts.InterfaceType,
-    )) {
-      if (isErrorLike(baseType, context)) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
 
 export const test = () =>
   ruleTester({
@@ -216,184 +191,120 @@ function fun(value: unknown) {
   throw value;
 }
     `,
+      `
+function fun<T extends Error>(t: T): void {
+  throw t;
+}
+    `,
+      {
+        options: {
+          allow: ["undefined"],
+          allowThrowingAny: false,
+          allowThrowingUnknown: false,
+        },
+        code: `
+throw undefined;
+      `,
+      },
+      {
+        options: {
+          allow: ["CustomError"],
+          allowThrowingAny: false,
+          allowThrowingUnknown: false,
+        },
+        code: `
+class CustomError implements Error {}
+throw new CustomError();
+      `,
+      },
+      {
+        options: {
+          allow: ["Map"],
+          allowThrowingAny: false,
+          allowThrowingUnknown: false,
+        },
+        code: `
+throw new Map();
+      `,
+      },
+      {
+        options: {
+          allow: ["createError"],
+          allowThrowingAny: false,
+          allowThrowingUnknown: false,
+        },
+        code: `
+        import { createError } from 'errors';
+        throw createError();
+      `,
+      },
     ],
     invalid: [
-      {
-        code: "throw undefined;",
-        errors: [
-          {
-            message: messages.undef,
-          },
-        ],
-      },
-      {
-        code: "throw new String('');",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
-      },
-      {
-        code: "throw 'error';",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
-      },
-      {
-        code: "throw 0;",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
-      },
-      {
-        code: "throw false;",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
-      },
-      {
-        code: "throw null;",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
-      },
-      {
-        code: "throw {};",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
-      },
-      {
-        code: "throw 'a' + 'b';",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
-      },
+      { code: "throw undefined;", errors: [{ message: messages.undef }] },
+      { code: "throw new String('');", errors: [{ message: messages.object }] },
+      { code: "throw 'error';", errors: [{ message: messages.object }] },
+      { code: "throw 0;", errors: [{ message: messages.object }] },
+      { code: "throw false;", errors: [{ message: messages.object }] },
+      { code: "throw null;", errors: [{ message: messages.object }] },
+      { code: "throw {};", errors: [{ message: messages.object }] },
+      { code: "throw 'a' + 'b';", errors: [{ message: messages.object }] },
       {
         code: `
 const a = '';
 throw a + 'b';
       `,
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: "throw (foo = 'error');",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: "throw (new Error(), 1, 2, 3);",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: "throw 'literal' && 'not an Error';",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: "throw 'literal' || new Error();",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: "throw new Error() && 'literal';",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: "throw 'literal' ?? new Error();",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: "throw foo ? 'not an Error' : 'literal';",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: "throw foo ? new Error() : 'literal';",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: "throw foo ? 'literal' : new Error();",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
-      {
-        code: "throw `${err}`;",
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
-      },
+      { code: "throw `${err}`;", errors: [{ message: messages.object }] },
       {
         code: `
 const err = 'error';
 throw err;
       `,
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: `
 function foo(msg) {}
 throw foo('error');
       `,
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: `
@@ -402,11 +313,7 @@ const foo = {
 };
 throw foo.msg;
       `,
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: `
@@ -415,22 +322,14 @@ const foo = {
 };
 throw foo.msg;
       `,
-        errors: [
-          {
-            message: messages.undef,
-          },
-        ],
+        errors: [{ message: messages.undef }],
       },
       {
         code: `
 class CustomError {}
 throw new CustomError();
       `,
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: `
@@ -438,35 +337,21 @@ class Foo {}
 class CustomError extends Foo {}
 throw new CustomError();
       `,
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: `
 const Error = null;
 throw Error;
       `,
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: `
 class CustomError<T extends object> extends Foo {}
 throw new CustomError();
       `,
-        errors: [
-          {
-            message: messages.object,
-            line: 3,
-            column: 7,
-          },
-        ],
+        errors: [{ message: messages.object, line: 3, column: 7 }],
       },
       {
         code: `
@@ -475,13 +360,7 @@ function foo<T>() {
   throw res;
 }
       `,
-        errors: [
-          {
-            message: messages.object,
-            line: 4,
-            column: 9,
-          },
-        ],
+        errors: [{ message: messages.object, line: 4, column: 9 }],
       },
       {
         code: `
@@ -491,13 +370,7 @@ function foo<T>(fn: () => Promise<T>) {
   throw res;
 }
       `,
-        errors: [
-          {
-            message: messages.object,
-            line: 5,
-            column: 9,
-          },
-        ],
+        errors: [{ message: messages.object, line: 5, column: 9 }],
       },
       {
         code: `
@@ -505,11 +378,7 @@ function foo() {
   throw Object.assign({ foo: 'foo' }, { bar: 'bar' });
 }
       `,
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: `
@@ -518,52 +387,40 @@ function bar() {
   throw foo;
 }
       `,
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
         code: `
 declare const foo: Error | string;
 throw foo as string;
       `,
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
+        errors: [{ message: messages.object }],
       },
       {
+        options: { allowThrowingAny: false },
         code: `
 function fun(value: any) {
   throw value;
 }
       `,
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
-        options: {
-          allowThrowingAny: false,
-        },
+        errors: [{ message: messages.object }],
       },
       {
+        options: { allowThrowingUnknown: false },
         code: `
 function fun(value: unknown) {
   throw value;
 }
       `,
-        errors: [
-          {
-            message: messages.object,
-          },
-        ],
-        options: {
-          allowThrowingUnknown: false,
-        },
+        errors: [{ message: messages.object }],
+      },
+      {
+        code: `
+function fun<T extends number>(t: T): void {
+  throw t;
+}
+      `,
+        errors: [{ message: messages.object }],
       },
     ],
   });

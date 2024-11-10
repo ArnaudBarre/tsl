@@ -15,6 +15,7 @@ import { noUnnecessaryTypeArguments } from "./src/rules/no-unnecessary-type-argu
 import { noUnnecessaryTypeAssertion } from "./src/rules/no-unnecessary-type-assertion.ts";
 import { noUnsafeUnaryMinus } from "./src/rules/no-unsafe-unary-minus.ts";
 import { nonNullableTypeAssertionStyle } from "./src/rules/non-nullable-type-assertion-style.ts";
+import { onlyThrowError } from "./src/rules/only-throw-error.ts";
 
 export default defineConfig({
   rules: [
@@ -34,6 +35,7 @@ export default defineConfig({
     noUnnecessaryTypeAssertion,
     noUnsafeUnaryMinus,
     nonNullableTypeAssertionStyle,
+    onlyThrowError,
   ],
   options: {
     "no-misused-promises": {
