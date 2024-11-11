@@ -1,7 +1,7 @@
 import ts from "typescript";
 import type { AnyNode, SourceFile, Visitor } from "./ast.ts";
 import { getContextUtils } from "./getContextUtils.ts";
-import { run } from "./rules-utils.ts";
+import { run } from "./rules/utils";
 import type {
   AST,
   Checker,

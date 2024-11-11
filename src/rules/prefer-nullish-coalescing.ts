@@ -2,10 +2,10 @@ import { intersectionTypeParts, isTypeFlagSet } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import type { EqualityOperator } from "../ast.ts";
 import { createRule } from "../public-utils.ts";
-import { isLogicalExpression } from "../rules-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { typeHasFlag } from "../types-utils.ts";
 import type { AST, Infer, Suggestion } from "../types.ts";
+import { isLogicalExpression } from "./utils";
 
 const messages = {
   noStrictNullCheck:

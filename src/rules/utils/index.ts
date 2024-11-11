@@ -1,33 +1,28 @@
-import {
-  intersectionTypeParts,
-  isTypeParameter,
-  unionTypeParts,
-} from "ts-api-utils";
+import { intersectionTypeParts, unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
-import type { BinaryOperatorToken } from "./ast.ts";
-import type { AST, Checker, Context } from "./types.ts";
+import type { AnyNode, BinaryOperatorToken } from "../../ast.ts";
+import type { AST, Checker, Context } from "../../types.ts";
 
 export const run = <T>(cb: () => T) => cb();
 
 const estreeLogicalOperator = [
-  ts.SyntaxKind.BarBarToken,
-  ts.SyntaxKind.AmpersandAmpersandToken,
-  ts.SyntaxKind.QuestionQuestionToken,
+  SyntaxKind.BarBarToken,
+  SyntaxKind.AmpersandAmpersandToken,
+  SyntaxKind.QuestionQuestionToken,
 ];
 export const isLogicalExpression = (token: BinaryOperatorToken) =>
   estreeLogicalOperator.includes(token.kind);
 
 const estreeLiteral = [
-  ts.SyntaxKind.StringLiteral,
-  ts.SyntaxKind.NumericLiteral,
-  ts.SyntaxKind.BigIntLiteral,
-  ts.SyntaxKind.TrueKeyword,
-  ts.SyntaxKind.FalseKeyword,
-  ts.SyntaxKind.NullKeyword,
-  ts.SyntaxKind.RegularExpressionLiteral,
+  SyntaxKind.StringLiteral,
+  SyntaxKind.NumericLiteral,
+  SyntaxKind.BigIntLiteral,
+  SyntaxKind.TrueKeyword,
+  SyntaxKind.FalseKeyword,
+  SyntaxKind.NullKeyword,
+  SyntaxKind.RegularExpressionLiteral,
 ];
-export const isLiteralKind = (kind: ts.SyntaxKind) =>
-  estreeLiteral.includes(kind);
+export const isLiteralKind = (kind: SyntaxKind) => estreeLiteral.includes(kind);
 
 // Map to check exhaustiveness
 const assignmentOperatorsMap: Record<
@@ -89,97 +84,6 @@ export function getParentFunctionNode(
   // this shouldn't happen in correct code, but someone may attempt to parse bad code
   // the parser won't error, so we shouldn't throw here
   return null;
-}
-
-export function isBuiltinSymbolLike(
-  program: ts.Program,
-  type: ts.Type,
-  symbolName: string | string[],
-): boolean {
-  return isBuiltinSymbolLikeRecurser(program, type, (subType) => {
-    const symbol = subType.getSymbol();
-    if (!symbol) {
-      return false;
-    }
-
-    const actualSymbolName = symbol.getName();
-
-    if (
-      (Array.isArray(symbolName)
-        ? symbolName.some((name) => actualSymbolName === name)
-        : actualSymbolName === symbolName) &&
-      isSymbolFromDefaultLibrary(program, symbol)
-    ) {
-      return true;
-    }
-
-    return null;
-  });
-}
-
-export function isBuiltinSymbolLikeRecurser(
-  program: ts.Program,
-  type: ts.Type,
-  predicate: (subType: ts.Type) => boolean | null,
-): boolean {
-  if (type.isIntersection()) {
-    return type.types.some((t) =>
-      isBuiltinSymbolLikeRecurser(program, t, predicate),
-    );
-  }
-  if (type.isUnion()) {
-    return type.types.every((t) =>
-      isBuiltinSymbolLikeRecurser(program, t, predicate),
-    );
-  }
-  // https://github.com/JoshuaKGoldberg/ts-api-utils/issues/382
-  if ((isTypeParameter as (type: ts.Type) => boolean)(type)) {
-    const t = type.getConstraint();
-
-    if (t) {
-      return isBuiltinSymbolLikeRecurser(program, t, predicate);
-    }
-
-    return false;
-  }
-
-  const predicateResult = predicate(type);
-  if (typeof predicateResult === "boolean") {
-    return predicateResult;
-  }
-
-  const symbol = type.getSymbol();
-  if (
-    symbol &&
-    symbol.flags & (ts.SymbolFlags.Class | ts.SymbolFlags.Interface)
-  ) {
-    const checker = program.getTypeChecker();
-    for (const baseType of checker.getBaseTypes(type as ts.InterfaceType)) {
-      if (isBuiltinSymbolLikeRecurser(program, baseType, predicate)) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-export function isSymbolFromDefaultLibrary(
-  program: ts.Program,
-  symbol: ts.Symbol | undefined,
-): boolean {
-  if (!symbol) {
-    return false;
-  }
-
-  const declarations = symbol.getDeclarations() ?? [];
-  for (const declaration of declarations) {
-    const sourceFile = declaration.getSourceFile();
-    if (program.isSourceFileDefaultLibrary(sourceFile)) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 const ARRAY_PREDICATE_FUNCTIONS = [
@@ -338,4 +242,23 @@ export function getContextualType(
   // TODO - support return statement checking
 
   return checker.getContextualType(node);
+}
+
+export function isReferenceToGlobalFunction(
+  node: AnyNode,
+  context: Context<unknown, unknown>,
+): boolean {
+  const symbol = context.checker.getSymbolAtLocation(node);
+
+  // If we can't find a symbol, assume it's global
+  if (!symbol) return true;
+
+  // If there are no declarations, it's likely global
+  if (!symbol.declarations || symbol.declarations.length === 0) {
+    return true;
+  }
+
+  return symbol.declarations.some(
+    (decl) => decl.getSourceFile().isDeclarationFile,
+  );
 }

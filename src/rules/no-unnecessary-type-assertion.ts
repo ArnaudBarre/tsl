@@ -1,10 +1,10 @@
 import { unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
-import { getContextualType, isConstAssertion } from "../rules-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { typeHasFlag } from "../types-utils.ts";
 import type { AST, Infer, Suggestion } from "../types.ts";
+import { getContextualType, isConstAssertion } from "./utils";
 
 const messages = {
   contextuallyUnnecessary:

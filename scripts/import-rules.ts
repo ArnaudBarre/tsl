@@ -230,7 +230,10 @@ const astNodes = Object.values(kindToNodeTypeMap);
 for (const rule of rulesToImport) {
   const filename = `${rule}.ts`;
   const srcPath = `../typescript-eslint/packages/eslint-plugin/src/rules/${filename}`;
-  const testPath = `../typescript-eslint/packages/eslint-plugin/tests/rules/${rule}.test.ts`;
+  const testPath =
+    rule === "prefer-optional-chain"
+      ? `../typescript-eslint/packages/eslint-plugin/tests/rules/${rule}/${rule}.test.ts`
+      : `../typescript-eslint/packages/eslint-plugin/tests/rules/${rule}.test.ts`;
   console.log(rule, {
     new: `./src/rules/${filename}`,
     previousIteration: firstIterationRules.includes(filename)

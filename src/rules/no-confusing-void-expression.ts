@@ -7,9 +7,9 @@ import {
 import ts, { SyntaxKind } from "typescript";
 import type { AnyNode } from "../ast.ts";
 import { createRule } from "../public-utils.ts";
-import { getParentFunctionNode, isLogicalExpression } from "../rules-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Infer, Suggestion } from "../types.ts";
+import { getParentFunctionNode, isLogicalExpression } from "./utils";
 
 const messages = {
   invalidVoidExpr:

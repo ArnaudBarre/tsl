@@ -2,9 +2,10 @@ import { isSymbolFlagSet } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import type { AnyNode } from "../ast.ts";
 import { createRule } from "../public-utils.ts";
-import { isBuiltinSymbolLike } from "../rules-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Context } from "../types.ts";
+import { isReferenceToGlobalFunction } from "./utils";
+import { isBuiltinSymbolLike } from "./utils/isBuiltinSymbolLike.ts";
 
 const messages = {
   noImpliedEvalError: "Implied eval. Consider passing a function.",
@@ -140,22 +141,6 @@ function checkImpliedEval(
   ) {
     context.report({ node: handler, message: messages.noImpliedEvalError });
   }
-}
-
-function isReferenceToGlobalFunction(node: AnyNode, context: Context): boolean {
-  const symbol = context.checker.getSymbolAtLocation(node);
-
-  // If we can't find a symbol, assume it's global
-  if (!symbol) return true;
-
-  // If there are no declarations, it's likely global
-  if (!symbol.declarations || symbol.declarations.length === 0) {
-    return true;
-  }
-
-  return symbol.declarations.some(
-    (decl) => decl.getSourceFile().isDeclarationFile,
-  );
 }
 
 export const test = () =>

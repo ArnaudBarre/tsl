@@ -10,15 +10,15 @@ import {
 } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
+import { ruleTester } from "../ruleTester.ts";
+import { typeHasFlag } from "../types-utils.ts";
+import type { AST, Checker, Context as ContextGeneric } from "../types.ts";
 import {
   getTypeName,
   isArrayMethodCallWithPredicate,
   isLiteralKind,
   isLogicalExpression,
-} from "../rules-utils.ts";
-import { ruleTester } from "../ruleTester.ts";
-import { typeHasFlag } from "../types-utils.ts";
-import type { AST, Checker, Context as ContextGeneric } from "../types.ts";
+} from "./utils";
 
 const messages = {
   alwaysFalsy: "Unnecessary conditional, value is always falsy.",

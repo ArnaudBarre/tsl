@@ -1,9 +1,10 @@
 import { unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
-import { isBuiltinSymbolLike, isLogicalExpression } from "../rules-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Checker, Infer, Suggestion } from "../types.ts";
+import { isLogicalExpression } from "./utils";
+import { isBuiltinSymbolLike } from "./utils/isBuiltinSymbolLike.ts";
 
 const messageBase =
   "Promises must be awaited, end with a call to .catch, or end with a call to .then with a rejection handler.";

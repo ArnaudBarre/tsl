@@ -1,14 +1,14 @@
 import { getPropertyOfType, isTypeFlagSet, unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
+import { ruleTester } from "../ruleTester.ts";
+import type { AST, Infer } from "../types.ts";
 import {
   isArrayMethodCallWithPredicate,
   isAssignmentExpression,
   isLogicalExpression,
   run,
-} from "../rules-utils.ts";
-import { ruleTester } from "../ruleTester.ts";
-import type { AST, Infer } from "../types.ts";
+} from "./utils";
 
 const messages = {
   conditional: "Expected non-Promise value in a boolean conditional.",

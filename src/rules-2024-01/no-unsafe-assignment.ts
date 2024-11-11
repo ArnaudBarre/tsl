@@ -1,6 +1,6 @@
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
-import { getContextualType } from "../rules-utils.ts";
+import { getContextualType } from "../rules/utils";
 import { ruleTester } from "../ruleTester.ts";
 import { isTypeAnyArrayType, typeHasFlag } from "../types-utils.ts";
 import type { AST, Context } from "../types.ts";

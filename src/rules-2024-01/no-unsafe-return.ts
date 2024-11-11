@@ -1,7 +1,7 @@
 import { isIntrinsicAnyType } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
-import { getContextualType, getParentFunctionNode } from "../rules-utils.ts";
+import { getContextualType, getParentFunctionNode } from "../rules/utils";
 import { ruleTester } from "../ruleTester.ts";
 import {
   isTypeAnyArrayType,
