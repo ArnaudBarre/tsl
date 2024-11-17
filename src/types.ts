@@ -111,8 +111,10 @@ type Change =
 
 export type Suggestion = { message: string; changes: Change[] };
 
-export type ReportDescriptor = {
-  node: Node;
+export type ReportDescriptor = (
+  | { node: Node }
+  | { start: number; end: number }
+) & {
   message: string;
   suggestions?: Suggestion[] | (() => Suggestion[]);
 };

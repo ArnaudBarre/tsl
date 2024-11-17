@@ -76,7 +76,7 @@ for (const it of files) {
   lint(it as unknown as SourceFile, (report) => {
     if (report.type === "rule") {
       const { line, character } = it.getLineAndCharacterOfPosition(
-        report.node.getStart(),
+        "node" in report ? report.node.getStart() : report.start,
       );
       console.log(
         `${displayFilename(it.fileName)}(${line + 1},${character + 1}): ${

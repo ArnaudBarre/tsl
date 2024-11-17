@@ -44,8 +44,13 @@ export const preferOptionalChain = createRule({
     requireNullish: false,
     ...props,
   }),
+  createData: () => ({ seenLogicals: new Set<AST.BinaryExpression>() }),
   visitor: {
     BinaryExpression(node, context) {
+      if (context.data.seenLogicals.has(node)) {
+        return;
+      }
+
       const operator = node.operatorToken.kind;
       if (
         operator !== SyntaxKind.QuestionQuestionToken &&
@@ -55,7 +60,13 @@ export const preferOptionalChain = createRule({
         return;
       }
       if (operator !== SyntaxKind.QuestionQuestionToken) {
-        const operands = gatherLogicalOperands(node, context);
+        const { operands, newlySeenLogicals } = gatherLogicalOperands(
+          node,
+          context,
+        );
+        for (const logical of newlySeenLogicals) {
+          context.data.seenLogicals.add(logical);
+        }
 
         let currentChain: ValidOperand[] = [];
         for (const operand of operands) {
@@ -77,14 +88,21 @@ export const preferOptionalChain = createRule({
         operator === SyntaxKind.QuestionQuestionToken
       ) {
         const leftNode = node.left;
-        const rightNode = node.right;
-        const parentNode = node.parent;
+        let rightNode = node.right;
+        while (rightNode.kind === SyntaxKind.ParenthesizedExpression) {
+          rightNode = rightNode.expression;
+        }
+        let parentNode: AST.LeftHandSideExpressionParent = node.parent;
+        while (parentNode.kind === SyntaxKind.ParenthesizedExpression) {
+          parentNode = parentNode.parent;
+        }
         const isRightNodeAnEmptyObjectLiteral =
           rightNode.kind === SyntaxKind.ObjectLiteralExpression &&
           rightNode.properties.length === 0;
         if (
           !isRightNodeAnEmptyObjectLiteral ||
-          parentNode.kind !== SyntaxKind.ElementAccessExpression ||
+          (parentNode.kind !== SyntaxKind.ElementAccessExpression &&
+            parentNode.kind !== SyntaxKind.PropertyAccessExpression) ||
           parentNode.questionDotToken
         ) {
           return;
@@ -105,7 +123,10 @@ export const preferOptionalChain = createRule({
                 changes: [
                   {
                     node: parentNode,
-                    newText: `${maybeWrappedLeftNode}?.[${parentNode.argumentExpression.getText()}]`,
+                    newText:
+                      parentNode.kind === SyntaxKind.ElementAccessExpression
+                        ? `${maybeWrappedLeftNode}?.[${parentNode.argumentExpression.getText()}]`
+                        : `${maybeWrappedLeftNode}?.${parentNode.name.getText()}`,
                   },
                 ],
               },
@@ -133,12 +154,9 @@ type ValidOperand = {
   node: AST.Expression;
 };
 type Operand = ValidOperand | { type: "Invalid" };
-function gatherLogicalOperands(
-  node: AST.BinaryExpression,
-  context: Context,
-): Operand[] {
+function gatherLogicalOperands(node: AST.BinaryExpression, context: Context) {
   const result: Operand[] = [];
-  const operands = flattenLogicalOperands(node);
+  const { operands, newlySeenLogicals } = flattenLogicalOperands(node);
 
   for (const operand of operands) {
     const areMoreOperands = operand !== operands.at(-1);
@@ -313,7 +331,7 @@ function gatherLogicalOperands(
     }
   }
 
-  return result;
+  return { operands: result, newlySeenLogicals };
 
   /*
   The AST is always constructed such the first element is always the deepest element.
@@ -336,10 +354,9 @@ function gatherLogicalOperands(
   Note that this function purposely does not inspect mixed logical expressions
   like `foo || foo.bar && foo.bar.baz` - separate selector
   */
-  function flattenLogicalOperands(
-    node: AST.BinaryExpression,
-  ): AST.Expression[] {
+  function flattenLogicalOperands(node: AST.BinaryExpression) {
     const operands: AST.Expression[] = [];
+    const newlySeenLogicals = new Set<AST.BinaryExpression>();
 
     const stack: AST.Expression[] = [node.right, node.left];
     let current: AST.Expression | undefined;
@@ -347,16 +364,19 @@ function gatherLogicalOperands(
       if (
         current.kind === SyntaxKind.BinaryExpression &&
         isLogicalExpression(current.operatorToken) &&
-        current.operatorToken === node.operatorToken
+        current.operatorToken.kind === node.operatorToken.kind
       ) {
+        newlySeenLogicals.add(current);
         stack.push(current.right);
         stack.push(current.left);
+      } else if (current.kind === SyntaxKind.ParenthesizedExpression) {
+        stack.push(current.expression);
       } else {
         operands.push(current);
       }
     }
 
-    return operands;
+    return { operands, newlySeenLogicals };
   }
 
   type ComparisonValueType = "Null" | "Undefined" | "UndefinedStringLiteral";
@@ -463,7 +483,7 @@ function analyzeChain(
       checkNullishAndReport(
         context,
         subChainFlat.slice(0, -1).map(({ node }) => node),
-        getReportDescriptor(context, node, operator, subChainFlat),
+        getReportDescriptor(node, subChainFlat),
       );
     }
 
@@ -669,9 +689,7 @@ function includesType(
 }
 
 function getReportDescriptor(
-  context: Context,
-  node: AST.Expression,
-  operator: SyntaxKind.AmpersandAmpersandToken | SyntaxKind.BarBarToken,
+  node: AST.BinaryExpression,
   chain: ValidOperand[],
 ): ReportDescriptor {
   const lastOperand = chain[chain.length - 1];
@@ -744,51 +762,69 @@ function getReportDescriptor(
     })
     .join("");
 
-  if (lastOperand.node.type === AST_NODE_TYPES.BinaryExpression) {
+  if (lastOperand.node.kind === SyntaxKind.BinaryExpression) {
     // retain the ending comparison for cases like
     // x && x.a != null
     // x && typeof x.a !== 'undefined'
-    const operator = lastOperand.node.operator;
+    const getUnaryOperator = (node: AST.Expression) => {
+      switch (node.kind) {
+        case SyntaxKind.TypeOfExpression:
+          return "typeof ";
+        case SyntaxKind.VoidExpression:
+          return "void ";
+        case SyntaxKind.PrefixUnaryExpression:
+          switch (node.operator) {
+            case SyntaxKind.PlusPlusToken:
+              return "++";
+            case SyntaxKind.MinusMinusToken:
+              return "--";
+            case SyntaxKind.PlusToken:
+              return "+";
+            case SyntaxKind.MinusToken:
+              return "-";
+            case SyntaxKind.TildeToken:
+              return "~";
+            case SyntaxKind.ExclamationToken:
+              return "!";
+          }
+        default:
+          return "";
+      }
+    };
     const { left, right } = (() => {
       if (lastOperand.isYoda) {
-        const unaryOperator =
-          lastOperand.node.right.type === AST_NODE_TYPES.UnaryExpression
-            ? `${lastOperand.node.right.operator} `
-            : "";
-
+        const unaryOperator = getUnaryOperator(lastOperand.node.right);
         return {
-          left: sourceCode.getText(lastOperand.node.left),
+          left: lastOperand.node.left.getText(),
           right: unaryOperator + newCode,
         };
       }
-      const unaryOperator =
-        lastOperand.node.left.type === AST_NODE_TYPES.UnaryExpression
-          ? `${lastOperand.node.left.operator} `
-          : "";
+      const unaryOperator = getUnaryOperator(lastOperand.node.left);
       return {
         left: unaryOperator + newCode,
-        right: sourceCode.getText(lastOperand.node.right),
+        right: lastOperand.node.right.getText(),
       };
     })();
 
-    newCode = `${left} ${operator} ${right}`;
+    newCode = `${left} ${lastOperand.node.operatorToken.getText()} ${right}`;
   } else if (lastOperand.comparisonType === "NotBoolean") {
     newCode = `!${newCode}`;
   }
 
+  const getToken = (index: number) => node.getText()[index - node.getStart()];
+  let start = chain[0].node.getStart();
+  while (getToken(start - 1) === "(") start--;
+  let end = lastOperand.node.getEnd();
+  while (getToken(end) === ")") end++;
+
   return {
-    node: chain[0].node,
+    start,
+    end,
     message: messages.preferOptionalChain,
     suggestions: [
       {
         message: messages.optionalChainSuggest,
-        changes: [
-          {
-            start: chain[0].node.getStart(),
-            end: chain[chain.length - 1].node.getEnd(),
-            newText: newCode,
-          },
-        ],
+        changes: [{ start, end, newText: newCode }],
       },
     ],
   };
@@ -803,6 +839,8 @@ function getReportDescriptor(
   function flattenChainExpression(node: AST.Expression): FlattenedChain[] {
     switch (node.kind) {
       case SyntaxKind.CallExpression: {
+        const argsStart =
+          node.questionDotToken?.getEnd() ?? node.expression.getEnd();
         return [
           ...flattenChainExpression(node.expression),
           {
@@ -813,9 +851,8 @@ function getReportDescriptor(
             requiresDot: false,
             text: node
               .getText()
-              .slice(
-                node.questionDotToken?.getEnd() ?? node.expression.getEnd(),
-              ),
+              .slice(argsStart - node.getStart())
+              .trim(),
           },
         ];
       }
@@ -936,7 +973,12 @@ function compareNodesUncached(
     ) {
       switch (nodeB.kind) {
         case SyntaxKind.PropertyAccessExpression:
-          if (nodeB.name.kind === SyntaxKind.PrivateIdentifier) {
+        case SyntaxKind.ElementAccessExpression:
+          const name =
+            nodeB.kind === SyntaxKind.PropertyAccessExpression
+              ? nodeB.name
+              : nodeB.argumentExpression;
+          if (name.kind === SyntaxKind.PrivateIdentifier) {
             // Private identifiers in optional chaining is not currently allowed
             // TODO - handle this once TS supports it (https://github.com/microsoft/TypeScript/issues/42734)
             return "Invalid";
@@ -1028,7 +1070,11 @@ function compareNodesUncached(
     case SyntaxKind.TrueKeyword:
     case SyntaxKind.FalseKeyword:
     case SyntaxKind.NullKeyword:
+    case SyntaxKind.ThisKeyword:
+    case SyntaxKind.StringKeyword:
+    case SyntaxKind.NumberKeyword:
       return "Equal";
+    case SyntaxKind.FirstTemplateToken:
     case SyntaxKind.StringLiteral:
     case SyntaxKind.NumericLiteral:
     case SyntaxKind.BigIntLiteral:
@@ -1127,6 +1173,39 @@ function compareNodesUncached(
       return "Equal";
     }
 
+    case SyntaxKind.MetaProperty: {
+      const nodeBMeta = nodeB as typeof nodeA;
+      return compareNodes(nodeA.name, nodeBMeta.name);
+    }
+
+    case SyntaxKind.AsExpression: {
+      const nodeBAs = nodeB as typeof nodeA;
+      const expressionCompare = compareNodes(
+        nodeA.expression,
+        nodeBAs.expression,
+      );
+      if (expressionCompare !== "Equal") return "Invalid";
+      return compareNodes(nodeA.type, nodeBAs.type);
+    }
+
+    case SyntaxKind.BinaryExpression: {
+      const nodeBBinary = nodeB as typeof nodeA;
+      if (nodeA.operatorToken.kind !== nodeBBinary.operatorToken.kind) {
+        return "Invalid";
+      }
+      const leftCompare = compareNodes(nodeA.left, nodeBBinary.left);
+      if (leftCompare !== "Equal") return "Invalid";
+      return compareNodes(nodeA.right, nodeBBinary.right);
+    }
+
+    case SyntaxKind.ParenthesizedExpression:
+    case SyntaxKind.NonNullExpression:
+    case SyntaxKind.AwaitExpression:
+    case SyntaxKind.TypeOfExpression: {
+      const nodeBTypeOf = nodeB as typeof nodeA;
+      return compareNodes(nodeA.expression, nodeBTypeOf.expression);
+    }
+
     default:
       return "Invalid";
   }
@@ -1150,8 +1229,8 @@ function isValidNode(x: unknown): x is AST.AnyNode {
   return (
     typeof x === "object" &&
     x != null &&
-    "type" in x &&
-    typeof x.type === "string"
+    "kind" in x &&
+    typeof x.kind === "number"
   );
 }
 function compareArrays(
@@ -1395,26 +1474,31 @@ export const test = () =>
       "func(foo || {}).bar;",
       "foo ?? {};",
       "(foo ?? {})?.bar;",
-      "foo ||= bar ?? {};", // https://github.com/typescript-eslint/typescript-eslint/issues/8380
+      "foo ||= bar ?? {};",
+      // https://github.com/typescript-eslint/typescript-eslint/issues/8380
       `
       const a = null;
       const b = 0;
       a === undefined || b === null || b === undefined;
-    `, // https://github.com/typescript-eslint/typescript-eslint/issues/8380
+    `,
+      // https://github.com/typescript-eslint/typescript-eslint/issues/8380
       `
       const a = 0;
       const b = 0;
       a === undefined || b === undefined || b === null;
-    `, // https://github.com/typescript-eslint/typescript-eslint/issues/8380
+    `,
+      // https://github.com/typescript-eslint/typescript-eslint/issues/8380
       `
       const a = 0;
       const b = 0;
       b === null || a === undefined || b === undefined;
-    `, // https://github.com/typescript-eslint/typescript-eslint/issues/8380
+    `,
+      // https://github.com/typescript-eslint/typescript-eslint/issues/8380
       `
       const b = 0;
       b === null || b === undefined;
-    `, // https://github.com/typescript-eslint/typescript-eslint/issues/8380
+    `,
+      // https://github.com/typescript-eslint/typescript-eslint/issues/8380
       `
       const a = 0;
       const b = 0;
@@ -1865,7 +1949,7 @@ export const test = () =>
         errors: [
           {
             message: messages.preferOptionalChain,
-            column: 13,
+            column: 11,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
@@ -1876,7 +1960,7 @@ export const test = () =>
       `,
               },
             ],
-            endColumn: 28,
+            endColumn: 26,
           },
         ],
       },
@@ -1889,7 +1973,7 @@ export const test = () =>
         errors: [
           {
             message: messages.preferOptionalChain,
-            column: 15,
+            column: 13,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
@@ -1900,7 +1984,7 @@ export const test = () =>
       `,
               },
             ],
-            endColumn: 30,
+            endColumn: 28,
           },
         ],
       },
@@ -2330,7 +2414,7 @@ export const test = () =>
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
-                output: "foo?.bar?.baz || baz?.bar?.foo",
+                output: "foo?.bar?.baz || baz && baz.bar && baz.bar.foo",
               },
             ],
           },
@@ -2339,7 +2423,7 @@ export const test = () =>
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
-                output: "foo?.bar?.baz || baz?.bar?.foo",
+                output: "foo && foo.bar && foo.bar.baz || baz?.bar?.foo",
               },
             ],
           },
@@ -2758,7 +2842,8 @@ export const test = () =>
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
-                output: "(!foo?.bar?.baz) && (!baz?.bar?.foo);",
+                output:
+                  "(!foo?.bar?.baz) && (!baz || !baz.bar || !baz.bar.foo);",
               },
             ],
           },
@@ -2767,7 +2852,8 @@ export const test = () =>
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
-                output: "(!foo?.bar?.baz) && (!baz?.bar?.foo);",
+                output:
+                  "(!foo || !foo.bar || !foo.bar.baz) && (!baz?.bar?.foo);",
               },
             ],
           },
@@ -3011,7 +3097,8 @@ export const test = () =>
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
-                output: "foo1?.bar != null && foo2?.bar != null;",
+                output:
+                  "foo1?.bar != null && foo2 != null && foo2.bar != null;",
               },
             ],
           },
@@ -3020,7 +3107,8 @@ export const test = () =>
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
-                output: "foo1?.bar != null && foo2?.bar != null;",
+                output:
+                  "foo1 != null && foo1.bar != null && foo2?.bar != null;",
               },
             ],
           },
@@ -3034,7 +3122,7 @@ export const test = () =>
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
-                output: "foo?.a && bar?.a;",
+                output: "foo?.a && bar && bar.a;",
               },
             ],
           },
@@ -3043,7 +3131,7 @@ export const test = () =>
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
-                output: "foo?.a && bar?.a;",
+                output: "foo && foo.a && bar?.a;",
               },
             ],
           },

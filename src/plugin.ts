@@ -65,9 +65,9 @@ export const getPlugin = async (
 
     lint(sourceFile as unknown as SourceFile, (report) => {
       if (report.type === "rule") {
-        const { node, message, rule, suggestions } = report;
-        const start = node.getStart();
-        const end = node.getEnd();
+        const { message, rule, suggestions } = report;
+        const start = "node" in report ? report.node.getStart() : report.start;
+        const end = "node" in report ? report.node.getEnd() : report.end;
         diagnostics.push({
           category: ts.DiagnosticCategory.Warning,
           source: "type-lint",

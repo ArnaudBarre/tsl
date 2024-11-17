@@ -181,7 +181,7 @@ export const initRules = (
       visit(sourceFile);
       for (const report of reports) {
         const timingStart = timing ? performance.now() : 0;
-        const start = report.node.getStart();
+        const start = "node" in report ? report.node.getStart() : report.start;
         const line =
           lineStarts.findLastIndex((lineStart) => start >= lineStart) + 1;
         const ignoreComment = ignoreComments.find((comment) => {

@@ -1,4 +1,4 @@
-import ts, { ModuleResolutionKind } from "typescript";
+import ts, { ModuleResolutionKind, SyntaxKind } from "typescript";
 import type { SourceFile, Visitor } from "./ast.ts";
 import { getContextUtils } from "./getContextUtils.ts";
 import type {
@@ -11,6 +11,31 @@ import type {
   Rule,
 } from "./types.ts";
 import { visitorEntries } from "./visitorEntries.ts";
+
+export function print(...args: any[]) {
+  console.log(...args.map(transform));
+}
+
+const transform = (value: any): any => {
+  if (Array.isArray(value)) {
+    return value.map(transform);
+  }
+  if (typeof value === "object" && value) {
+    if ("kind" in value) {
+      return {
+        kind: SyntaxKind[value.kind],
+        text: value.getText(),
+        start: value.getStart(),
+        end: value.getEnd(),
+      };
+    } else {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, value]) => [key, transform(value)]),
+      );
+    }
+  }
+  return value;
+};
 
 type CaseProps<TRule extends Rule> = {
   tsx?: boolean;
@@ -290,41 +315,36 @@ export const ruleTester = <TRule extends AnyRule>({
           }
           if (!expected || !got) continue;
           if (expected.line !== undefined) {
+            const gotStart = "node" in got ? got.node.getStart() : got.start;
             const gotLine =
-              got.node
-                .getSourceFile()
-                .getLineAndCharacterOfPosition(got.node.getStart()).line + 1;
+              sourceFile.getLineAndCharacterOfPosition(gotStart).line + 1;
             if (expected.line !== gotLine) {
               log(" line", `${expected.line}`, `${gotLine}`);
               continue;
             }
           }
           if (expected.column !== undefined) {
+            const gotStart = "node" in got ? got.node.getStart() : got.start;
             const gotColumn =
-              got.node
-                .getSourceFile()
-                .getLineAndCharacterOfPosition(got.node.getStart()).character +
-              1;
+              sourceFile.getLineAndCharacterOfPosition(gotStart).character + 1;
             if (expected.column !== gotColumn) {
               log(" column", `${expected.column}`, `${gotColumn}`);
               continue;
             }
           }
           if (expected.endLine !== undefined) {
+            const gotEnd = "node" in got ? got.node.getEnd() : got.end;
             const gotEndLine =
-              got.node
-                .getSourceFile()
-                .getLineAndCharacterOfPosition(got.node.getEnd()).line + 1;
+              sourceFile.getLineAndCharacterOfPosition(gotEnd).line + 1;
             if (expected.endLine !== gotEndLine) {
               log(" end line", `${expected.endLine}`, `${gotEndLine}`);
               continue;
             }
           }
           if (expected.endColumn !== undefined) {
+            const gotEnd = "node" in got ? got.node.getEnd() : got.end;
             const gotEndColumn =
-              got.node
-                .getSourceFile()
-                .getLineAndCharacterOfPosition(got.node.getEnd()).character + 1;
+              sourceFile.getLineAndCharacterOfPosition(gotEnd).character + 1;
             if (expected.endColumn !== gotEndColumn) {
               log(" end column", `${expected.endColumn}`, `${gotEndColumn}`);
               continue;
