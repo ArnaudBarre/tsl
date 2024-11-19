@@ -18,6 +18,7 @@ import type {
 import { format } from "prettier";
 import { kindToNodeTypeMap } from "./kindToNodeTypeMap.ts";
 
+// prettier-ignore
 const allTypedRules = {
   "await-thenable": true,
   "consistent-return": "use noImplicitReturns compilerOption",
@@ -28,14 +29,13 @@ const allTypedRules = {
   "no-base-to-string": true, // without options, only `.toString()`, see `restrict-plus-operands` and `restrict-template-expressions` for other checks
   "no-confusing-void-expression": true,
   "no-deprecated": true,
-  "no-duplicate-type-constituents":
-    "merged with no-redundant-type-constituents",
+  "no-duplicate-type-constituents": "merged with no-redundant-type-constituents",
   "no-floating-promises": true,
   "no-for-in-array": true,
   "no-implied-eval": true, // do not check for global shadowing
   "no-meaningless-void-operator": true,
   "no-misused-promises": true,
-  "no-mixed-enums": true, // type rule only to handle cases not supported in isolatedModules
+  "no-mixed-enums": "type rule only to handle cases not supported in isolatedModules",
   "no-redundant-type-constituents": true, // smarter thanks to `isTypeAssignableTo`
   "no-unnecessary-boolean-literal-compare": true,
   "no-unnecessary-condition": true,
@@ -50,6 +50,7 @@ const allTypedRules = {
   "no-unsafe-enum-comparison": "please move out of TS only concept",
   "no-unsafe-member-access": true, // strict mode only
   "no-unsafe-return": true, // strict mode only
+  "no-unsafe-type-assertion": "type assertion are necessary",
   "no-unsafe-unary-minus": true,
   "non-nullable-type-assertion-style": true,
   "only-throw-error": true,
@@ -66,6 +67,7 @@ const allTypedRules = {
   "prefer-return-this-type": true,
   "prefer-string-starts-ends-with": true,
   "promise-function-async": true,
+  "related-getter-setter-pairs": "OOP edge cases are out of core",
   "require-array-sort-compare": true,
   "require-await": true,
   "restrict-plus-operands": true,
@@ -73,7 +75,7 @@ const allTypedRules = {
   "return-await": true,
   "strict-boolean-expressions": true,
   "switch-exhaustiveness-check": true,
-  "unbound-method": "Out of scope, OOP edge cases are out of core",
+  "unbound-method": "OOP edge cases are out of core",
   "use-unknown-in-catch-callback-variable": "use global types instead",
 } satisfies Record<string, true | string>;
 

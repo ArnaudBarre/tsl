@@ -1,11 +1,11 @@
 import {
   getWellKnownSymbolPropertyOfType,
   isIntrinsicAnyType,
-  isIntrinsicUnknownType,
   unionTypeParts,
 } from "ts-api-utils";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
+import { needsToBeAwaited } from "./utils/needsToBeAwaited.ts";
 
 const messages = {
   await: 'Unexpected `await` of a non-Promise (non-"Thenable") value.',
@@ -20,10 +20,9 @@ export const awaitThenable = createRule({
   visitor: {
     AwaitExpression(node, context) {
       const type = context.checker.getTypeAtLocation(node.expression);
-      if (isIntrinsicAnyType(type) || isIntrinsicUnknownType(type)) {
-        return;
-      }
-      if (!context.utils.isThenableType(node.expression, type)) {
+      const certainty = needsToBeAwaited(context, node, type);
+
+      if (certainty === "Never") {
         context.report({
           node,
           message: messages.await,
@@ -259,8 +258,7 @@ const doSomething = async (
   await callback?.();
 };
     `,
-      {
-        code: `
+      `
 async function* asyncYieldNumbers() {
   yield 1;
   yield 2;
@@ -270,9 +268,7 @@ for await (const value of asyncYieldNumbers()) {
   console.log(value);
 }
       `,
-      },
-      {
-        code: `
+      `
 declare const anee: any;
 async function forAwait() {
   for await (const value of anee) {
@@ -280,14 +276,57 @@ async function forAwait() {
   }
 }
       `,
-      },
-      {
-        code: `
+      `
 declare const asyncIter: AsyncIterable<string> | Iterable<string>;
 for await (const s of asyncIter) {
 }
       `,
-      },
+      `
+  async function wrapper<T>(value: T) {
+    return await value;
+  }
+        `,
+      `
+  async function wrapper<T extends unknown>(value: T) {
+    return await value;
+  }
+        `,
+      `
+  async function wrapper<T extends any>(value: T) {
+    return await value;
+  }
+        `,
+      `
+  async function wrapper<T extends Promise<unknown>>(value: T) {
+    return await value;
+  }
+        `,
+      `
+  async function wrapper<T extends number | Promise<unknown>>(value: T) {
+    return await value;
+  }
+        `,
+      `
+  class C<T> {
+    async wrapper<T>(value: T) {
+      return await value;
+    }
+  }
+        `,
+      `
+  class C<R> {
+    async wrapper<T extends R>(value: T) {
+      return await value;
+    }
+  }
+        `,
+      `
+  class C<R extends unknown> {
+    async wrapper<T extends R>(value: T) {
+      return await value;
+    }
+  }
+        `,
     ],
     invalid: [
       {
@@ -528,6 +567,92 @@ function* yieldNumberPromises() {
 }
 for  (const value of yieldNumberPromises()) {
   console.log(value);
+}
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+async function wrapper<T extends number>(value: T) {
+  return await value;
+}
+        `,
+        errors: [
+          {
+            message: messages.await,
+            line: 3,
+            column: 10,
+            endLine: 3,
+            endColumn: 21,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: `
+async function wrapper<T extends number>(value: T) {
+  return value;
+}
+        `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+class C<T> {
+  async wrapper<T extends string>(value: T) {
+    return await value;
+  }
+}
+        `,
+        errors: [
+          {
+            message: messages.await,
+            line: 4,
+            column: 12,
+            endLine: 4,
+            endColumn: 23,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: `
+class C<T> {
+  async wrapper<T extends string>(value: T) {
+    return value;
+  }
+}
+        `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+class C<R extends number> {
+  async wrapper<T extends R>(value: T) {
+    return await value;
+  }
+}
+      `,
+        errors: [
+          {
+            message: messages.await,
+            line: 4,
+            column: 12,
+            endLine: 4,
+            endColumn: 23,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: `
+class C<R extends number> {
+  async wrapper<T extends R>(value: T) {
+    return value;
+  }
 }
       `,
               },

@@ -357,6 +357,13 @@ function isConditionalTest(node: AST.AnyNode): boolean {
   }
 
   if (
+    parent.kind === SyntaxKind.PrefixUnaryExpression &&
+    parent.operator === SyntaxKind.ExclamationToken
+  ) {
+    return isConditionalTest(parent);
+  }
+
+  if (
     (parent.kind === SyntaxKind.ConditionalExpression ||
       parent.kind === SyntaxKind.ForStatement) &&
     parent.condition === node
@@ -937,6 +944,26 @@ let c: string | boolean | undefined;
 if (((a = b), b || c)) {
 }
       `,
+      },
+      {
+        options: { ignoreConditionalTests: true },
+        code: `
+  let a: string | undefined;
+  let b: string | undefined;
+  
+  if (!(a || b)) {
+  }
+        `,
+      },
+      {
+        options: { ignoreConditionalTests: true },
+        code: `
+  let a: string | undefined;
+  let b: string | undefined;
+  
+  if (!!(a || b)) {
+  }
+        `,
       },
     ],
     invalid: [
@@ -2628,6 +2655,36 @@ declare function f(x: unknown): unknown;
 if (f(a ?? b)) {
 }
       `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        options: { ignoreConditionalTests: true },
+        code: `
+  declare const a: string | undefined;
+  declare const b: string;
+  
+  if (+(a || b)) {
+  }
+        `,
+        errors: [
+          {
+            message: messages.preferNullishOverOr({
+              equals: "",
+              description: "or",
+            }),
+            suggestions: [
+              {
+                message: messages.suggestNullish({ equals: "" }),
+                output: `
+  declare const a: string | undefined;
+  declare const b: string;
+  
+  if (+(a ?? b)) {
+  }
+        `,
               },
             ],
           },

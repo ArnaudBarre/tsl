@@ -50,6 +50,7 @@ export const noConfusingVoidExpression = createRule({
   }) => ({
     ignoreArrowShorthand: false,
     ignoreVoidOperator: false,
+    ignoreVoidReturningFunctions: false,
     ...options,
   }),
   visitor: (options) => {

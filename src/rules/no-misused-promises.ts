@@ -6,6 +6,7 @@ import type { AST, Infer } from "../types.ts";
 import {
   isArrayMethodCallWithPredicate,
   isAssignmentExpression,
+  isFunction,
   isLogicalExpression,
   run,
 } from "./utils";
@@ -283,10 +284,16 @@ export function checkPropertyAssignment(
     isVoidReturningFunctionType(context, node.initializer, contextualType) &&
     returnsThenable(context, node.initializer)
   ) {
-    context.report({
-      node: node.initializer,
-      message: messages.voidReturnProperty,
+    const reportNode = run(() => {
+      if (!isFunction(node.initializer)) return node.initializer;
+      if (node.initializer.type) return node.initializer.type;
+      const asyncModifier = node.initializer.modifiers?.find(
+        (m) => m.kind === SyntaxKind.AsyncKeyword,
+      );
+      if (asyncModifier) return asyncModifier;
+      return node.initializer;
     });
+    context.report({ node: reportNode, message: messages.voidReturnProperty });
   }
 }
 
@@ -344,7 +351,13 @@ export function checkMethodDeclaration(
   );
 
   if (isVoidReturningFunctionType(context, node.name, contextualType)) {
-    context.report({ node, message: messages.voidReturnProperty });
+    context.report({
+      node:
+        node.type ??
+        node.modifiers?.find((m) => m.kind === SyntaxKind.AsyncKeyword) ??
+        node,
+      message: messages.voidReturnProperty,
+    });
   }
   return;
 }
@@ -2018,7 +2031,15 @@ const obj: O = {
   f: async () => 'foo',
 };
       `,
-        errors: [{ message: messages.voidReturnProperty, line: 4 }],
+        errors: [
+          {
+            message: messages.voidReturnProperty,
+            line: 4,
+            column: 6,
+            endLine: 4,
+            endColumn: 11,
+          },
+        ],
       },
       {
         options: { checksVoidReturn: { properties: true } },
@@ -2028,7 +2049,15 @@ const obj: O = {
   f: async () => 'foo',
 };
       `,
-        errors: [{ message: messages.voidReturnProperty, line: 4 }],
+        errors: [
+          {
+            message: messages.voidReturnProperty,
+            line: 4,
+            column: 6,
+            endLine: 4,
+            endColumn: 11,
+          },
+        ],
       },
       {
         code: `
@@ -2049,7 +2078,15 @@ const obj: O = {
   },
 };
       `,
-        errors: [{ message: messages.voidReturnProperty, line: 4 }],
+        errors: [
+          {
+            message: messages.voidReturnProperty,
+            line: 4,
+            column: 3,
+            endLine: 4,
+            endColumn: 8,
+          },
+        ],
       },
       {
         code: `
@@ -2066,9 +2103,27 @@ function f(): O {
 }
       `,
         errors: [
-          { message: messages.voidReturnProperty, line: 6 },
-          { message: messages.voidReturnProperty, line: 9 },
-          { message: messages.voidReturnProperty, line: 10 },
+          {
+            message: messages.voidReturnProperty,
+            line: 6,
+            column: 5,
+            endLine: 6,
+            endColumn: 10,
+          },
+          {
+            message: messages.voidReturnProperty,
+            line: 9,
+            column: 8,
+            endLine: 9,
+            endColumn: 13,
+          },
+          {
+            message: messages.voidReturnProperty,
+            line: 10,
+            column: 5,
+            endLine: 10,
+            endColumn: 6,
+          },
         ],
       },
       {
@@ -2301,7 +2356,15 @@ const test: ReturnsRecord = () => {
   return { asynchronous: async () => {} };
 };
       `,
-        errors: [{ message: messages.voidReturnProperty, line: 5 }],
+        errors: [
+          {
+            message: messages.voidReturnProperty,
+            line: 5,
+            column: 26,
+            endLine: 5,
+            endColumn: 31,
+          },
+        ],
       },
       {
         code: `
@@ -2921,6 +2984,127 @@ arrayFn<() => void>(
         errors: [
           { message: messages.voidReturnArgument, line: 6 },
           { message: messages.voidReturnArgument, line: 8 },
+        ],
+      },
+      {
+        code: `
+type HasVoidMethod = {
+  f(): void;
+};
+
+const o: HasVoidMethod = {
+  async f() {
+    return 3;
+  },
+};
+        `,
+        errors: [
+          {
+            message: messages.voidReturnProperty,
+            line: 7,
+            column: 3,
+            endLine: 7,
+            endColumn: 8,
+          },
+        ],
+      },
+      {
+        code: `
+type HasVoidMethod = {
+  f(): void;
+};
+  
+const o: HasVoidMethod = {
+  async f(): Promise<number> {
+    return 3;
+  },
+};
+        `,
+        errors: [
+          {
+            message: messages.voidReturnProperty,
+            line: 7,
+            column: 14,
+            endLine: 7,
+            endColumn: 29,
+          },
+        ],
+      },
+      {
+        code: `
+type HasVoidMethod = {
+  f(): void;
+};
+const obj: HasVoidMethod = {
+  f() {
+    return Promise.resolve('foo');
+  },
+};
+        `,
+        errors: [
+          {
+            message: messages.voidReturnProperty,
+            line: 6,
+            column: 3,
+            endLine: 8,
+            endColumn: 4,
+          },
+        ],
+      },
+      {
+        code: `
+type HasVoidMethod = {
+  f(): void;
+};
+const obj: HasVoidMethod = {
+  f(): Promise<void> {
+    throw new Error();
+  },
+};
+        `,
+        errors: [
+          {
+            message: messages.voidReturnProperty,
+            line: 6,
+            column: 8,
+            endLine: 6,
+            endColumn: 21,
+          },
+        ],
+      },
+      {
+        code: `
+type O = { f: () => void };
+const asyncFunction = async () => 'foo';
+const obj: O = {
+  f: asyncFunction,
+};
+        `,
+        errors: [
+          {
+            message: messages.voidReturnProperty,
+            line: 5,
+            column: 6,
+            endLine: 5,
+            endColumn: 19,
+          },
+        ],
+      },
+      {
+        code: `
+type O = { f: () => void };
+const obj: O = {
+  f: async (): Promise<string> => 'foo',
+};
+        `,
+        errors: [
+          {
+            message: messages.voidReturnProperty,
+            line: 4,
+            column: 16,
+            endLine: 4,
+            endColumn: 31,
+          },
         ],
       },
     ],

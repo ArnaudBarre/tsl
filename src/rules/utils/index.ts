@@ -24,6 +24,18 @@ const estreeLiteral = [
 ];
 export const isLiteralKind = (kind: SyntaxKind) => estreeLiteral.includes(kind);
 
+const functionTypes = [
+  SyntaxKind.ArrowFunction,
+  SyntaxKind.FunctionDeclaration,
+  SyntaxKind.FunctionExpression,
+];
+export const isFunction = (
+  node: AnyNode,
+): node is
+  | AST.ArrowFunction
+  | AST.FunctionDeclaration
+  | AST.FunctionExpression => functionTypes.includes(node.kind);
+
 // Map to check exhaustiveness
 const assignmentOperatorsMap: Record<
   ts.AssignmentOperator,
