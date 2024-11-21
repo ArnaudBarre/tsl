@@ -3,14 +3,17 @@ import {
   isIntrinsicAnyType,
   unionTypeParts,
 } from "ts-api-utils";
+import { NodeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { needsToBeAwaited } from "./utils/needsToBeAwaited.ts";
 
 const messages = {
   await: 'Unexpected `await` of a non-Promise (non-"Thenable") value.',
+  awaitUsingOfNonAsyncDisposable:
+    "Unexpected `await using` of a value that is not async disposable.",
   convertToOrdinaryFor: "Convert to an ordinary `for...of` loop.",
-  forAwaitOfNonThenable:
+  forAwaitOfNonAsyncIterable:
     "Unexpected `for await...of` of a value that is not async iterable.",
   removeAwait: "Remove unnecessary `await`.",
 };
@@ -46,19 +49,17 @@ export const awaitThenable = createRule({
         const type = context.checker.getTypeAtLocation(node.expression);
         if (isIntrinsicAnyType(type)) return;
 
-        const asyncIteratorSymbol = unionTypeParts(type)
-          .map((t) =>
-            getWellKnownSymbolPropertyOfType(
-              t,
-              "asyncIterator",
-              context.rawChecker,
-            ),
-          )
-          .find((symbol) => symbol != null);
+        const asyncIteratorSymbol = unionTypeParts(type).some((t) =>
+          getWellKnownSymbolPropertyOfType(
+            t,
+            "asyncIterator",
+            context.rawChecker,
+          ),
+        );
 
-        if (asyncIteratorSymbol == null) {
+        if (!asyncIteratorSymbol) {
           context.report({
-            message: messages.forAwaitOfNonThenable,
+            message: messages.forAwaitOfNonAsyncIterable,
             node: node.awaitModifier,
             suggestions: [
               {
@@ -67,6 +68,47 @@ export const awaitThenable = createRule({
               },
             ],
           });
+        }
+      }
+    },
+    VariableDeclarationList(node, context) {
+      if ((node.flags & NodeFlags.BlockScoped) === NodeFlags.AwaitUsing) {
+        for (const declarator of node.declarations) {
+          if (!declarator.initializer) continue;
+          const type = context.checker.getTypeAtLocation(
+            declarator.initializer,
+          );
+          if (isIntrinsicAnyType(type)) continue;
+
+          const hasAsyncDisposeSymbol = unionTypeParts(type).some(
+            (typePart) =>
+              getWellKnownSymbolPropertyOfType(
+                typePart,
+                "asyncDispose",
+                context.rawChecker,
+              ) != null,
+          );
+
+          if (!hasAsyncDisposeSymbol) {
+            context.report({
+              node: declarator.initializer,
+              message: messages.awaitUsingOfNonAsyncDisposable,
+              suggestions:
+                // let the user figure out what to do if there's
+                // await using a = b, c = d, e = f;
+                // it's rare and not worth the complexity to handle.
+                node.declarations.length === 1
+                  ? [
+                      {
+                        message: messages.removeAwait,
+                        changes: [
+                          { start: node.getStart(), length: 6, newText: "" },
+                        ],
+                      },
+                    ]
+                  : [],
+            });
+          }
         }
       }
     },
@@ -281,6 +323,50 @@ declare const asyncIter: AsyncIterable<string> | Iterable<string>;
 for await (const s of asyncIter) {
 }
       `,
+      ...[
+        `
+  declare const d: AsyncDisposable;
+  
+  await using foo = d;
+  
+  export {};
+        `,
+        `
+  using foo = {
+    [Symbol.dispose]() {},
+  };
+  
+  export {};
+        `,
+        `
+  await using foo = 3 as any;
+  
+  export {};
+        `,
+        // bad bad code but not this rule's problem
+        `
+  using foo = {
+    async [Symbol.dispose]() {},
+  };
+  
+  export {};
+        `,
+        `
+  declare const maybeAsyncDisposable: Disposable | AsyncDisposable;
+  async function foo() {
+    await using _ = maybeAsyncDisposable;
+  }
+        `,
+        `
+  async function iterateUsing(arr: Array<AsyncDisposable>) {
+    for (await using foo of arr) {
+    }
+  }
+        `,
+      ].map((code) => ({
+        compilerOptions: { lib: ["esnext.disposable"] },
+        code,
+      })),
       `
   async function wrapper<T>(value: T) {
     return await value;
@@ -523,7 +609,7 @@ for await (const value of yieldNumbers()) {
             column: 5,
             endLine: 7,
             endColumn: 10,
-            message: messages.forAwaitOfNonThenable,
+            message: messages.forAwaitOfNonAsyncIterable,
             suggestions: [
               {
                 message: messages.convertToOrdinaryFor,
@@ -555,7 +641,7 @@ for await (const value of yieldNumberPromises()) {
       `,
         errors: [
           {
-            message: messages.forAwaitOfNonThenable,
+            message: messages.forAwaitOfNonAsyncIterable,
             suggestions: [
               {
                 message: messages.convertToOrdinaryFor,
@@ -571,6 +657,123 @@ for  (const value of yieldNumberPromises()) {
       `,
               },
             ],
+          },
+        ],
+      },
+      {
+        compilerOptions: { lib: ["esnext.disposable"] },
+        code: `
+declare const disposable: Disposable;
+async function foo() {
+  await using d = disposable;
+}
+        `,
+        errors: [
+          {
+            message: messages.awaitUsingOfNonAsyncDisposable,
+            line: 4,
+            column: 19,
+            endLine: 4,
+            endColumn: 29,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: `
+declare const disposable: Disposable;
+async function foo() {
+  using d = disposable;
+}
+        `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        compilerOptions: { lib: ["esnext.disposable"] },
+        code: `
+async function foo() {
+  await using _ = {
+    async [Symbol.dispose]() {},
+  };
+}
+        `,
+        errors: [
+          {
+            message: messages.awaitUsingOfNonAsyncDisposable,
+            line: 3,
+            column: 19,
+            endLine: 5,
+            endColumn: 4,
+            suggestions: [
+              {
+                message: messages.removeAwait,
+                output: `
+async function foo() {
+  using _ = {
+    async [Symbol.dispose]() {},
+  };
+}
+        `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        compilerOptions: { lib: ["esnext.disposable"] },
+        code: `
+declare const disposable: Disposable;
+declare const asyncDisposable: AsyncDisposable;
+async function foo() {
+  await using a = disposable,
+    b = asyncDisposable,
+    c = disposable,
+    d = asyncDisposable,
+    e = disposable;
+}
+        `,
+        errors: [
+          {
+            message: messages.awaitUsingOfNonAsyncDisposable,
+            line: 5,
+            column: 19,
+            endLine: 5,
+            endColumn: 29,
+          },
+          {
+            message: messages.awaitUsingOfNonAsyncDisposable,
+            line: 7,
+            column: 9,
+            endLine: 7,
+            endColumn: 19,
+          },
+          {
+            message: messages.awaitUsingOfNonAsyncDisposable,
+            line: 9,
+            column: 9,
+            endLine: 9,
+            endColumn: 19,
+          },
+        ],
+      },
+      {
+        compilerOptions: { lib: ["esnext.disposable"] },
+        code: `
+declare const anee: any;
+declare const disposable: Disposable;
+async function foo() {
+  await using a = anee,
+    b = disposable;
+}
+        `,
+        errors: [
+          {
+            message: messages.awaitUsingOfNonAsyncDisposable,
+            line: 6,
+            column: 9,
+            endLine: 6,
+            endColumn: 19,
           },
         ],
       },

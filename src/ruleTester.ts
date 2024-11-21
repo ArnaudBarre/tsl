@@ -1,4 +1,4 @@
-import ts, { ModuleResolutionKind, SyntaxKind } from "typescript";
+import ts, { ModuleResolutionKind, NodeFlags, SyntaxKind } from "typescript";
 import type { SourceFile, Visitor } from "./ast.ts";
 import { getContextUtils } from "./getContextUtils.ts";
 import type {
@@ -16,18 +16,39 @@ export function print(...args: any[]) {
   console.log(...args.map(transform));
 }
 
-const transform = (value: any): any => {
+const allFlags = Object.entries(NodeFlags).filter(
+  (entry): entry is [string, number] => typeof entry[1] === "number",
+);
+const syntaxKinds = {} as Record<SyntaxKind, string>;
+for (const [key, value] of Object.entries(SyntaxKind)) {
+  if (typeof value === "number" && !syntaxKinds[value]) {
+    syntaxKinds[value] = key;
+  }
+}
+const transform = (value: unknown): unknown => {
   if (Array.isArray(value)) {
     return value.map(transform);
   }
   if (typeof value === "object" && value) {
-    if ("kind" in value) {
-      return {
-        kind: SyntaxKind[value.kind],
+    if (isNode(value)) {
+      const node: {
+        kind: string;
+        text: string;
+        start: number;
+        end: number;
+        flags?: string[];
+      } = {
+        kind: syntaxKinds[value.kind],
         text: value.getText(),
         start: value.getStart(),
         end: value.getEnd(),
       };
+      if (value.flags !== NodeFlags.None) {
+        node.flags = allFlags
+          .filter(([_, flag]) => value.flags & flag)
+          .map(([name]) => name);
+      }
+      return node;
     } else {
       return Object.fromEntries(
         Object.entries(value).map(([key, value]) => [key, transform(value)]),
@@ -36,6 +57,8 @@ const transform = (value: any): any => {
   }
   return value;
 };
+const isNode = (value: object): value is AST.AnyNode =>
+  "kind" in value && typeof value.kind === "number";
 
 type CaseProps<TRule extends Rule> = {
   tsx?: boolean;
@@ -132,7 +155,12 @@ export const ruleTester = <TRule extends AnyRule>({
     if (current) {
       current.push(filename);
     } else {
-      compilerOptionsToFiles.set(compilerOptionsKey, [filename]);
+      compilerOptionsToFiles.set(compilerOptionsKey, [
+        filename,
+        ...(compilerOptionsInput.lib ?? []).map(
+          (lib) => `node_modules/typescript/lib/lib.${lib}.d.ts`,
+        ),
+      ]);
     }
     cases.push({
       compilerOptionsKey,
