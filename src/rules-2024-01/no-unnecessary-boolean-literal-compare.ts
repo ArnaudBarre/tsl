@@ -250,18 +250,14 @@ export const test = () =>
         declare const varBooleanOrUndefined: boolean | undefined;
         varBooleanOrUndefined === true;
       `,
-        options: {
-          allowComparingNullableBooleansToFalse: false,
-        },
+        options: { allowComparingNullableBooleansToFalse: false },
       },
       {
         code: `
         declare const varBooleanOrUndefined: boolean | undefined;
         varBooleanOrUndefined === false;
       `,
-        options: {
-          allowComparingNullableBooleansToTrue: false,
-        },
+        options: { allowComparingNullableBooleansToTrue: false },
       },
       "'false' === true;",
       "'true' === false;",
@@ -313,9 +309,7 @@ export const test = () =>
         if (varTrueOrUndefined === true) {
         }
       `,
-        options: {
-          allowComparingNullableBooleansToTrue: false,
-        },
+        options: { allowComparingNullableBooleansToTrue: false },
         errors: [
           {
             message: messages.comparingNullableToTrueDirect,
@@ -328,9 +322,7 @@ export const test = () =>
         if (varFalseOrNull !== true) {
         }
       `,
-        options: {
-          allowComparingNullableBooleansToTrue: false,
-        },
+        options: { allowComparingNullableBooleansToTrue: false },
         errors: [
           {
             message: messages.comparingNullableToTrueNegated,
@@ -344,9 +336,7 @@ export const test = () =>
         if (varBooleanOrNull === false && otherBoolean) {
         }
       `,
-        options: {
-          allowComparingNullableBooleansToFalse: false,
-        },
+        options: { allowComparingNullableBooleansToFalse: false },
         errors: [
           {
             message: messages.comparingNullableToFalse,
@@ -360,9 +350,7 @@ export const test = () =>
         if (!(varBooleanOrNull === false) || otherBoolean) {
         }
       `,
-        options: {
-          allowComparingNullableBooleansToFalse: false,
-        },
+        options: { allowComparingNullableBooleansToFalse: false },
         errors: [
           {
             message: messages.comparingNullableToFalse,
@@ -376,9 +364,7 @@ export const test = () =>
         if (varTrueOrFalseOrUndefined !== false && !otherBoolean) {
         }
       `,
-        options: {
-          allowComparingNullableBooleansToFalse: false,
-        },
+        options: { allowComparingNullableBooleansToFalse: false },
         errors: [
           {
             message: messages.comparingNullableToFalse,

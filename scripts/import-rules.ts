@@ -30,7 +30,7 @@ const allTypedRules = {
   "no-confusing-void-expression": true,
   "no-deprecated": true,
   "no-duplicate-type-constituents": "merged with no-redundant-type-constituents",
-  "no-floating-promises": true,
+  "no-floating-promises": true, // allowList is named based only 
   "no-for-in-array": true,
   "no-implied-eval": true, // do not check for global shadowing
   "no-meaningless-void-operator": true,
@@ -53,7 +53,7 @@ const allTypedRules = {
   "no-unsafe-type-assertion": "type assertion are necessary",
   "no-unsafe-unary-minus": true,
   "non-nullable-type-assertion-style": true,
-  "only-throw-error": true,
+  "only-throw-error": true, // allow options is named based only
   "prefer-destructuring": "styling is out of core",
   "prefer-find": true,
   "prefer-includes": true, // without /baz/.test(a), requires regex parsing and can be achieved without type information
