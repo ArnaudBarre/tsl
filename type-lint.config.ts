@@ -21,6 +21,7 @@ import { preferIncludes } from "./src/rules/prefer-includes.ts";
 import { preferNullishCoalescing } from "./src/rules/prefer-nullish-coalescing.ts";
 import { preferOptionalChain } from "./src/rules/prefer-optional-chain.ts";
 import { preferReduceTypeParameter } from "./src/rules/prefer-reduce-type-parameter.ts";
+import { preferReturnThisType } from "./src/rules/prefer-return-this-type.ts";
 
 export default defineConfig({
   rules: [
@@ -46,6 +47,7 @@ export default defineConfig({
     preferNullishCoalescing,
     preferOptionalChain,
     preferReduceTypeParameter,
+    preferReturnThisType,
   ],
   options: {
     "no-misused-promises": {

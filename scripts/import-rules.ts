@@ -659,7 +659,7 @@ for (const rule of rulesToImport) {
       let messageProp: ObjectProperty | undefined;
       let dataProp: ObjectProperty | undefined;
       let dataPropValue: ObjectExpression | undefined;
-      let fixProp: ObjectMethod | undefined;
+      let fixProp: ObjectProperty | ObjectMethod | undefined;
       let fixBody: BlockStatement | undefined;
       for (const p of path.node.properties) {
         if (p.type === "ObjectProperty" && p.key.type === "Identifier") {
@@ -677,6 +677,23 @@ for (const rule of rulesToImport) {
           }
           if (p.key.name === "suggest") {
             p.key.name = "suggestions";
+          }
+          if (
+            p.key.name === "fix" &&
+            p.value.type === "ArrowFunctionExpression"
+          ) {
+            fixProp = p;
+            fixBody =
+              p.value.body.type === "BlockStatement"
+                ? p.value.body
+                : {
+                    type: "BlockStatement",
+                    body: [
+                      { type: "ExpressionStatement", expression: p.value.body },
+                    ],
+                    directives: [],
+                  };
+            hasAutofix = true;
           }
         }
         if (
