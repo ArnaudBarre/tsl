@@ -20,6 +20,7 @@ import { preferFind } from "./src/rules/prefer-find.ts";
 import { preferIncludes } from "./src/rules/prefer-includes.ts";
 import { preferNullishCoalescing } from "./src/rules/prefer-nullish-coalescing.ts";
 import { preferOptionalChain } from "./src/rules/prefer-optional-chain.ts";
+import { preferReduceTypeParameter } from "./src/rules/prefer-reduce-type-parameter.ts";
 
 export default defineConfig({
   rules: [
@@ -44,6 +45,7 @@ export default defineConfig({
     preferIncludes,
     preferNullishCoalescing,
     preferOptionalChain,
+    preferReduceTypeParameter,
   ],
   options: {
     "no-misused-promises": {

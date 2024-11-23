@@ -59,7 +59,7 @@ const allTypedRules = {
   "prefer-includes": true, // without /baz/.test(a), requires regex parsing and can be achieved without type information
   "prefer-nullish-coalescing": true, // strict mode only
   "prefer-optional-chain": true,
-  "prefer-promise-reject-errors": true,
+  "prefer-promise-reject-errors": "use global types instead", 
   "prefer-readonly": true,
   "prefer-readonly-parameter-types": true,
   "prefer-reduce-type-parameter": true,
@@ -112,7 +112,6 @@ const usedRules: (keyof typeof allTypedRules)[] = [
   "prefer-includes",
   "prefer-nullish-coalescing",
   "prefer-optional-chain",
-  "prefer-promise-reject-errors",
   "prefer-reduce-type-parameter",
   "prefer-return-this-type",
   "prefer-string-starts-ends-with",
@@ -1059,8 +1058,8 @@ for (const rule of rulesToImport) {
           if (p.key.name === "message") return 0;
           if (p.key.name === "line") return 1;
           if (p.key.name === "column") return 2;
-          if (p.key.name === "lineEnd") return 3;
-          if (p.key.name === "columnEnd") return 4;
+          if (p.key.name === "endLine") return 3;
+          if (p.key.name === "endColumn") return 4;
           if (p.key.name === "suggestions") return 5;
           return 100;
         };
