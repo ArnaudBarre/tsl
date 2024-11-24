@@ -332,6 +332,7 @@ export const ruleTester = <TRule extends AnyRule>({
               hasError = true;
               introLogged = true;
             }
+            /* type-lint-ignore restrict-template-expressions */
             console.log(
               `  #${i}${prefix}: Expected: ${expected}
            ${" ".repeat(prefix.length)}Got: ${got}`,

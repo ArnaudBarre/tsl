@@ -332,7 +332,7 @@ for (const rule of rulesToImport) {
                 ) {
                   const nodeName = p.key.value.slice(0, -5);
                   if (nodeName in estreeToTSTree)
-                    p.key.value = `${estreeToTSTree[nodeName]}:exit`;
+                    p.key.value = `${estreeToTSTree[nodeName]!}:exit`;
                 }
               }
             }
@@ -1099,9 +1099,9 @@ for (const rule of rulesToImport) {
           : value.type === "TemplateLiteral"
           ? value.quasis[0].value.raw
           : null;
-      if (!text) return [key, value];
+      if (!text) return [key, value] as const;
       if (!text.includes("{{")) {
-        return [key, JSON.stringify(text)];
+        return [key, JSON.stringify(text)] as const;
       }
       const paramContent = [...text.matchAll(/\{\{[^}]+}}/g)].map((m) =>
         m[0].slice(2, -2),
@@ -1113,7 +1113,7 @@ for (const rule of rulesToImport) {
         (acc, p) => acc.replaceAll(`{{${p}}}`, `\${params.${p.trim()}}`),
         text.replaceAll("`", "\\`"),
       );
-      return [key, `(${params}) => \`${newValue}\``];
+      return [key, `(${params}) => \`${newValue}\``] as const;
     })
     .map(
       ([key, value]) =>
