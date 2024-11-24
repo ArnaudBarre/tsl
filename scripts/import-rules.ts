@@ -69,8 +69,8 @@ const allTypedRules = {
   "promise-function-async": true,
   "related-getter-setter-pairs": "OOP edge cases are out of core",
   "require-array-sort-compare": true,
-  "require-await": true,
-  "restrict-plus-operands": true,
+  "require-await": "type information to handle async generators, which is a niche case",
+  "restrict-plus-operands": true, // stricter defaults, always lint assignment
   "restrict-template-expressions": true,
   "return-await": true,
   "strict-boolean-expressions": true,
@@ -115,7 +115,6 @@ const usedRules: (keyof typeof allTypedRules)[] = [
   "prefer-reduce-type-parameter",
   "prefer-return-this-type",
   "prefer-string-starts-ends-with",
-  "require-await",
   "restrict-plus-operands",
   "restrict-template-expressions",
   "return-await",
