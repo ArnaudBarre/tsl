@@ -84,9 +84,9 @@ type SetupCase<TRule extends Rule> = {
   errors: ErrorReport[] | null;
 };
 
-const defaultCompilerOptions: ts.CompilerOptions = {
+const defaultCompilerOptions = {
   module: ts.ModuleKind.ESNext,
-  lib: ["ES2022"],
+  lib: ["es2022"],
   target: ts.ScriptTarget.ESNext,
   moduleDetection: ts.ModuleDetectionKind.Force,
   moduleResolution: ModuleResolutionKind.Bundler,
@@ -95,7 +95,7 @@ const defaultCompilerOptions: ts.CompilerOptions = {
   skipLibCheck: true,
   strict: true,
   types: [],
-};
+} satisfies ts.CompilerOptions;
 
 const typeFocus = process.argv[3];
 const indexFocus = process.argv[4];
@@ -148,6 +148,10 @@ export const ruleTester = <TRule extends AnyRule>({
             ...defaultCompilerOptions,
             jsx: useTSX ? ts.JsxEmit.ReactJSX : undefined,
             ...caseProps.compilerOptions,
+            lib: [
+              ...defaultCompilerOptions.lib,
+              ...(caseProps.compilerOptions?.lib ?? []),
+            ],
           }
         : defaultCompilerOptions;
     const compilerOptionsKey = JSON.stringify(compilerOptionsInput);
@@ -157,7 +161,7 @@ export const ruleTester = <TRule extends AnyRule>({
     } else {
       compilerOptionsToFiles.set(compilerOptionsKey, [
         filename,
-        ...(compilerOptionsInput.lib ?? []).map(
+        ...compilerOptionsInput.lib.map(
           (lib) => `node_modules/typescript/lib/lib.${lib}.d.ts`,
         ),
       ]);
@@ -208,11 +212,9 @@ export const ruleTester = <TRule extends AnyRule>({
       if (filesMap.has(file)) return filesMap.get(file);
       return originalReadFile(file);
     };
-    const esLib = "node_modules/typescript/lib/lib.es2022.d.ts";
     const domLib = "node_modules/typescript/lib/lib.dom.d.ts";
     const program = ts.createProgram(
       [
-        esLib,
         domLib,
         ...(compilerOptionsInput.jsx === ts.JsxEmit.ReactJSX
           ? [

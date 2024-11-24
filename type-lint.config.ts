@@ -22,6 +22,7 @@ import { preferNullishCoalescing } from "./src/rules/prefer-nullish-coalescing.t
 import { preferOptionalChain } from "./src/rules/prefer-optional-chain.ts";
 import { preferReduceTypeParameter } from "./src/rules/prefer-reduce-type-parameter.ts";
 import { preferReturnThisType } from "./src/rules/prefer-return-this-type.ts";
+import { preferStringStartsEndsWith } from "./src/rules/prefer-string-starts-ends-with.ts";
 
 export default defineConfig({
   rules: [
@@ -48,6 +49,7 @@ export default defineConfig({
     preferOptionalChain,
     preferReduceTypeParameter,
     preferReturnThisType,
+    preferStringStartsEndsWith,
   ],
   options: {
     "no-misused-promises": {

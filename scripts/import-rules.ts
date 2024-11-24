@@ -240,6 +240,7 @@ for (const rule of rulesToImport) {
     previousIteration: firstIterationRules.includes(filename)
       ? `./src/rules-2024-01/${filename}`
       : undefined,
+    doc: `https://typescript-eslint.io/rules/${rule}`,
     src: srcPath,
     test: testPath,
     gitHistorySrc: `https://github.com/typescript-eslint/typescript-eslint/commits/main/packages/eslint-plugin/src/rules/${rule}.ts`,
@@ -964,7 +965,7 @@ for (const rule of rulesToImport) {
           codeProp.value = codeProp.value.quasi; // Drop noFormat
         }
         path.node.properties.push(codeProp);
-        if (outputProp) {
+        if (outputProp && outputProp.value.type !== "NullLiteral") {
           if (!errorsProp) throw new Error("Output without errors");
           assert(errorsProp.value.type === "ArrayExpression");
           for (const error of errorsProp.value.elements) {
