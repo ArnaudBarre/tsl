@@ -18,7 +18,7 @@ export const getPlugin = async (
   cleanUp(): void;
 }> => {
   const watchedFiles = new Map<string, FSWatcher>();
-  let lint: ReturnType<typeof initRules>["lint"];
+  let lint: Awaited<ReturnType<typeof initRules>>["lint"];
 
   const load = async () => {
     const start = performance.now();
@@ -36,9 +36,10 @@ export const getPlugin = async (
         watchedFiles.set(configFile, watch(configFile, load));
       }
     }
-    lint = initRules(() => languageService.getProgram()!, config).lint;
+    const result = await initRules(() => languageService.getProgram()!, config);
+    lint = result.lint;
     log?.(
-      `Config with ${config.rules.length} rules loaded in ${(
+      `Config with ${result.rulesCount} rules loaded in ${(
         performance.now() - start
       ).toFixed(2)}ms`,
     );

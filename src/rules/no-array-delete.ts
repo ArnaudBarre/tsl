@@ -10,8 +10,8 @@ const messages = {
   useSplice: "Use `array.splice()` instead.",
 };
 
-export const noArrayDelete = createRule({
-  name: "no-array-delete",
+export const noArrayDelete = createRule(() => ({
+  name: "core/noArrayDelete",
   visitor: {
     DeleteExpression(node, context) {
       let expression: Expression = node.expression;
@@ -51,7 +51,7 @@ export const noArrayDelete = createRule({
       });
     },
   },
-});
+}));
 
 function isUnderlyingTypeArray(type: ts.Type, checker: Checker): boolean {
   const predicate = (t: ts.Type): boolean =>
@@ -70,7 +70,7 @@ function isUnderlyingTypeArray(type: ts.Type, checker: Checker): boolean {
 
 export const test = () =>
   ruleTester({
-    rule: noArrayDelete,
+    ruleFn: noArrayDelete,
     valid: [
       `
       declare const obj: { a: 1; b: 2 };

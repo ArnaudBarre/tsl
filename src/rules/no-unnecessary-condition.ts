@@ -12,7 +12,7 @@ import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { typeHasFlag } from "../types-utils.ts";
-import type { AST, Checker, Context as ContextGeneric } from "../types.ts";
+import type { AST, Checker, Context } from "../types.ts";
 import {
   getTypeName,
   isArrayMethodCallWithPredicate,
@@ -42,99 +42,105 @@ const messages = {
   removeOptionalChain: "Remove unnecessary optional chain.",
 };
 
-type Context = ContextGeneric<{
+type ParsedOptions = {
   allowConstantLoopConditions: boolean;
   checkTypePredicates: boolean;
-}>;
+};
 
-export const noUnnecessaryCondition = createRule({
-  name: "no-unnecessary-condition",
-  parseOptions: (options?: {
+export const noUnnecessaryCondition = createRule(
+  (_options?: {
     allowConstantLoopConditions?: boolean;
     checkTypePredicates?: boolean;
-  }) => ({
-    allowConstantLoopConditions: false,
-    checkTypePredicates: false,
-    ...options,
-  }),
-  visitor: {
-    BinaryExpression(node, context) {
-      switch (node.operatorToken.kind) {
-        case SyntaxKind.BarBarEqualsToken:
-        case SyntaxKind.AmpersandAmpersandEqualsToken:
-          // Similar to checkLogicalExpressionForUnnecessaryConditionals, since
-          // a ||= b is equivalent to a || (a = b)
-          checkNode(node.left, context);
-          break;
-        case SyntaxKind.QuestionQuestionEqualsToken:
-          checkNodeForNullish(node.left, context);
-          break;
-        case SyntaxKind.QuestionQuestionToken:
-          checkNodeForNullish(node.left, context);
-          break;
-        case SyntaxKind.BarBarToken:
-        case SyntaxKind.AmpersandAmpersandToken:
-          // Only checks the left side, since the right side might not be "conditional" at all.
-          // The right side will be checked if the LogicalExpression is used in a conditional context
-          checkNode(node.left, context);
-          break;
-        case SyntaxKind.LessThanToken:
-        case SyntaxKind.GreaterThanToken:
-        case SyntaxKind.LessThanEqualsToken:
-        case SyntaxKind.GreaterThanEqualsToken:
-        case SyntaxKind.EqualsEqualsToken:
-        case SyntaxKind.EqualsEqualsEqualsToken:
-        case SyntaxKind.ExclamationEqualsToken:
-        case SyntaxKind.ExclamationEqualsEqualsToken:
+  }) => {
+    const options: ParsedOptions = {
+      allowConstantLoopConditions: false,
+      checkTypePredicates: false,
+      ..._options,
+    };
+    return {
+      name: "core/noUnnecessaryCondition",
+      visitor: {
+        BinaryExpression(node, context) {
+          switch (node.operatorToken.kind) {
+            case SyntaxKind.BarBarEqualsToken:
+            case SyntaxKind.AmpersandAmpersandEqualsToken:
+              // Similar to checkLogicalExpressionForUnnecessaryConditionals, since
+              // a ||= b is equivalent to a || (a = b)
+              checkNode(node.left, context);
+              break;
+            case SyntaxKind.QuestionQuestionEqualsToken:
+              checkNodeForNullish(node.left, context);
+              break;
+            case SyntaxKind.QuestionQuestionToken:
+              checkNodeForNullish(node.left, context);
+              break;
+            case SyntaxKind.BarBarToken:
+            case SyntaxKind.AmpersandAmpersandToken:
+              // Only checks the left side, since the right side might not be "conditional" at all.
+              // The right side will be checked if the LogicalExpression is used in a conditional context
+              checkNode(node.left, context);
+              break;
+            case SyntaxKind.LessThanToken:
+            case SyntaxKind.GreaterThanToken:
+            case SyntaxKind.LessThanEqualsToken:
+            case SyntaxKind.GreaterThanEqualsToken:
+            case SyntaxKind.EqualsEqualsToken:
+            case SyntaxKind.EqualsEqualsEqualsToken:
+            case SyntaxKind.ExclamationEqualsToken:
+            case SyntaxKind.ExclamationEqualsEqualsToken:
+              checkIfBoolExpressionIsNecessaryConditional(
+                node,
+                node.left,
+                node.right,
+                node.operatorToken.kind,
+                context,
+              );
+              break;
+          }
+        },
+        CallExpression(node, context) {
+          checkCallExpression(node, context, options);
+        },
+        ConditionalExpression(node, context) {
+          checkNode(node.condition, context);
+        },
+        DoStatement(node, context) {
+          checkIfLoopIsNecessaryConditional(node.expression, context, options);
+        },
+        ForStatement(node, context) {
+          if (node.condition) {
+            checkIfLoopIsNecessaryConditional(node.condition, context, options);
+          }
+        },
+        IfStatement(node, context) {
+          checkNode(node.expression, context);
+        },
+        PropertyAccessExpression(node, context) {
+          if (node.questionDotToken) {
+            checkOptionalChain(node, ".", context);
+          }
+        },
+        ElementAccessExpression(node, context) {
+          if (node.questionDotToken) {
+            checkOptionalChain(node, "", context);
+          }
+        },
+        CaseClause(node, context) {
           checkIfBoolExpressionIsNecessaryConditional(
-            node,
-            node.left,
-            node.right,
-            node.operatorToken.kind,
+            node.expression,
+            node.parent.parent.expression,
+            node.expression,
+            SyntaxKind.EqualsEqualsEqualsToken,
             context,
           );
-          break;
-      }
-    },
-    CallExpression: checkCallExpression,
-    ConditionalExpression(node, context) {
-      checkNode(node.condition, context);
-    },
-    DoStatement(node, context) {
-      checkIfLoopIsNecessaryConditional(node.expression, context);
-    },
-    ForStatement(node, context) {
-      if (node.condition) {
-        checkIfLoopIsNecessaryConditional(node.condition, context);
-      }
-    },
-    IfStatement(node, context) {
-      checkNode(node.expression, context);
-    },
-    PropertyAccessExpression(node, context) {
-      if (node.questionDotToken) {
-        checkOptionalChain(node, ".", context);
-      }
-    },
-    ElementAccessExpression(node, context) {
-      if (node.questionDotToken) {
-        checkOptionalChain(node, "", context);
-      }
-    },
-    CaseClause(node, context) {
-      checkIfBoolExpressionIsNecessaryConditional(
-        node.expression,
-        node.parent.parent.expression,
-        node.expression,
-        SyntaxKind.EqualsEqualsEqualsToken,
-        context,
-      );
-    },
-    WhileStatement(node, context) {
-      checkIfLoopIsNecessaryConditional(node.expression, context);
-    },
+        },
+        WhileStatement(node, context) {
+          checkIfLoopIsNecessaryConditional(node.expression, context, options);
+        },
+      },
+    };
   },
-});
+);
 
 function nodeIsArrayType(node: AST.Expression, context: Context): boolean {
   const nodeType = context.utils.getConstrainedTypeAtLocation(node);
@@ -394,6 +400,7 @@ function checkIfBoolExpressionIsNecessaryConditional(
 function checkIfLoopIsNecessaryConditional(
   testNode: AST.Expression,
   context: Context,
+  options: ParsedOptions,
 ): void {
   /**
    * Allow:
@@ -402,7 +409,7 @@ function checkIfLoopIsNecessaryConditional(
    *   do {} while (true)
    */
   if (
-    context.options.allowConstantLoopConditions &&
+    options.allowConstantLoopConditions &&
     isTrueLiteralType(context.utils.getConstrainedTypeAtLocation(testNode))
   ) {
     return;
@@ -411,12 +418,16 @@ function checkIfLoopIsNecessaryConditional(
   checkNode(testNode, context);
 }
 
-function checkCallExpression(node: AST.CallExpression, context: Context): void {
+function checkCallExpression(
+  node: AST.CallExpression,
+  context: Context,
+  options: ParsedOptions,
+): void {
   if (node.questionDotToken) {
     checkOptionalChain(node, "", context);
   }
 
-  if (context.options.checkTypePredicates) {
+  if (options.checkTypePredicates) {
     const truthinessAssertedArgument = findTruthinessAssertedArgument(
       context,
       node,
@@ -945,7 +956,7 @@ const unnecessaryConditionTest = (
 
 export const test = () =>
   ruleTester({
-    rule: noUnnecessaryCondition,
+    ruleFn: noUnnecessaryCondition,
     valid: [
       `
 declare const b1: boolean;

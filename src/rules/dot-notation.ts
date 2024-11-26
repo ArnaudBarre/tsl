@@ -4,8 +4,8 @@ import { ruleTester } from "../ruleTester.ts";
 
 const validIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/u;
 
-export const dotNotation = createRule({
-  name: "dot-notation",
+export const dotNotation = createRule(() => ({
+  name: "core/dotNotation",
   visitor: {
     ElementAccessExpression(node, context) {
       if (
@@ -35,11 +35,11 @@ export const dotNotation = createRule({
       }
     },
   },
-});
+}));
 
 export const test = () =>
   ruleTester({
-    rule: dotNotation,
+    ruleFn: dotNotation,
     valid: [
       "a['12'];",
       "a[b];",

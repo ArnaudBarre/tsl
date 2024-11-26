@@ -15,78 +15,43 @@ import { visitorEntries } from "./visitorEntries.ts";
 
 const timing = !!process.env["TIMING"];
 
-export const initRules = (
+const matchPattern = (pattern: string, fileName: string) =>
+  fileName.includes(pattern);
+
+export const initRules = async (
   getProgram: () => ts.Program,
-  config: Config<UnknownRule[]>,
+  config: Config<string>,
 ) => {
   const contextUtils = getContextUtils(getProgram);
   const rulesTimingMap: Record<string, number> = {};
   const filesTimingMap: Record<string, number> = {};
+  const overrides = config.overrides ?? [];
 
-  const rulesWithOptions: {
-    rule: UnknownRule;
-    context: Context<unknown, unknown>;
-    visitor: Visitor<unknown, unknown>;
-  }[] = [];
-  for (const rule of config.rules) {
-    const input = config.options?.[rule.name];
-    if (input === "off") continue;
-    const start = timing ? performance.now() : 0;
-    const options = rule.parseOptions?.(input);
-    rulesWithOptions.push({
-      rule,
-      context: {
-        sourceFile: undefined as unknown as SourceFile,
-        get program() {
-          return getProgram();
-        },
-        get checker() {
-          return getProgram().getTypeChecker() as unknown as Checker;
-        },
-        get rawChecker() {
-          return getProgram().getTypeChecker();
-        },
-        get compilerOptions() {
-          return getProgram().getCompilerOptions();
-        },
-        utils: contextUtils,
-        report: undefined as unknown as (descriptor: ReportDescriptor) => void,
-        options,
-        data: undefined,
-      },
-      visitor:
-        typeof rule.visitor === "function"
-          ? rule.visitor(options)
-          : rule.visitor,
-    });
-    if (timing) rulesTimingMap[rule.name] = performance.now() - start;
-  }
-
-  const entryMap: Record<number, ((node: AnyNode) => void) | undefined> = {};
-  const exitMap: Record<number, ((node: AnyNode) => void) | undefined> = {};
-  for (const [keySuffix, map] of [
-    ["", entryMap],
-    [":exit", exitMap],
-  ] as const) {
-    for (const [kind, _key] of visitorEntries) {
-      const key = (_key + keySuffix) as keyof Visitor;
-      const rulesWithKey: typeof rulesWithOptions = [];
-      for (const ruleWithOptions of rulesWithOptions) {
-        if (ruleWithOptions.visitor[key]) {
-          rulesWithKey.push(ruleWithOptions);
-        }
+  const getOverridesKey = (fileName: string) => {
+    let key = "";
+    for (const override of overrides) {
+      if (override.files.some((f) => matchPattern(f, fileName))) {
+        key += "1";
+      } else {
+        key += "0";
       }
-      if (rulesWithKey.length) {
-        map[kind] = (node) => {
-          for (const ruleWithOptions of rulesWithKey) {
-            const start = timing ? performance.now() : 0;
-            ruleWithOptions.visitor[key]!(node as any, ruleWithOptions.context);
-            if (timing) {
-              rulesTimingMap[ruleWithOptions.rule.name] +=
-                performance.now() - start;
-            }
-          }
-        };
+    }
+    return key;
+  };
+  const baseRules = (await Promise.all(config.rules)).flat();
+
+  const allRules = new Set<string>();
+  for (const rule of baseRules) {
+    allRules.add(rule.name);
+    if (timing) rulesTimingMap[rule.name] = 0;
+  }
+  if (config.overrides) {
+    for (const override of config.overrides) {
+      if (override.rules) {
+        for (const rule of override.rules) {
+          allRules.add(rule.name);
+          if (timing) rulesTimingMap[rule.name] = 0;
+        }
       }
     }
   }
@@ -102,44 +67,141 @@ export const initRules = (
   const commentsStarts = new Set<number>();
   let lineStarts: readonly number[] = [];
 
-  const visit = (node: AST.AnyNode) => {
-    const text = node.getFullText();
-    const nodeStart = node.getFullStart();
-    ts.forEachLeadingCommentRange(text, 0, (start, end, kind) => {
-      const commentStart = nodeStart + start;
-      if (commentsStarts.has(commentStart)) return;
-      commentsStarts.add(commentStart);
-      const single = kind === ts.SyntaxKind.SingleLineCommentTrivia;
-      const comment = text.slice(start + 3, single ? end : end - 2);
-      if (comment.startsWith("type-lint-ignore")) {
-        const ruleName = comment.split(" ", 2).at(1);
-        const line =
-          lineStarts.findLastIndex((lineStart) => commentStart >= lineStart) +
-          1;
-        ignoreComments.push({
-          line,
-          start: commentStart,
-          end: nodeStart + end,
-          ruleName,
-          local: single,
-          used: false,
-        });
-      }
-    });
+  type RuleWithContext = { rule: UnknownRule; context: Context<unknown> };
+  const getRulesVisitFnCache = new Map<
+    string /* overridesKey */,
+    ReturnType<typeof getRulesVisitFn>
+  >();
+  const getRulesVisitFn = (
+    fileName: string,
+  ): {
+    rulesWithContext: RuleWithContext[];
+    visit: (node: AST.AnyNode) => void;
+  } => {
+    const overridesKey = getOverridesKey(fileName);
+    const cached = getRulesVisitFnCache.get(overridesKey);
+    if (cached) return cached;
 
-    if (
-      node.kind === ts.SyntaxKind.SourceFile &&
-      ignoreComments.some((it) => it.ruleName === undefined && !it.local)
-    ) {
-      // File is ignored
-      ignoreComments = [];
-      return;
+    const rulesMaps: Record<string, UnknownRule> = {};
+    const disabledRules: string[] = [];
+
+    for (let i = 0; i < overrides.length; i++) {
+      if (overridesKey[i] === "0") continue;
+      const override = overrides[i];
+      if (override.disabled) disabledRules.push(...override.disabled);
+      if (override.rules) {
+        for (const rule of override.rules) rulesMaps[rule.name] = rule;
+      }
     }
 
-    entryMap[node.kind]?.(node);
-    // @ts-expect-error
-    node.forEachChild(visit);
-    exitMap[node.kind]?.(node);
+    // Add base rules if not disabled or overridden
+    for (const rule of baseRules) {
+      if (disabledRules.includes(rule.name)) continue;
+      if (!(rule.name in rulesMaps)) rulesMaps[rule.name] = rule;
+    }
+
+    const rulesWithContext: RuleWithContext[] = [];
+    for (const rule in rulesMaps) {
+      rulesWithContext.push({
+        rule: rulesMaps[rule],
+        context: {
+          sourceFile: undefined as unknown as SourceFile,
+          get program() {
+            return getProgram();
+          },
+          get checker() {
+            return getProgram().getTypeChecker() as unknown as Checker;
+          },
+          get rawChecker() {
+            return getProgram().getTypeChecker();
+          },
+          get compilerOptions() {
+            return getProgram().getCompilerOptions();
+          },
+          utils: contextUtils,
+          report: undefined as unknown as (
+            descriptor: ReportDescriptor,
+          ) => void,
+          data: undefined,
+        },
+      });
+    }
+
+    const entryMap: Record<number, ((node: AnyNode) => void) | undefined> = {};
+    const exitMap: Record<number, ((node: AnyNode) => void) | undefined> = {};
+    for (const [keySuffix, map] of [
+      ["", entryMap],
+      [":exit", exitMap],
+    ] as const) {
+      for (const [kind, _key] of visitorEntries) {
+        const key = (_key + keySuffix) as keyof Visitor;
+        const rulesWithKey: typeof rulesWithContext = [];
+        for (const ruleWithOptions of rulesWithContext) {
+          if (ruleWithOptions.rule.visitor[key]) {
+            rulesWithKey.push(ruleWithOptions);
+          }
+        }
+        if (rulesWithKey.length) {
+          map[kind] = (node) => {
+            for (const ruleWithOptions of rulesWithKey) {
+              const start = timing ? performance.now() : 0;
+              ruleWithOptions.rule.visitor[key]!(
+                node as any,
+                ruleWithOptions.context,
+              );
+              if (timing) {
+                rulesTimingMap[ruleWithOptions.rule.name] +=
+                  performance.now() - start;
+              }
+            }
+          };
+        }
+      }
+    }
+
+    const visit = (node: AST.AnyNode) => {
+      const text = node.getFullText();
+      const nodeStart = node.getFullStart();
+      ts.forEachLeadingCommentRange(text, 0, (start, end, kind) => {
+        const commentStart = nodeStart + start;
+        if (commentsStarts.has(commentStart)) return;
+        commentsStarts.add(commentStart);
+        const single = kind === ts.SyntaxKind.SingleLineCommentTrivia;
+        const comment = text.slice(start + 3, single ? end : end - 2);
+        if (comment.startsWith("type-lint-ignore")) {
+          const ruleName = comment.split(" ", 2).at(1);
+          const line =
+            lineStarts.findLastIndex((lineStart) => commentStart >= lineStart) +
+            1;
+          ignoreComments.push({
+            line,
+            start: commentStart,
+            end: nodeStart + end,
+            ruleName,
+            local: single,
+            used: false,
+          });
+        }
+      });
+
+      if (
+        node.kind === ts.SyntaxKind.SourceFile &&
+        ignoreComments.some((it) => it.ruleName === undefined && !it.local)
+      ) {
+        // File is ignored
+        ignoreComments = [];
+        return;
+      }
+
+      entryMap[node.kind]?.(node);
+      // @ts-expect-error
+      node.forEachChild(visit);
+      exitMap[node.kind]?.(node);
+    };
+
+    const value = { rulesWithContext, visit };
+    getRulesVisitFnCache.set(overridesKey, value);
+    return value;
   };
 
   type Report = ReportDescriptor & { type: "rule"; rule: UnknownRule };
@@ -160,9 +222,10 @@ export const initRules = (
     ) => {
       if (sourceFile.fileName.includes("node_modules")) return;
       if (config.ignore?.some((p) => sourceFile.fileName.includes(p))) return;
+      const { rulesWithContext, visit } = getRulesVisitFn(sourceFile.fileName);
       const start = timing ? performance.now() : 0;
       const reports: Report[] = [];
-      for (const { rule, context } of rulesWithOptions) {
+      for (const { rule, context } of rulesWithContext) {
         context.sourceFile = sourceFile;
         context.report = (props) => {
           reports.push({ type: "rule", rule, ...props });
@@ -232,6 +295,7 @@ export const initRules = (
         filesTimingMap[sourceFile.fileName] = performance.now() - start;
       }
     },
+    rulesCount: allRules.size,
     timing: timing ? { Rule: rulesTimingMap, File: filesTimingMap } : undefined,
   };
 };

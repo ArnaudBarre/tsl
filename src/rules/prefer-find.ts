@@ -14,8 +14,8 @@ const messages = {
   preferFindSuggestion: "Use .find(...) instead of .filter(...)[0].",
 };
 
-export const preferFind = createRule({
-  name: "prefer-find",
+export const preferFind = createRule(() => ({
+  name: "core/preferFind",
   visitor: {
     CallExpression(node, context) {
       // `<leftHandSide>.at(<arg>)`.
@@ -42,7 +42,7 @@ export const preferFind = createRule({
       );
     },
   },
-});
+}));
 
 function checkAccess(
   node: AST.Expression,
@@ -167,7 +167,7 @@ function isArrayish(type: Type, context: Context): boolean {
 
 export const test = () =>
   ruleTester({
-    rule: preferFind,
+    ruleFn: preferFind,
     valid: [
       `
       interface JerkCode<T> {

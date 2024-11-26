@@ -7,8 +7,8 @@ const messages = {
   fix: "Replace 'indexOf()' with 'includes()'.",
 };
 
-export const preferIncludes = createRule({
-  name: "prefer-includes",
+export const preferIncludes = createRule(() => ({
+  name: "core/preferIncludes",
   visitor: {
     PropertyAccessExpression(node, context) {
       if (node.name.kind !== SyntaxKind.Identifier) return;
@@ -105,7 +105,7 @@ export const preferIncludes = createRule({
       });
     },
   },
-});
+}));
 
 function hasSameParameters(
   nodeA: ts.Declaration,
@@ -136,7 +136,7 @@ function hasSameParameters(
 
 export const test = () =>
   ruleTester({
-    rule: preferIncludes,
+    ruleFn: preferIncludes,
     valid: [
       `
       function f(a: string): void {

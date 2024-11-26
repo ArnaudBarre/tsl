@@ -12,10 +12,12 @@ const messages = {
 };
 
 type State = "Unsafe" | "Safe";
-type Context = Infer<typeof noUnsafeMemberAccess>["Context"];
-export const noUnsafeMemberAccess = createRule({
-  name: "no-unsafe-member-access",
-  createData: () => ({ stateCache: new Map<ts.Node, State>() }),
+const createData = () => ({ stateCache: new Map<ts.Node, State>() });
+type Context = Infer<typeof createData>["Context"];
+
+export const noUnsafeMemberAccess = createRule(() => ({
+  name: "core/noUnsafeMemberAccess",
+  createData,
   visitor: {
     PropertyAccessExpression(node, context) {
       // ignore if it's parent is Heritage clause
@@ -35,7 +37,7 @@ export const noUnsafeMemberAccess = createRule({
       }
     },
   },
-});
+}));
 
 function checkMemberExpression(
   node: AST.PropertyAccessExpression | AST.ElementAccessExpression,
@@ -88,7 +90,7 @@ function checkMemberExpression(
 
 export const test = () =>
   ruleTester({
-    rule: noUnsafeMemberAccess,
+    ruleFn: noUnsafeMemberAccess,
     valid: [
       `
 function foo(x: { a: number }, y: any) {

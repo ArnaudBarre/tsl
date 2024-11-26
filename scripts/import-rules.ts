@@ -877,7 +877,7 @@ for (const rule of rulesToImport) {
             properties: [
               {
                 type: "ObjectProperty",
-                key: { type: "Identifier", name: "rule" },
+                key: { type: "Identifier", name: "ruleFn" },
                 value: { type: "Identifier", name: exportName },
                 computed: false,
                 shorthand: false,
@@ -1131,18 +1131,12 @@ for (const rule of rulesToImport) {
     : "";
   const content =
     `import ts, { SyntaxKind, SymbolFlags } from "typescript";${tsApiUtilsImports}
-import type { AST, Checker${
-      fnWithInjectedContext.length ? `, ${options ? "Infer" : "Context"}` : ""
-    } } from "../types.ts";
+import type { AST, Checker, Context } from "../types.ts";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 
 const messages = ${toTemplateStrings ? `{${toTemplateStrings}}` : '"extended"'}
-${
-  fnWithInjectedContext.length && options
-    ? `\ntype Context = Infer<typeof ${exportName}>["Context"]`
-    : ""
-}
+
 ` +
     generate(srcAST, { retainLines: true, filename }).code +
     "\n\n/** Tests */\n" +

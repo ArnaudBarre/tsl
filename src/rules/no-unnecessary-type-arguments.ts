@@ -22,8 +22,8 @@ type ParameterCapableNode =
   | AST.TypeQueryNode
   | AST.TypeReferenceNode;
 
-export const noUnnecessaryTypeArguments = createRule({
-  name: "no-unnecessary-type-arguments",
+export const noUnnecessaryTypeArguments = createRule(() => ({
+  name: "core/noUnnecessaryTypeArguments",
   visitor: {
     CallExpression: checkParameters,
     ExpressionWithTypeArguments: checkParameters,
@@ -35,7 +35,7 @@ export const noUnnecessaryTypeArguments = createRule({
     TypeQuery: checkParameters,
     TypeReference: checkParameters,
   },
-});
+}));
 
 function checkParameters(node: ParameterCapableNode, context: Context) {
   const typeArguments = node.typeArguments;
@@ -159,7 +159,7 @@ function getAliasedSymbol(symbol: ts.Symbol, context: Context): ts.Symbol {
 
 export const test = () =>
   ruleTester({
-    rule: noUnnecessaryTypeArguments,
+    ruleFn: noUnnecessaryTypeArguments,
     valid: [
       "f<>();",
       "f<string>();",

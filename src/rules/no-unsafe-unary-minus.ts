@@ -8,8 +8,8 @@ const messages = {
     `Argument of unary negation should be assignable to number | bigint but is ${params.type} instead.`,
 };
 
-export const noUnsafeUnaryMinus = createRule({
-  name: "no-unsafe-unary-minus",
+export const noUnsafeUnaryMinus = createRule(() => ({
+  name: "core/noUnsafeUnaryMinus",
   visitor: {
     PrefixUnaryExpression(node, context) {
       if (node.operator !== SyntaxKind.MinusToken) {
@@ -37,11 +37,11 @@ export const noUnsafeUnaryMinus = createRule({
       }
     },
   },
-});
+}));
 
 export const test = () =>
   ruleTester({
-    rule: noUnsafeUnaryMinus,
+    ruleFn: noUnsafeUnaryMinus,
     valid: [
       "+42;",
       "-42;",

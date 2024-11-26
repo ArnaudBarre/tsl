@@ -3,7 +3,7 @@ import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { typeHasFlag } from "../types-utils.ts";
-import type { AST, Infer, Suggestion } from "../types.ts";
+import type { AST, Context, Suggestion } from "../types.ts";
 import { getContextualType, isConstAssertion } from "./utils";
 
 const messages = {
@@ -14,124 +14,132 @@ const messages = {
   removeAssertion: "Remove the type assertion",
 };
 
-type Context = Infer<typeof noUnnecessaryTypeAssertion>["Context"];
-export const noUnnecessaryTypeAssertion = createRule({
-  name: "no-unnecessary-type-assertion",
-  parseOptions: (options?: { typesToIgnore?: string[] }) => ({ ...options }),
-  visitor: {
-    NonNullExpression(node, context) {
-      const suggestion: Suggestion = {
-        message: messages.removeAssertion,
-        changes: [
-          {
-            start: node.expression.getEnd(),
-            end: node.getEnd(),
-            newText: "",
-          },
-        ],
-      };
-      if (
-        node.parent.kind === SyntaxKind.BinaryExpression &&
-        node.parent.operatorToken.kind === SyntaxKind.EqualsToken
-      ) {
-        if (node.parent.left === node) {
-          context.report({
-            node,
-            message: messages.contextuallyUnnecessary,
-            suggestions: [suggestion],
-          });
-        }
-        // for all other = assignments we ignore non-null checks
-        // this is because non-null assertions can change the type-flow of the code
-        // so whilst they might be unnecessary for the assignment - they are necessary
-        // for following code
-        return;
-      }
+type Options = { typesToIgnore?: string[] };
 
-      const type = context.utils.getConstrainedTypeAtLocation(node.expression);
-
-      if (
-        !typeHasFlag(
-          type,
-          TypeFlags.Null |
-            TypeFlags.Undefined |
-            TypeFlags.Void |
-            TypeFlags.Unknown,
-        )
-      ) {
+export const noUnnecessaryTypeAssertion = createRule(
+  (options: Options = {}) => ({
+    name: "core/noUnnecessaryTypeAssertion",
+    visitor: {
+      NonNullExpression(node, context) {
+        const suggestion: Suggestion = {
+          message: messages.removeAssertion,
+          changes: [
+            {
+              start: node.expression.getEnd(),
+              end: node.getEnd(),
+              newText: "",
+            },
+          ],
+        };
         if (
-          node.expression.kind === SyntaxKind.Identifier &&
-          isPossiblyUsedBeforeAssigned(node.expression, context)
+          node.parent.kind === SyntaxKind.BinaryExpression &&
+          node.parent.operatorToken.kind === SyntaxKind.EqualsToken
         ) {
-          return;
-        }
-
-        context.report({
-          node,
-          message: messages.unnecessaryAssertion,
-          suggestions: [suggestion],
-        });
-      } else {
-        // we know it's a nullable type
-        // so figure out if the variable is used in a place that accepts nullable types
-
-        const contextualType = getContextualType(context.checker, node);
-        if (contextualType) {
-          // in strict mode you can't assign null to undefined, so we have to make sure that
-          // the two types share a nullable type
-          const typeIncludesUndefined = typeHasFlag(type, TypeFlags.Undefined);
-          const typeIncludesNull = typeHasFlag(type, TypeFlags.Null);
-          const typeIncludesVoid = typeHasFlag(type, TypeFlags.Void);
-
-          const contextualTypeIncludesUndefined = typeHasFlag(
-            contextualType,
-            TypeFlags.Undefined,
-          );
-          const contextualTypeIncludesNull = typeHasFlag(
-            contextualType,
-            TypeFlags.Null,
-          );
-          const contextualTypeIncludesVoid = typeHasFlag(
-            contextualType,
-            TypeFlags.Void,
-          );
-
-          // make sure that the parent accepts the same types
-          // i.e. assigning `string | null | undefined` to `string | undefined` is invalid
-          const isValidUndefined = typeIncludesUndefined
-            ? contextualTypeIncludesUndefined
-            : true;
-          const isValidNull = typeIncludesNull
-            ? contextualTypeIncludesNull
-            : true;
-          const isValidVoid = typeIncludesVoid
-            ? contextualTypeIncludesVoid
-            : true;
-
-          if (isValidUndefined && isValidNull && isValidVoid) {
+          if (node.parent.left === node) {
             context.report({
               node,
               message: messages.contextuallyUnnecessary,
               suggestions: [suggestion],
             });
           }
+          // for all other = assignments we ignore non-null checks
+          // this is because non-null assertions can change the type-flow of the code
+          // so whilst they might be unnecessary for the assignment - they are necessary
+          // for following code
+          return;
         }
-      }
+
+        const type = context.utils.getConstrainedTypeAtLocation(
+          node.expression,
+        );
+
+        if (
+          !typeHasFlag(
+            type,
+            TypeFlags.Null |
+              TypeFlags.Undefined |
+              TypeFlags.Void |
+              TypeFlags.Unknown,
+          )
+        ) {
+          if (
+            node.expression.kind === SyntaxKind.Identifier &&
+            isPossiblyUsedBeforeAssigned(node.expression, context)
+          ) {
+            return;
+          }
+
+          context.report({
+            node,
+            message: messages.unnecessaryAssertion,
+            suggestions: [suggestion],
+          });
+        } else {
+          // we know it's a nullable type
+          // so figure out if the variable is used in a place that accepts nullable types
+
+          const contextualType = getContextualType(context.checker, node);
+          if (contextualType) {
+            // in strict mode you can't assign null to undefined, so we have to make sure that
+            // the two types share a nullable type
+            const typeIncludesUndefined = typeHasFlag(
+              type,
+              TypeFlags.Undefined,
+            );
+            const typeIncludesNull = typeHasFlag(type, TypeFlags.Null);
+            const typeIncludesVoid = typeHasFlag(type, TypeFlags.Void);
+
+            const contextualTypeIncludesUndefined = typeHasFlag(
+              contextualType,
+              TypeFlags.Undefined,
+            );
+            const contextualTypeIncludesNull = typeHasFlag(
+              contextualType,
+              TypeFlags.Null,
+            );
+            const contextualTypeIncludesVoid = typeHasFlag(
+              contextualType,
+              TypeFlags.Void,
+            );
+
+            // make sure that the parent accepts the same types
+            // i.e. assigning `string | null | undefined` to `string | undefined` is invalid
+            const isValidUndefined = typeIncludesUndefined
+              ? contextualTypeIncludesUndefined
+              : true;
+            const isValidNull = typeIncludesNull
+              ? contextualTypeIncludesNull
+              : true;
+            const isValidVoid = typeIncludesVoid
+              ? contextualTypeIncludesVoid
+              : true;
+
+            if (isValidUndefined && isValidNull && isValidVoid) {
+              context.report({
+                node,
+                message: messages.contextuallyUnnecessary,
+                suggestions: [suggestion],
+              });
+            }
+          }
+        }
+      },
+      AsExpression(node, context) {
+        checkAssertion(node, context, options);
+      },
+      TypeAssertionExpression(node, context) {
+        checkAssertion(node, context, options);
+      },
     },
-    AsExpression(node, context) {
-      checkAssertion(node, context);
-    },
-    TypeAssertionExpression(node, context) {
-      checkAssertion(node, context);
-    },
-  },
-});
+  }),
+);
 
 function checkAssertion(
   node: AST.AsExpression | AST.TypeAssertion,
   context: Context,
+  options: Options,
 ) {
-  if (context.options.typesToIgnore?.includes(node.type.getText())) {
+  if (options.typesToIgnore?.includes(node.type.getText())) {
     return;
   }
 
@@ -282,7 +290,7 @@ function isTypeUnchanged(
 
 export const test = () =>
   ruleTester({
-    rule: noUnnecessaryTypeAssertion,
+    ruleFn: noUnnecessaryTypeAssertion,
     valid: [
       `
 import { TSESTree } from '@typescript-eslint/utils';

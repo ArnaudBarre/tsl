@@ -21,13 +21,14 @@ const EVAL_LIKE_METHODS = new Set([
   "setInterval",
   "setTimeout",
 ]);
-export const noImpliedEval = createRule({
-  name: "no-implied-eval",
+
+export const noImpliedEval = createRule(() => ({
+  name: "core/noImpliedEval",
   visitor: {
     CallExpression: checkImpliedEval,
     NewExpression: checkImpliedEval,
   },
-});
+}));
 
 function getCalleeName(node: AST.Expression): string | null {
   if (node.kind === SyntaxKind.Identifier) {
@@ -145,7 +146,7 @@ function checkImpliedEval(
 
 export const test = () =>
   ruleTester({
-    rule: noImpliedEval,
+    ruleFn: noImpliedEval,
     valid: [
       "foo.setImmediate(null);",
       "foo.setInterval(null);",

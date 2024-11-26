@@ -8,7 +8,7 @@ import ts, { SyntaxKind } from "typescript";
 import type { AnyNode } from "../ast.ts";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
-import type { AST, Infer, Suggestion } from "../types.ts";
+import type { AST, Context, Suggestion } from "../types.ts";
 import { getParentFunctionNode, isLogicalExpression } from "./utils";
 
 const messages = {
@@ -40,25 +40,17 @@ const messages = {
   moveBeforeReturn: "Move before the `return` keyword.",
 };
 
-type Context = Infer<typeof noConfusingVoidExpression>["Context"];
-export const noConfusingVoidExpression = createRule({
-  name: "no-confusing-void-expression",
-  parseOptions: (options?: {
+export const noConfusingVoidExpression = createRule(
+  (_options?: {
     ignoreArrowShorthand?: boolean;
     ignoreVoidOperator?: boolean;
     ignoreVoidReturningFunctions?: boolean;
-  }) => ({
-    ignoreArrowShorthand: false,
-    ignoreVoidOperator: false,
-    ignoreVoidReturningFunctions: false,
-    ...options,
-  }),
-  visitor: (options) => {
-    return {
-      AwaitExpression: (node, context) => checkVoidExpression(node, context),
-      CallExpression: (node, context) => checkVoidExpression(node, context),
-      TaggedTemplateExpression: (node, context) =>
-        checkVoidExpression(node, context),
+  }) => {
+    const options = {
+      ignoreArrowShorthand: false,
+      ignoreVoidOperator: false,
+      ignoreVoidReturningFunctions: false,
+      ..._options,
     };
 
     function checkVoidExpression(
@@ -86,7 +78,6 @@ export const noConfusingVoidExpression = createRule({
 
       if (invalidAncestor.kind === SyntaxKind.ArrowFunction) {
         // handle arrow function shorthand
-
         if (options.ignoreVoidReturningFunctions) {
           const returnsVoid = isVoidReturningFunctionNode(
             invalidAncestor,
@@ -143,7 +134,6 @@ export const noConfusingVoidExpression = createRule({
 
       if (invalidAncestor.kind === SyntaxKind.ReturnStatement) {
         // handle return statement
-
         if (options.ignoreVoidReturningFunctions) {
           const functionNode = getParentFunctionNode(invalidAncestor);
 
@@ -192,7 +182,10 @@ export const noConfusingVoidExpression = createRule({
                     {
                       message: messages.removeReturn,
                       changes: [
-                        { node: invalidAncestor, newText: newReturnStmtText },
+                        {
+                          node: invalidAncestor,
+                          newText: newReturnStmtText,
+                        },
                       ],
                     },
                   ];
@@ -238,7 +231,10 @@ export const noConfusingVoidExpression = createRule({
           node,
           message: messages.invalidVoidExprWrapVoid,
           suggestions: [
-            { message: messages.voidExprWrapVoid, changes: wrapVoidFix(node) },
+            {
+              message: messages.voidExprWrapVoid,
+              changes: wrapVoidFix(node),
+            },
           ],
         });
         return;
@@ -405,7 +401,6 @@ export const noConfusingVoidExpression = createRule({
       //   - Otherwise, check if the function is a function-expression or an arrow-function.
       //   -   If it is, get its contextual type and bail if we cannot.
       //   - Return based on whether the contextual type includes `void` or not
-
       if (functionNode.type) {
         const returnType = context.checker.getTypeFromTypeNode(
           functionNode.type,
@@ -429,12 +424,22 @@ export const noConfusingVoidExpression = createRule({
 
       return false;
     }
+
+    return {
+      name: "core/noConfusingVoidExpression",
+      visitor: {
+        AwaitExpression: (node, context) => checkVoidExpression(node, context),
+        CallExpression: (node, context) => checkVoidExpression(node, context),
+        TaggedTemplateExpression: (node, context) =>
+          checkVoidExpression(node, context),
+      },
+    };
   },
-});
+);
 
 export const test = () =>
   ruleTester({
-    rule: noConfusingVoidExpression,
+    ruleFn: noConfusingVoidExpression,
     valid: [
       "() => Math.random();",
       "console.log('foo');",

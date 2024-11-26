@@ -58,15 +58,16 @@ console.log(`Typecheck in ${(performance.now() - start).toFixed(2)}ms`);
 const configStart = performance.now();
 
 const { config } = await loadConfig(program);
+
+const { lint, rulesCount, timing } = await initRules(() => program, config);
+
 console.log(
-  `Config (${config.rules.length} ${
-    config.rules.length === 1 ? "rule" : "rules"
+  `Config (${rulesCount} base ${
+    rulesCount === 1 ? "rule" : "rules"
   }) loaded in ${(performance.now() - configStart).toFixed(2)}ms`,
 );
 
 const lintStart = performance.now();
-
-const { lint, timing } = initRules(() => program, config);
 
 const files = program.getSourceFiles();
 

@@ -14,8 +14,8 @@ const messages = {
   unsafeSpread: "Unsafe spread of an `any` type.",
 };
 
-export const noUnsafeArgument = createRule({
-  name: "no-unsafe-argument",
+export const noUnsafeArgument = createRule(() => ({
+  name: "core/noUnsafeArgument",
   visitor: {
     CallExpression(node, context) {
       checkNode(node, context);
@@ -24,7 +24,7 @@ export const noUnsafeArgument = createRule({
       checkNode(node, context);
     },
   },
-});
+}));
 
 const checkNode = (
   node: AST.CallExpression | AST.NewExpression,
@@ -318,7 +318,7 @@ export function isUnsafeAssignment(
 
 export const test = () =>
   ruleTester({
-    rule: noUnsafeArgument,
+    ruleFn: noUnsafeArgument,
     valid: [
       // unknown function should be ignored
       `

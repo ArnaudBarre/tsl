@@ -9,67 +9,69 @@ const messages = {
   undef: "Do not throw undefined.",
 };
 
-export const onlyThrowError = createRule({
-  name: "only-throw-error",
-  parseOptions: (options?: {
+export const onlyThrowError = createRule(
+  (_options?: {
     allowThrowingAny?: boolean;
     allowThrowingUnknown?: boolean;
     allow?: string[];
-  }) => ({
-    allowThrowingAny: true,
-    allowThrowingUnknown: true,
-    ...options,
-  }),
-  visitor: {
-    ThrowStatement({ expression: node }, context) {
-      if (
-        node.kind === SyntaxKind.AwaitExpression ||
-        node.kind === SyntaxKind.YieldExpression
-      ) {
-        return;
-      }
+  }) => {
+    const options = {
+      allowThrowingAny: true,
+      allowThrowingUnknown: true,
+      ..._options,
+    };
 
-      const type = context.checker.getTypeAtLocation(node);
+    return {
+      name: "core/onlyThrowError",
+      visitor: {
+        ThrowStatement({ expression: node }, context) {
+          if (
+            node.kind === SyntaxKind.AwaitExpression ||
+            node.kind === SyntaxKind.YieldExpression
+          ) {
+            return;
+          }
 
-      if (context.options.allow) {
-        const identifier =
-          node.kind === SyntaxKind.NewExpression ||
-          node.kind === SyntaxKind.CallExpression
-            ? node.expression
-            : node;
-        if (context.options.allow.includes(identifier.getText())) {
-          return;
-        }
-      }
+          const type = context.checker.getTypeAtLocation(node);
 
-      if (type.flags & ts.TypeFlags.Undefined) {
-        context.report({ node, message: messages.undef });
-        return;
-      }
+          if (options.allow) {
+            const identifier =
+              node.kind === SyntaxKind.NewExpression ||
+              node.kind === SyntaxKind.CallExpression
+                ? node.expression
+                : node;
+            if (options.allow.includes(identifier.getText())) {
+              return;
+            }
+          }
 
-      if (context.options.allowThrowingAny && isIntrinsicAnyType(type)) {
-        return;
-      }
+          if (type.flags & ts.TypeFlags.Undefined) {
+            context.report({ node, message: messages.undef });
+            return;
+          }
 
-      if (
-        context.options.allowThrowingUnknown &&
-        isIntrinsicUnknownType(type)
-      ) {
-        return;
-      }
+          if (options.allowThrowingAny && isIntrinsicAnyType(type)) {
+            return;
+          }
 
-      if (isBuiltinSymbolLike(context.program, type, "Error")) {
-        return;
-      }
+          if (options.allowThrowingUnknown && isIntrinsicUnknownType(type)) {
+            return;
+          }
 
-      context.report({ node, message: messages.object });
-    },
+          if (isBuiltinSymbolLike(context.program, type, "Error")) {
+            return;
+          }
+
+          context.report({ node, message: messages.object });
+        },
+      },
+    };
   },
-});
+);
 
 export const test = () =>
   ruleTester({
-    rule: onlyThrowError,
+    ruleFn: onlyThrowError,
     valid: [
       "throw new Error();",
       "throw new Error('error');",

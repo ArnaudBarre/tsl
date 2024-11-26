@@ -8,8 +8,8 @@ const messages = {
     "For-in loops over arrays skips holes, returns indices as strings, and may visit the prototype chain or other enumerable properties. Use a more robust iteration method such as for-of or array.forEach instead.",
 };
 
-export const noForInArray = createRule({
-  name: "no-for-in-array",
+export const noForInArray = createRule(() => ({
+  name: "core/noForInArray",
   visitor: {
     ForInStatement(node, context) {
       const type = context.utils.getConstrainedTypeAtLocation(node.expression);
@@ -24,11 +24,11 @@ export const noForInArray = createRule({
       }
     },
   },
-});
+}));
 
 export const test = () =>
   ruleTester({
-    rule: noForInArray,
+    ruleFn: noForInArray,
     valid: [
       `
 for (const x of [3, 4, 5]) {

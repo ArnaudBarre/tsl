@@ -20,10 +20,11 @@ type Data = {
   };
 };
 
-type Context = Infer<typeof preferReturnThisType>["Context"];
-export const preferReturnThisType = createRule({
-  name: "prefer-return-this-type",
-  createData: (): Data | undefined => undefined,
+const createData = (): Data | undefined => undefined;
+type Context = Infer<typeof createData>["Context"];
+export const preferReturnThisType = createRule(() => ({
+  name: "core/preferReturnThisType",
+  createData,
   visitor: {
     ClassDeclaration(node, context) {
       const className = node.name?.text;
@@ -70,7 +71,7 @@ export const preferReturnThisType = createRule({
       checkReturnExpression(context, node.expression);
     },
   },
-});
+}));
 
 function functionEnter(
   context: Context,
@@ -161,7 +162,7 @@ function tryGetNameInType(
 
 export const test = () =>
   ruleTester({
-    rule: preferReturnThisType,
+    ruleFn: preferReturnThisType,
     valid: [
       `
 class Foo {

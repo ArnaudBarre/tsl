@@ -79,7 +79,7 @@ export function getParentFunctionNode(
   | AST.MethodDeclaration
   | null {
   let current = node.parent;
-  // type-lint-ignore no-unnecessary-condition
+  // type-lint-ignore core/noUnnecessaryCondition
   while (current) {
     if (
       current.kind === SyntaxKind.ArrowFunction ||
@@ -108,7 +108,7 @@ const ARRAY_PREDICATE_FUNCTIONS = [
   "some",
 ];
 export function isArrayMethodCallWithPredicate(
-  context: Context<unknown, unknown>,
+  context: Context<unknown>,
   node: AST.CallExpression,
 ): boolean {
   if (node.expression.kind !== SyntaxKind.PropertyAccessExpression) {
@@ -258,7 +258,7 @@ export function getContextualType(
 
 export function isReferenceToGlobalFunction(
   node: AnyNode,
-  context: Context<unknown, unknown>,
+  context: Context<unknown>,
 ): boolean {
   const symbol = context.checker.getSymbolAtLocation(node);
 

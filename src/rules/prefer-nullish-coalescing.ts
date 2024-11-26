@@ -4,7 +4,7 @@ import type { EqualityOperator } from "../ast.ts";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { typeHasFlag } from "../types-utils.ts";
-import type { AST, Infer, Suggestion } from "../types.ts";
+import type { AST, Context, Suggestion } from "../types.ts";
 import { isLogicalExpression } from "./utils";
 
 const messages = {
@@ -20,10 +20,21 @@ const messages = {
     `Fix to nullish coalescing operator (\`??${params.equals}\`).`,
 };
 
-type Context = Infer<typeof preferNullishCoalescing>["Context"];
-export const preferNullishCoalescing = createRule({
-  name: "prefer-nullish-coalescing",
-  parseOptions: (options?: {
+type ParsedOptions = {
+  ignoreBooleanCoercion: boolean;
+  ignoreConditionalTests: boolean;
+  ignoreMixedLogicalExpressions: boolean;
+  ignoreTernaryTests: boolean;
+  ignorePrimitives: {
+    bigint: boolean;
+    boolean: boolean;
+    number: boolean;
+    string: boolean;
+  };
+};
+
+export const preferNullishCoalescing = createRule(
+  (_options?: {
     ignoreBooleanCoercion?: boolean;
     ignoreConditionalTests?: boolean;
     ignoreMixedLogicalExpressions?: boolean;
@@ -36,239 +47,257 @@ export const preferNullishCoalescing = createRule({
           string?: boolean;
         }
       | true;
-  }) => ({
-    ignoreBooleanCoercion: false,
-    ignoreConditionalTests: true,
-    ignoreMixedLogicalExpressions: false,
-    ignoreTernaryTests: false,
-    ...options,
-    ignorePrimitives:
-      options?.ignorePrimitives === true
-        ? { bigint: true, boolean: true, number: true, string: true }
-        : {
-            bigint: options?.ignorePrimitives?.bigint ?? false,
-            boolean: options?.ignorePrimitives?.boolean ?? false,
-            number: options?.ignorePrimitives?.number ?? false,
-            string: options?.ignorePrimitives?.string ?? false,
-          },
-  }),
-  visitor: {
-    BinaryExpression(node, context) {
-      if (node.operatorToken.kind === SyntaxKind.BarBarEqualsToken) {
-        checkAssignmentOrLogicalExpression(node, "assignment", "=", context);
-      }
-      if (
-        node.operatorToken.kind === SyntaxKind.BarBarToken &&
-        !(
-          context.options.ignoreBooleanCoercion &&
-          isBooleanConstructorContext(node)
-        )
-      ) {
-        checkAssignmentOrLogicalExpression(node, "or", "", context);
-      }
-    },
-    ConditionalExpression(node, context) {
-      if (context.options.ignoreTernaryTests) return;
-      if (node.condition.kind !== SyntaxKind.BinaryExpression) return;
-
-      let operator: EqualityOperator | undefined;
-      let nodesInsideTestExpression: AST.AnyNode[] = [];
-      switch (node.condition.operatorToken.kind) {
-        case SyntaxKind.EqualsEqualsToken:
-        case SyntaxKind.EqualsEqualsEqualsToken:
-        case SyntaxKind.ExclamationEqualsToken:
-        case SyntaxKind.ExclamationEqualsEqualsToken:
-          nodesInsideTestExpression = [
-            node.condition.left,
-            node.condition.right,
-          ];
-          operator = node.condition.operatorToken.kind;
-          break;
-        case SyntaxKind.BarBarToken:
-        case SyntaxKind.BarBarEqualsToken:
-        case SyntaxKind.AmpersandAmpersandToken:
-          if (node.condition.left.kind !== SyntaxKind.BinaryExpression) {
-            return;
+  }) => {
+    const options: ParsedOptions = {
+      ignoreBooleanCoercion: false,
+      ignoreConditionalTests: true,
+      ignoreMixedLogicalExpressions: false,
+      ignoreTernaryTests: false,
+      ..._options,
+      ignorePrimitives:
+        _options?.ignorePrimitives === true
+          ? { bigint: true, boolean: true, number: true, string: true }
+          : {
+              bigint: _options?.ignorePrimitives?.bigint ?? false,
+              boolean: _options?.ignorePrimitives?.boolean ?? false,
+              number: _options?.ignorePrimitives?.number ?? false,
+              string: _options?.ignorePrimitives?.string ?? false,
+            },
+    };
+    return {
+      name: "core/preferNullishCoalescing",
+      visitor: {
+        BinaryExpression(node, context) {
+          if (node.operatorToken.kind === SyntaxKind.BarBarEqualsToken) {
+            checkAssignmentOrLogicalExpression(
+              node,
+              "assignment",
+              "=",
+              context,
+              options,
+            );
           }
-          if (node.condition.right.kind !== SyntaxKind.BinaryExpression) {
-            return;
-          }
-          nodesInsideTestExpression = [
-            node.condition.left.left,
-            node.condition.left.right,
-            node.condition.right.left,
-            node.condition.right.right,
-          ];
           if (
-            node.condition.operatorToken.kind === SyntaxKind.BarBarToken ||
-            node.condition.operatorToken.kind === SyntaxKind.BarBarEqualsToken
+            node.operatorToken.kind === SyntaxKind.BarBarToken &&
+            !(
+              options.ignoreBooleanCoercion && isBooleanConstructorContext(node)
+            )
           ) {
-            if (
-              node.condition.left.operatorToken.kind ===
-                SyntaxKind.EqualsEqualsEqualsToken &&
-              node.condition.right.operatorToken.kind ===
-                SyntaxKind.EqualsEqualsEqualsToken
-            ) {
-              operator = SyntaxKind.EqualsEqualsEqualsToken;
-            } else if (
-              ((node.condition.left.operatorToken.kind ===
-                SyntaxKind.EqualsEqualsEqualsToken ||
-                node.condition.right.operatorToken.kind ===
-                  SyntaxKind.EqualsEqualsEqualsToken) &&
-                (node.condition.left.operatorToken.kind ===
-                  SyntaxKind.EqualsEqualsToken ||
+            checkAssignmentOrLogicalExpression(
+              node,
+              "or",
+              "",
+              context,
+              options,
+            );
+          }
+        },
+        ConditionalExpression(node, context) {
+          if (options.ignoreTernaryTests) return;
+          if (node.condition.kind !== SyntaxKind.BinaryExpression) return;
+
+          let operator: EqualityOperator | undefined;
+          let nodesInsideTestExpression: AST.AnyNode[] = [];
+          switch (node.condition.operatorToken.kind) {
+            case SyntaxKind.EqualsEqualsToken:
+            case SyntaxKind.EqualsEqualsEqualsToken:
+            case SyntaxKind.ExclamationEqualsToken:
+            case SyntaxKind.ExclamationEqualsEqualsToken:
+              nodesInsideTestExpression = [
+                node.condition.left,
+                node.condition.right,
+              ];
+              operator = node.condition.operatorToken.kind;
+              break;
+            case SyntaxKind.BarBarToken:
+            case SyntaxKind.BarBarEqualsToken:
+            case SyntaxKind.AmpersandAmpersandToken:
+              if (node.condition.left.kind !== SyntaxKind.BinaryExpression) {
+                return;
+              }
+              if (node.condition.right.kind !== SyntaxKind.BinaryExpression) {
+                return;
+              }
+              nodesInsideTestExpression = [
+                node.condition.left.left,
+                node.condition.left.right,
+                node.condition.right.left,
+                node.condition.right.right,
+              ];
+              if (
+                node.condition.operatorToken.kind === SyntaxKind.BarBarToken ||
+                node.condition.operatorToken.kind ===
+                  SyntaxKind.BarBarEqualsToken
+              ) {
+                if (
+                  node.condition.left.operatorToken.kind ===
+                    SyntaxKind.EqualsEqualsEqualsToken &&
                   node.condition.right.operatorToken.kind ===
-                    SyntaxKind.EqualsEqualsToken)) ||
-              (node.condition.left.operatorToken.kind ===
-                SyntaxKind.EqualsEqualsToken &&
-                node.condition.right.operatorToken.kind ===
-                  SyntaxKind.EqualsEqualsToken)
-            ) {
-              operator = SyntaxKind.EqualsEqualsToken;
-            }
-          } else {
-            if (
-              node.condition.left.operatorToken.kind ===
-                SyntaxKind.ExclamationEqualsEqualsToken &&
-              node.condition.right.operatorToken.kind ===
-                SyntaxKind.ExclamationEqualsEqualsToken
-            ) {
-              operator = SyntaxKind.ExclamationEqualsEqualsToken;
-            } else if (
-              ((node.condition.left.operatorToken.kind ===
-                SyntaxKind.ExclamationEqualsEqualsToken ||
-                node.condition.right.operatorToken.kind ===
-                  SyntaxKind.ExclamationEqualsEqualsToken) &&
-                (node.condition.left.operatorToken.kind ===
-                  SyntaxKind.ExclamationEqualsToken ||
+                    SyntaxKind.EqualsEqualsEqualsToken
+                ) {
+                  operator = SyntaxKind.EqualsEqualsEqualsToken;
+                } else if (
+                  ((node.condition.left.operatorToken.kind ===
+                    SyntaxKind.EqualsEqualsEqualsToken ||
+                    node.condition.right.operatorToken.kind ===
+                      SyntaxKind.EqualsEqualsEqualsToken) &&
+                    (node.condition.left.operatorToken.kind ===
+                      SyntaxKind.EqualsEqualsToken ||
+                      node.condition.right.operatorToken.kind ===
+                        SyntaxKind.EqualsEqualsToken)) ||
+                  (node.condition.left.operatorToken.kind ===
+                    SyntaxKind.EqualsEqualsToken &&
+                    node.condition.right.operatorToken.kind ===
+                      SyntaxKind.EqualsEqualsToken)
+                ) {
+                  operator = SyntaxKind.EqualsEqualsToken;
+                }
+              } else {
+                if (
+                  node.condition.left.operatorToken.kind ===
+                    SyntaxKind.ExclamationEqualsEqualsToken &&
                   node.condition.right.operatorToken.kind ===
-                    SyntaxKind.ExclamationEqualsToken)) ||
-              (node.condition.left.operatorToken.kind ===
-                SyntaxKind.ExclamationEqualsToken &&
-                node.condition.right.operatorToken.kind ===
-                  SyntaxKind.ExclamationEqualsToken)
+                    SyntaxKind.ExclamationEqualsEqualsToken
+                ) {
+                  operator = SyntaxKind.ExclamationEqualsEqualsToken;
+                } else if (
+                  ((node.condition.left.operatorToken.kind ===
+                    SyntaxKind.ExclamationEqualsEqualsToken ||
+                    node.condition.right.operatorToken.kind ===
+                      SyntaxKind.ExclamationEqualsEqualsToken) &&
+                    (node.condition.left.operatorToken.kind ===
+                      SyntaxKind.ExclamationEqualsToken ||
+                      node.condition.right.operatorToken.kind ===
+                        SyntaxKind.ExclamationEqualsToken)) ||
+                  (node.condition.left.operatorToken.kind ===
+                    SyntaxKind.ExclamationEqualsToken &&
+                    node.condition.right.operatorToken.kind ===
+                      SyntaxKind.ExclamationEqualsToken)
+                ) {
+                  operator = SyntaxKind.ExclamationEqualsToken;
+                }
+              }
+          }
+
+          if (!operator) return;
+
+          let identifier: ts.Node | undefined;
+          let hasUndefinedCheck = false;
+          let hasNullCheck = false;
+
+          // we check that the test only contains null, undefined and the identifier
+          for (const testNode of nodesInsideTestExpression) {
+            if (testNode.kind === SyntaxKind.NullKeyword) {
+              hasNullCheck = true;
+            } else if (
+              testNode.kind === SyntaxKind.Identifier &&
+              testNode.text === "undefined"
             ) {
-              operator = SyntaxKind.ExclamationEqualsToken;
+              hasUndefinedCheck = true;
+            } else if (
+              (operator === SyntaxKind.ExclamationEqualsEqualsToken ||
+                operator === SyntaxKind.ExclamationEqualsToken) &&
+              isNodeEqual(testNode, node.whenTrue)
+            ) {
+              identifier = testNode;
+            } else if (
+              (operator === SyntaxKind.EqualsEqualsEqualsToken ||
+                operator === SyntaxKind.EqualsEqualsToken) &&
+              isNodeEqual(testNode, node.whenFalse)
+            ) {
+              identifier = testNode;
+            } else {
+              return;
             }
           }
-      }
 
-      if (!operator) return;
+          if (!identifier) return;
 
-      let identifier: ts.Node | undefined;
-      let hasUndefinedCheck = false;
-      let hasNullCheck = false;
+          const isFixable = ((): boolean => {
+            // it is fixable if we check for both null and undefined, or not if neither
+            if (hasUndefinedCheck === hasNullCheck) {
+              return hasUndefinedCheck;
+            }
 
-      // we check that the test only contains null, undefined and the identifier
-      for (const testNode of nodesInsideTestExpression) {
-        if (testNode.kind === SyntaxKind.NullKeyword) {
-          hasNullCheck = true;
-        } else if (
-          testNode.kind === SyntaxKind.Identifier &&
-          testNode.text === "undefined"
-        ) {
-          hasUndefinedCheck = true;
-        } else if (
-          (operator === SyntaxKind.ExclamationEqualsEqualsToken ||
-            operator === SyntaxKind.ExclamationEqualsToken) &&
-          isNodeEqual(testNode, node.whenTrue)
-        ) {
-          identifier = testNode;
-        } else if (
-          (operator === SyntaxKind.EqualsEqualsEqualsToken ||
-            operator === SyntaxKind.EqualsEqualsToken) &&
-          isNodeEqual(testNode, node.whenFalse)
-        ) {
-          identifier = testNode;
-        } else {
-          return;
-        }
-      }
+            // it is fixable if we loosely check for either null or undefined
+            if (
+              operator === SyntaxKind.EqualsEqualsToken ||
+              operator === SyntaxKind.ExclamationEqualsToken
+            ) {
+              return true;
+            }
 
-      if (!identifier) return;
+            const type = context.checker.getTypeAtLocation(identifier);
 
-      const isFixable = ((): boolean => {
-        // it is fixable if we check for both null and undefined, or not if neither
-        if (hasUndefinedCheck === hasNullCheck) {
-          return hasUndefinedCheck;
-        }
+            if (typeHasFlag(type, TypeFlags.Any | TypeFlags.Unknown)) {
+              return false;
+            }
 
-        // it is fixable if we loosely check for either null or undefined
-        if (
-          operator === SyntaxKind.EqualsEqualsToken ||
-          operator === SyntaxKind.ExclamationEqualsToken
-        ) {
-          return true;
-        }
+            const hasNullType = typeHasFlag(type, TypeFlags.Null);
 
-        const type = context.checker.getTypeAtLocation(identifier);
+            // it is fixable if we check for undefined and the type is not nullable
+            if (hasUndefinedCheck && !hasNullType) {
+              return true;
+            }
 
-        if (typeHasFlag(type, TypeFlags.Any | TypeFlags.Unknown)) {
-          return false;
-        }
+            const hasUndefinedType = typeHasFlag(type, TypeFlags.Undefined);
 
-        const hasNullType = typeHasFlag(type, TypeFlags.Null);
+            // it is fixable if we check for null and the type can't be undefined
+            return hasNullCheck && !hasUndefinedType;
+          })();
 
-        // it is fixable if we check for undefined and the type is not nullable
-        if (hasUndefinedCheck && !hasNullType) {
-          return true;
-        }
-
-        const hasUndefinedType = typeHasFlag(type, TypeFlags.Undefined);
-
-        // it is fixable if we check for null and the type can't be undefined
-        return hasNullCheck && !hasUndefinedType;
-      })();
-
-      if (isFixable) {
-        context.report({
-          node,
-          message: messages.preferNullishOverTernary,
-          suggestions: () => {
-            const [left, right] =
-              operator === SyntaxKind.EqualsEqualsEqualsToken ||
-              operator === SyntaxKind.EqualsEqualsToken
-                ? [node.whenFalse, node.whenTrue]
-                : [node.whenTrue, node.whenFalse];
-            return [
-              {
-                message: messages.suggestNullish({ equals: "" }),
-                changes: [
-                  { node, newText: `${left.getText()} ?? ${right.getText()}` },
-                ],
+          if (isFixable) {
+            context.report({
+              node,
+              message: messages.preferNullishOverTernary,
+              suggestions: () => {
+                const [left, right] =
+                  operator === SyntaxKind.EqualsEqualsEqualsToken ||
+                  operator === SyntaxKind.EqualsEqualsToken
+                    ? [node.whenFalse, node.whenTrue]
+                    : [node.whenTrue, node.whenFalse];
+                return [
+                  {
+                    message: messages.suggestNullish({ equals: "" }),
+                    changes: [
+                      {
+                        node,
+                        newText: `${left.getText()} ?? ${right.getText()}`,
+                      },
+                    ],
+                  },
+                ];
               },
-            ];
-          },
-        });
-      }
-    },
+            });
+          }
+        },
+      },
+    };
   },
-});
+);
 
 function checkAssignmentOrLogicalExpression(
   node: AST.BinaryExpression,
   description: "assignment" | "or",
   equals: string,
   context: Context,
+  options: ParsedOptions,
 ): void {
   const type = context.checker.getTypeAtLocation(node.left);
   if (!typeHasFlag(type, TypeFlags.Null | TypeFlags.Undefined)) {
     return;
   }
 
-  if (context.options.ignoreConditionalTests && isConditionalTest(node)) {
+  if (options.ignoreConditionalTests && isConditionalTest(node)) {
     return;
   }
 
-  if (
-    context.options.ignoreMixedLogicalExpressions &&
-    isMixedLogicalExpression(node)
-  ) {
+  if (options.ignoreMixedLogicalExpressions && isMixedLogicalExpression(node)) {
     return;
   }
 
   let ignorableFlags = 0;
-  const ignorePrimitives = context.options.ignorePrimitives;
+  const ignorePrimitives = options.ignorePrimitives;
   if (ignorePrimitives.bigint) ignorableFlags |= TypeFlags.BigIntLike;
   if (ignorePrimitives.boolean) ignorableFlags |= TypeFlags.BooleanLike;
   if (ignorePrimitives.number) ignorableFlags |= TypeFlags.NumberLike;
@@ -521,7 +550,7 @@ const nullishTypeTest = <T>(
 
 export const test = () =>
   ruleTester({
-    rule: preferNullishCoalescing,
+    ruleFn: preferNullishCoalescing,
     valid: [
       ...types.map(
         (type) => `

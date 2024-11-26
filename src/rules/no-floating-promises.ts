@@ -2,7 +2,7 @@ import { unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
-import type { AST, Checker, Infer, Suggestion } from "../types.ts";
+import type { AST, Checker, Context, Suggestion } from "../types.ts";
 import { isLogicalExpression } from "./utils";
 import {
   getOperatorPrecedence,
@@ -33,89 +33,113 @@ const messages = {
   floatingVoid: messageBaseVoid,
 };
 
-type Context = Infer<typeof noFloatingPromises>["Context"];
+type ParsedOptions = {
+  allowList: string[];
+  ignoreIIFE: boolean;
+  ignoreVoid: boolean;
+};
 
-export const noFloatingPromises = createRule({
-  name: "no-floating-promises",
-  parseOptions: (options?: {
+export const noFloatingPromises = createRule(
+  (_options?: {
     allowList?: string[];
     ignoreIIFE?: boolean;
     ignoreVoid?: boolean;
-  }) => ({
-    allowList: [],
-    ignoreIIFE: false,
-    ignoreVoid: true,
-    ...options,
-  }),
-  visitor: {
-    ExpressionStatement(node, context) {
-      if (context.options.ignoreIIFE && isAsyncIife(node)) {
-        return;
-      }
+  }) => {
+    const options: ParsedOptions = {
+      allowList: [],
+      ignoreIIFE: false,
+      ignoreVoid: true,
+      ..._options,
+    };
 
-      if (
-        node.expression.kind === SyntaxKind.CallExpression &&
-        node.expression.expression.kind === SyntaxKind.Identifier &&
-        context.options.allowList.includes(node.expression.expression.text)
-      ) {
-        return;
-      }
+    return {
+      name: "core/noFloatingPromises",
+      visitor: {
+        ExpressionStatement(node, context) {
+          if (options.ignoreIIFE && isAsyncIife(node)) {
+            return;
+          }
 
-      const { isUnhandled, nonFunctionHandler, promiseArray } =
-        isUnhandledPromise(context.checker, node.expression, context);
+          if (
+            node.expression.kind === SyntaxKind.CallExpression &&
+            node.expression.expression.kind === SyntaxKind.Identifier &&
+            options.allowList.includes(node.expression.expression.text)
+          ) {
+            return;
+          }
 
-      if (isUnhandled) {
-        if (promiseArray) {
-          context.report({
-            node,
-            message: context.options.ignoreVoid
-              ? messages.floatingPromiseArrayVoid
-              : messages.floatingPromiseArray,
-          });
-        } else if (context.options.ignoreVoid) {
-          context.report({
-            node,
-            message: nonFunctionHandler
-              ? messages.floatingUselessRejectionHandlerVoid
-              : messages.floatingVoid,
-            suggestions: [
-              {
-                message: messages.floatingFixVoid,
-                changes: isHigherPrecedenceThanUnary(node.expression)
-                  ? [{ start: node.getStart(), length: 0, newText: "void " }]
-                  : [
-                      { start: node.getStart(), length: 0, newText: "void (" },
-                      {
-                        start: node.expression.getEnd(),
-                        length: 0,
-                        newText: ")",
-                      },
-                    ],
-              },
-              {
-                message: messages.floatingFixAwait,
-                changes: addAwait(node.expression, node),
-              },
-            ],
-          });
-        } else {
-          context.report({
-            node,
-            message: nonFunctionHandler
-              ? messages.floatingUselessRejectionHandler
-              : messages.floating,
-            suggestions: [
-              {
-                message: messages.floatingFixAwait,
-                changes: addAwait(node.expression, node),
-              },
-            ],
-          });
-        }
-      }
-    },
+          const { isUnhandled, nonFunctionHandler, promiseArray } =
+            isUnhandledPromise(
+              context.checker,
+              node.expression,
+              context,
+              options,
+            );
+
+          if (isUnhandled) {
+            if (promiseArray) {
+              context.report({
+                node,
+                message: options.ignoreVoid
+                  ? messages.floatingPromiseArrayVoid
+                  : messages.floatingPromiseArray,
+              });
+            } else if (options.ignoreVoid) {
+              context.report({
+                node,
+                message: nonFunctionHandler
+                  ? messages.floatingUselessRejectionHandlerVoid
+                  : messages.floatingVoid,
+                suggestions: [
+                  {
+                    message: messages.floatingFixVoid,
+                    changes: isHigherPrecedenceThanUnary(node.expression)
+                      ? [
+                          {
+                            start: node.getStart(),
+                            length: 0,
+                            newText: "void ",
+                          },
+                        ]
+                      : [
+                          {
+                            start: node.getStart(),
+                            length: 0,
+                            newText: "void (",
+                          },
+                          {
+                            start: node.expression.getEnd(),
+                            length: 0,
+                            newText: ")",
+                          },
+                        ],
+                  },
+                  {
+                    message: messages.floatingFixAwait,
+                    changes: addAwait(node.expression, node),
+                  },
+                ],
+              });
+            } else {
+              context.report({
+                node,
+                message: nonFunctionHandler
+                  ? messages.floatingUselessRejectionHandler
+                  : messages.floating,
+                suggestions: [
+                  {
+                    message: messages.floatingFixAwait,
+                    changes: addAwait(node.expression, node),
+                  },
+                ],
+              });
+            }
+          }
+        },
+      },
+    };
   },
-});
+);
 
 function addAwait(
   expression: AST.Expression,
@@ -168,6 +192,7 @@ function isUnhandledPromise(
   checker: Checker,
   node: AST.Expression,
   context: Context,
+  options: ParsedOptions,
 ): {
   isUnhandled: boolean;
   nonFunctionHandler?: boolean;
@@ -188,17 +213,17 @@ function isUnhandledPromise(
     // Any child in a comma expression could return a potentially unhandled
     // promise, so we check them all regardless of whether the final returned
     // value is promise-like.
-    const leftResult = isUnhandledPromise(checker, node.left, context);
+    const leftResult = isUnhandledPromise(checker, node.left, context, options);
     if (leftResult.isUnhandled) {
       return leftResult;
     }
-    return isUnhandledPromise(checker, node.right, context);
+    return isUnhandledPromise(checker, node.right, context, options);
   }
 
-  if (!context.options.ignoreVoid && node.kind === SyntaxKind.VoidExpression) {
+  if (!options.ignoreVoid && node.kind === SyntaxKind.VoidExpression) {
     // Similarly, a `void` expression always returns undefined, so we need to
     // see what's inside it without checking the type of the overall expression.
-    return isUnhandledPromise(checker, node.expression, context);
+    return isUnhandledPromise(checker, node.expression, context, options);
   }
 
   // Check the type. At this point it can't be unhandled if it isn't a promise
@@ -257,7 +282,12 @@ function isUnhandledPromise(
       const promiseFinallyObject =
         methodName === "finally" ? node.expression.expression : undefined;
       if (promiseFinallyObject) {
-        return isUnhandledPromise(checker, promiseFinallyObject, context);
+        return isUnhandledPromise(
+          checker,
+          promiseFinallyObject,
+          context,
+          options,
+        );
       }
     }
 
@@ -270,20 +300,21 @@ function isUnhandledPromise(
       checker,
       node.whenFalse,
       context,
+      options,
     );
     if (alternateResult.isUnhandled) {
       return alternateResult;
     }
-    return isUnhandledPromise(checker, node.whenTrue, context);
+    return isUnhandledPromise(checker, node.whenTrue, context, options);
   } else if (
     node.kind === SyntaxKind.BinaryExpression &&
     isLogicalExpression(node.operatorToken)
   ) {
-    const leftResult = isUnhandledPromise(checker, node.left, context);
+    const leftResult = isUnhandledPromise(checker, node.left, context, options);
     if (leftResult.isUnhandled) {
       return leftResult;
     }
-    return isUnhandledPromise(checker, node.right, context);
+    return isUnhandledPromise(checker, node.right, context, options);
   }
 
   // Anything else is unhandled.
@@ -327,7 +358,7 @@ function isPromiseLike(
 
 export const test = () =>
   ruleTester({
-    rule: noFloatingPromises,
+    ruleFn: noFloatingPromises,
     valid: [
       `
 async function test() {

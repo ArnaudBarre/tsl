@@ -1,13 +1,12 @@
-import type { AnyRule, Config, Rule } from "./types.ts";
+import type { Config, Rule } from "./types.ts";
 
 export const createRule = <
   Name extends string,
-  OptionsInput = undefined,
-  OptionsOutput = undefined,
-  Data = undefined,
+  F extends (...args: any[]) => Rule<Name, any>,
 >(
-  rule: Rule<Name, OptionsInput, OptionsOutput, Data>,
-) => rule;
+  fn: F,
+) => fn;
 
-export const defineConfig = <Rules extends AnyRule[]>(config: Config<Rules>) =>
-  config;
+export const defineConfig = <const BaseRuleName extends string>(
+  config: Config<BaseRuleName>,
+) => config;

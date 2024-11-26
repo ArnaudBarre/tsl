@@ -13,8 +13,8 @@ const messages = {
     "Remove unnecessary template expression.",
 };
 
-export const noUnnecessaryTemplateExpression = createRule({
-  name: "no-unnecessary-template-expression",
+export const noUnnecessaryTemplateExpression = createRule(() => ({
+  name: "core/noUnnecessaryTemplateExpression",
   visitor: {
     TemplateExpression(node, context) {
       if (node.parent.kind === SyntaxKind.TaggedTemplateExpression) {
@@ -88,7 +88,7 @@ export const noUnnecessaryTemplateExpression = createRule({
       }
     },
   },
-});
+}));
 
 function isUnderlyingTypeString(
   expression: AST.Expression,
@@ -113,7 +113,7 @@ function isUnderlyingTypeString(
 
 export const test = () =>
   ruleTester({
-    rule: noUnnecessaryTemplateExpression,
+    ruleFn: noUnnecessaryTemplateExpression,
     valid: [
       "const string = 'a';",
       "const string = `a`;",

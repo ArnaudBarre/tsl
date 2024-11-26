@@ -66,43 +66,44 @@ type Options = {
   /** Whether to allow `regexp` typed values in template expressions. Defaults to `false`. */
   allowRegExp?: boolean;
 };
-export const restrictTemplateExpressions = createRule({
-  name: "restrict-template-expressions",
-  parseOptions: (options?: Options) => ({
+export const restrictTemplateExpressions = createRule((_options?: Options) => {
+  const options = {
     allow: ["Error", "URL", "URLSearchParams"],
     allowAny: false,
     allowBoolean: true,
     allowNullish: false,
     allowNumber: true,
     allowRegExp: false,
-    ...options,
-  }),
-  visitor: ({ allow, ...options }) => {
-    const enabledOptionTesters = optionTesters.filter(
-      ({ option }) => options[option],
-    );
+    ..._options,
+  };
 
-    function recursivelyCheckType(
-      innerType: Type,
-      context: Context<Options>,
-    ): boolean {
-      if (innerType.isUnion()) {
-        return innerType.types.every((t) => recursivelyCheckType(t, context));
-      }
+  const enabledOptionTesters = optionTesters.filter(
+    ({ option }) => options[option],
+  );
 
-      if (innerType.isIntersection()) {
-        return innerType.types.some((t) => recursivelyCheckType(t, context));
-      }
-
-      return (
-        typeHasFlag(innerType, TypeFlags.StringLike) ||
-        enabledOptionTesters.some(({ tester }) =>
-          tester(innerType, context, recursivelyCheckType),
-        )
-      );
+  function recursivelyCheckType(
+    innerType: Type,
+    context: Context<Options>,
+  ): boolean {
+    if (innerType.isUnion()) {
+      return innerType.types.every((t) => recursivelyCheckType(t, context));
     }
 
-    return {
+    if (innerType.isIntersection()) {
+      return innerType.types.some((t) => recursivelyCheckType(t, context));
+    }
+
+    return (
+      typeHasFlag(innerType, TypeFlags.StringLike) ||
+      enabledOptionTesters.some(({ tester }) =>
+        tester(innerType, context, recursivelyCheckType),
+      )
+    );
+  }
+
+  return {
+    name: "core/restrictTemplateExpressions",
+    visitor: {
       TemplateExpression(node, context) {
         // don't check tagged template literals
         if (node.parent.kind === SyntaxKind.TaggedTemplateExpression) {
@@ -115,7 +116,7 @@ export const restrictTemplateExpressions = createRule({
             span.expression.kind === SyntaxKind.CallExpression
               ? span.expression.expression
               : span.expression;
-          if (context.options.allow.includes(identifier.getText())) {
+          if (options.allow.includes(identifier.getText())) {
             return;
           }
 
@@ -133,13 +134,13 @@ export const restrictTemplateExpressions = createRule({
           }
         }
       },
-    };
-  },
+    },
+  };
 });
 
 export const test = () =>
   ruleTester({
-    rule: restrictTemplateExpressions,
+    ruleFn: restrictTemplateExpressions,
     valid: [
       // Base case
       `

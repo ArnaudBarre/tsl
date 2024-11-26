@@ -9,45 +9,44 @@ const messages = {
   removeVoid: "Remove 'void'",
 };
 
-export const noMeaninglessVoidOperator = createRule({
-  name: "no-meaningless-void-operator",
-  parseOptions: (options?: { checkNever: boolean }) => ({
-    checkNever: options?.checkNever ?? false,
-  }),
-  visitor: {
-    VoidExpression(node, context) {
-      const argType = context.checker.getTypeAtLocation(node.expression);
-      const unionParts = unionTypeParts(argType);
-      const checkFlags = context.options.checkNever
-        ? ts.TypeFlags.Void | ts.TypeFlags.Undefined | ts.TypeFlags.Never
-        : ts.TypeFlags.Void | ts.TypeFlags.Undefined;
-      if (unionParts.every((part) => part.flags & checkFlags)) {
-        context.report({
-          node,
-          message: messages.meaninglessVoidOperator({
-            type: context.checker.typeToString(argType),
-          }),
-          suggestions: [
-            {
-              message: messages.removeVoid,
-              changes: [
-                {
-                  start: node.getStart(),
-                  end: node.expression.getStart(),
-                  newText: "",
-                },
-              ],
-            },
-          ],
-        });
-      }
+export const noMeaninglessVoidOperator = createRule(
+  (options?: { checkNever: boolean }) => ({
+    name: "core/noMeaninglessVoidOperator",
+    visitor: {
+      VoidExpression(node, context) {
+        const argType = context.checker.getTypeAtLocation(node.expression);
+        const unionParts = unionTypeParts(argType);
+        const checkFlags = options?.checkNever
+          ? ts.TypeFlags.Void | ts.TypeFlags.Undefined | ts.TypeFlags.Never
+          : ts.TypeFlags.Void | ts.TypeFlags.Undefined;
+        if (unionParts.every((part) => part.flags & checkFlags)) {
+          context.report({
+            node,
+            message: messages.meaninglessVoidOperator({
+              type: context.checker.typeToString(argType),
+            }),
+            suggestions: [
+              {
+                message: messages.removeVoid,
+                changes: [
+                  {
+                    start: node.getStart(),
+                    end: node.expression.getStart(),
+                    newText: "",
+                  },
+                ],
+              },
+            ],
+          });
+        }
+      },
     },
-  },
-});
+  }),
+);
 
 export const test = () =>
   ruleTester({
-    rule: noMeaninglessVoidOperator,
+    ruleFn: noMeaninglessVoidOperator,
     valid: [
       `
 (() => {})();

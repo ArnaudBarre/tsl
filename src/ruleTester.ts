@@ -6,7 +6,6 @@ import type {
   AST,
   Checker,
   Context,
-  Infer,
   ReportDescriptor,
   Rule,
 } from "./types.ts";
@@ -60,10 +59,10 @@ const transform = (value: unknown): unknown => {
 const isNode = (value: object): value is AST.AnyNode =>
   "kind" in value && typeof value.kind === "number";
 
-type CaseProps<TRule extends Rule> = {
+type CaseProps<RuleFn extends (options?: unknown) => Rule> = {
   tsx?: boolean;
   compilerOptions?: ts.CompilerOptions;
-  options?: Infer<TRule>["OptionsInput"];
+  options?: Parameters<RuleFn>[0];
   code: string;
 };
 type ErrorReport = {
@@ -74,11 +73,11 @@ type ErrorReport = {
   endColumn?: number;
   suggestions?: { message: string; output?: string }[];
 };
-type SetupCase<TRule extends Rule> = {
+type SetupCase<TRule extends (options?: unknown) => Rule> = {
   compilerOptionsKey: string;
-  filename: string;
+  fileName: string;
   code: string;
-  options?: Infer<TRule>["OptionsInput"];
+  options?: Parameters<TRule>[0];
   isValid: boolean;
   index: number;
   errors: ErrorReport[] | null;
@@ -100,48 +99,51 @@ const defaultCompilerOptions = {
 const typeFocus = process.argv[3];
 const indexFocus = process.argv[4];
 
-export type ValidTestCase<TRule extends AnyRule> = CaseProps<TRule> | string;
-export type InvalidTestCase<TRule extends AnyRule> = CaseProps<TRule> & {
-  error?: string;
-  errors?: (
-    | {
-        message: string;
-        line?: number;
-        column?: number;
-        endColumn?: number;
-        endLine?: number;
-        suggestions?: { message: string; output: string }[];
-      }
-    | [message: string, line?: number, column?: number]
-  )[];
-};
-export const ruleTester = <TRule extends AnyRule>({
-  rule,
+export type ValidTestCase<TRule extends (options?: unknown) => Rule> =
+  | CaseProps<TRule>
+  | string;
+export type InvalidTestCase<TRule extends (options?: unknown) => Rule> =
+  CaseProps<TRule> & {
+    error?: string;
+    errors?: (
+      | {
+          message: string;
+          line?: number;
+          column?: number;
+          endColumn?: number;
+          endLine?: number;
+          suggestions?: { message: string; output: string }[];
+        }
+      | [message: string, line?: number, column?: number]
+    )[];
+  };
+export const ruleTester = <RuleFn extends (options?: any) => AnyRule>({
+  ruleFn,
   tsx,
   valid,
   invalid,
 }: {
-  rule: TRule;
+  ruleFn: RuleFn;
   tsx?: boolean;
-  valid: ValidTestCase<TRule>[];
-  invalid: InvalidTestCase<TRule>[];
+  valid: ValidTestCase<RuleFn>[];
+  invalid: InvalidTestCase<RuleFn>[];
 }): boolean => {
   let hasError = false;
   const compilerOptionsToFiles = new Map<string, string[]>();
   const filesMap = new Map<string, string>();
-  const cases: SetupCase<TRule>[] = [];
+  const cases: SetupCase<RuleFn>[] = [];
 
   const setupCase = (
-    caseProps: CaseProps<TRule>,
+    caseProps: CaseProps<RuleFn>,
     isValid: boolean,
     index: number,
     errors: ErrorReport[] | null,
   ) => {
     const useTSX = tsx ? caseProps.tsx !== false : caseProps.tsx === true;
-    const filename = `${rule.name}/${isValid ? "valid" : "invalid"}-${index}.${
+    const fileName = `${isValid ? "valid" : "invalid"}-${index}.${
       useTSX ? "tsx" : "ts"
     }`;
-    filesMap.set(filename, caseProps.code);
+    filesMap.set(fileName, caseProps.code);
     const compilerOptionsInput =
       caseProps.compilerOptions || useTSX
         ? {
@@ -157,10 +159,10 @@ export const ruleTester = <TRule extends AnyRule>({
     const compilerOptionsKey = JSON.stringify(compilerOptionsInput);
     const current = compilerOptionsToFiles.get(compilerOptionsKey);
     if (current) {
-      current.push(filename);
+      current.push(fileName);
     } else {
       compilerOptionsToFiles.set(compilerOptionsKey, [
-        filename,
+        fileName,
         ...compilerOptionsInput.lib.map(
           (lib) => `node_modules/typescript/lib/lib.${lib}.d.ts`,
         ),
@@ -168,7 +170,7 @@ export const ruleTester = <TRule extends AnyRule>({
     }
     cases.push({
       compilerOptionsKey,
-      filename,
+      fileName,
       code: caseProps.code,
       options: caseProps.options,
       isValid,
@@ -177,7 +179,7 @@ export const ruleTester = <TRule extends AnyRule>({
     });
   };
 
-  console.log(rule.name);
+  console.log(ruleFn().name);
   for (const [index, _validCase] of valid.entries()) {
     if (typeFocus && typeFocus !== "valid") continue;
     if (indexFocus && indexFocus !== index.toString()) continue;
@@ -258,14 +260,12 @@ export const ruleTester = <TRule extends AnyRule>({
   }
 
   for (const caseProps of cases) {
-    const options = rule.parseOptions?.(caseProps.options);
+    const rule = ruleFn(caseProps.options);
     const program = compilerOptionsToProgram.get(caseProps.compilerOptionsKey)!;
     const compilerOptions = program.getCompilerOptions();
-    const visitor =
-      typeof rule.visitor === "function" ? rule.visitor(options) : rule.visitor;
     const reports: ReportDescriptor[] = [];
     const sourceFile = program.getSourceFile(
-      caseProps.filename,
+      caseProps.fileName,
     ) as unknown as SourceFile;
     const context: Context = {
       sourceFile,
@@ -281,19 +281,21 @@ export const ruleTester = <TRule extends AnyRule>({
       report(descriptor) {
         reports.push(descriptor);
       },
-      options,
       data: undefined,
     };
     if (rule.createData) context.data = rule.createData(context);
     const visit = (node: AST.AnyNode) => {
       const nodeType = visitorEntries.find((e) => e[0] === node.kind)?.[1];
       if (nodeType) {
-        visitor[nodeType]?.(node as any, context);
+        rule.visitor[nodeType]?.(node as any, context);
       }
       // @ts-expect-error
       node.forEachChild(visit);
       if (nodeType) {
-        visitor[`${nodeType}:exit` as keyof Visitor]?.(node as any, context);
+        rule.visitor[`${nodeType}:exit` as keyof Visitor]?.(
+          node as any,
+          context,
+        );
       }
     };
     visit(sourceFile);
@@ -332,7 +334,7 @@ export const ruleTester = <TRule extends AnyRule>({
               hasError = true;
               introLogged = true;
             }
-            /* type-lint-ignore restrict-template-expressions */
+            /* type-lint-ignore core/restrictTemplateExpressions */
             console.log(
               `  #${i}${prefix}: Expected: ${expected}
            ${" ".repeat(prefix.length)}Got: ${got}`,
@@ -449,5 +451,6 @@ export const ruleTester = <TRule extends AnyRule>({
       }
     }
   }
+
   return hasError;
 };

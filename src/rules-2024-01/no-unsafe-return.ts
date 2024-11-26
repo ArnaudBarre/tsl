@@ -18,8 +18,8 @@ const messages = {
     `Unsafe return of type \`${params.sender}\` from function with return type \`${params.receiver}\`.`,
 };
 
-export const noUnsafeReturn = createRule({
-  name: "no-unsafe-return",
+export const noUnsafeReturn = createRule(() => ({
+  name: "core/noUnsafeReturn",
   visitor: {
     ReturnStatement(node, context) {
       const argument = node.expression;
@@ -32,7 +32,7 @@ export const noUnsafeReturn = createRule({
       }
     },
   },
-});
+}));
 
 function checkReturn(
   returnNode: AST.Expression,
@@ -142,7 +142,7 @@ export function isAnyOrAnyArrayTypeDiscriminated(
 
 export const test = () =>
   ruleTester({
-    rule: noUnsafeReturn,
+    ruleFn: noUnsafeReturn,
     valid: [
       `
 function foo() {

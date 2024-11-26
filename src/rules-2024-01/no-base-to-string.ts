@@ -15,8 +15,8 @@ enum Usefulness {
   Never = "will",
   Sometimes = "may",
 }
-export const noBaseToString = createRule({
-  name: "no-base-to-string",
+export const noBaseToString = createRule(() => ({
+  name: "core/noBaseToString",
   visitor: {
     CallExpression(node, context) {
       if (
@@ -39,7 +39,7 @@ export const noBaseToString = createRule({
       }
     },
   },
-});
+}));
 
 function collectToStringCertainty(type: ts.Type, context: Context): Usefulness {
   const toString = context.checker.getPropertyOfType(type, "toString");
@@ -135,7 +135,7 @@ const literalListWrapped = [
 
 export const test = () =>
   ruleTester({
-    rule: noBaseToString,
+    ruleFn: noBaseToString,
     valid: [
       // template
       ...literalList.map((i) => `\`\${${i}}\`;`),

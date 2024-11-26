@@ -12,47 +12,28 @@ import type * as AST from "./ast.ts";
 import type { ContextUtils } from "./getContextUtils.ts";
 export type { AST };
 
-export type Config<Rules extends AnyRule[]> = {
-  rules: Rules;
+export type Config<BaseRuleName extends string> = {
+  rules: (Rule<BaseRuleName, any> | Promise<Rule<BaseRuleName, any>[]>)[];
   ignore?: string[];
-  options?: {
-    [Rule in Rules[number] as Rule["name"]]?: Rule["parseOptions"] extends
-      | ((input: any) => any)
-      | undefined
-      ? Parameters<NonNullable<Rule["parseOptions"]>>[0] | "off"
-      : "off";
-  };
+  overrides?: {
+    files: string[];
+    disabled?: NoInfer<BaseRuleName>[];
+    rules?: AnyRule[];
+  }[];
 };
 
-export type AnyRule = Rule<string, any, any, any>;
-export type UnknownRule = Rule<string, unknown, unknown, unknown>;
-export type Rule<
-  Name extends string = string,
-  OptionsInput = undefined,
-  OptionsOutput = undefined,
-  Data = undefined,
-> = {
+export type AnyRule = Rule<string, any>;
+export type UnknownRule = Rule<string, unknown>;
+export type Rule<Name extends string = string, Data = undefined> = {
   name: Name;
-  parseOptions?: (input?: OptionsInput) => OptionsOutput;
-  createData?: (context: Omit<Context<OptionsOutput>, "data">) => Data;
-  visitor:
-    | ((options: OptionsOutput) => AST.Visitor<OptionsOutput, Data>)
-    | AST.Visitor<OptionsOutput, Data>;
+  createData?: (context: Omit<Context, "data">) => Data;
+  visitor: AST.Visitor<Data>;
 };
 
-export type Infer<TRule> = TRule extends Rule<
-  string,
-  infer OptionsInput,
-  infer OptionsOutput,
-  infer Data
->
-  ? {
-      OptionsInput: OptionsInput;
-      OptionsOutput: OptionsOutput;
-      Data: Data;
-      Context: Context<OptionsOutput, Data>;
-    }
-  : never;
+export type Infer<CreateData extends (context: Omit<Context, "data">) => any> =
+  CreateData extends (context: Omit<Context, "data">) => infer Data
+    ? { Data: Data; Context: Context<Data>; Visitor: AST.Visitor<Data> }
+    : never;
 
 export type Checker = Omit<
   TypeChecker,
@@ -118,7 +99,7 @@ export type ReportDescriptor = (
   message: string;
   suggestions?: Suggestion[] | (() => Suggestion[]);
 };
-export type Context<OptionsOutput = undefined, Data = undefined> = {
+export type Context<Data = undefined> = {
   sourceFile: AST.SourceFile;
   program: Program;
   checker: Checker;
@@ -126,6 +107,5 @@ export type Context<OptionsOutput = undefined, Data = undefined> = {
   compilerOptions: CompilerOptions;
   utils: ContextUtils;
   report(descriptor: ReportDescriptor): void;
-  options: OptionsOutput;
   data: Data;
 };

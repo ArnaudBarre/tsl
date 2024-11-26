@@ -10,8 +10,8 @@ const messages = {
   fix: "Replace with a type parameter.",
 };
 
-export const preferReduceTypeParameter = createRule({
-  name: "prefer-reduce-type-parameter",
+export const preferReduceTypeParameter = createRule(() => ({
+  name: "core/preferReduceTypeParameter",
   visitor: {
     CallExpression(node, context) {
       const callee = node.expression;
@@ -61,7 +61,7 @@ export const preferReduceTypeParameter = createRule({
       });
     },
   },
-});
+}));
 
 function isArrayType(type: ts.Type, context: Context): boolean {
   return unionTypeParts(type).every((unionPart) =>
@@ -73,7 +73,7 @@ function isArrayType(type: ts.Type, context: Context): boolean {
 
 export const test = () =>
   ruleTester({
-    rule: preferReduceTypeParameter,
+    ruleFn: preferReduceTypeParameter,
     valid: [
       `
       new (class Mine {

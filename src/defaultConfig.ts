@@ -1,5 +1,5 @@
-import type { Config, UnknownRule } from "./types.ts";
+import type { Config } from "./types.ts";
 
-export const defaultConfig: Config<UnknownRule[]> = {
+export const defaultConfig: Config<string> = {
   rules: [],
 };

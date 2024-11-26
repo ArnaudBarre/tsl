@@ -2,7 +2,7 @@ import { isTypeFlagSet } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
-import type { AST, Infer } from "../types.ts";
+import type { AST, Context } from "../types.ts";
 
 const messages = {
   direct:
@@ -17,8 +17,6 @@ const messages = {
     "This expression unnecessarily compares a nullable boolean value to false instead of using the ?? operator to provide a default.",
 };
 
-type Context = Infer<typeof noUnnecessaryBooleanLiteralCompare>["Context"];
-
 interface BooleanComparison {
   expression: AST.Expression;
   literalBooleanInComparison: boolean;
@@ -28,53 +26,57 @@ interface BooleanComparison {
 interface BooleanComparisonWithTypeInformation extends BooleanComparison {
   expressionIsNullableBoolean: boolean;
 }
-export const noUnnecessaryBooleanLiteralCompare = createRule({
-  name: "no-unnecessary-boolean-literal-compare",
-  parseOptions: (options?: {
+export const noUnnecessaryBooleanLiteralCompare = createRule(
+  (_options?: {
     allowComparingNullableBooleansToTrue?: boolean;
     allowComparingNullableBooleansToFalse?: boolean;
-  }) => ({
-    allowComparingNullableBooleansToTrue: true,
-    allowComparingNullableBooleansToFalse: true,
-    ...options,
-  }),
-  visitor: {
-    BinaryExpression(node, context) {
-      const comparison = getBooleanComparison(node, context);
-      if (comparison === undefined) {
-        return;
-      }
+  }) => {
+    const options = {
+      allowComparingNullableBooleansToTrue: true,
+      allowComparingNullableBooleansToFalse: true,
+      ..._options,
+    };
+    return {
+      name: "core/noUnnecessaryBooleanLiteralCompare",
+      visitor: {
+        BinaryExpression(node, context) {
+          const comparison = getBooleanComparison(node, context);
+          if (comparison === undefined) {
+            return;
+          }
 
-      if (comparison.expressionIsNullableBoolean) {
-        if (
-          comparison.literalBooleanInComparison &&
-          context.options.allowComparingNullableBooleansToTrue
-        ) {
-          return;
-        }
-        if (
-          !comparison.literalBooleanInComparison &&
-          context.options.allowComparingNullableBooleansToFalse
-        ) {
-          return;
-        }
-      }
+          if (comparison.expressionIsNullableBoolean) {
+            if (
+              comparison.literalBooleanInComparison &&
+              options.allowComparingNullableBooleansToTrue
+            ) {
+              return;
+            }
+            if (
+              !comparison.literalBooleanInComparison &&
+              options.allowComparingNullableBooleansToFalse
+            ) {
+              return;
+            }
+          }
 
-      context.report({
-        message: comparison.expressionIsNullableBoolean
-          ? comparison.literalBooleanInComparison
-            ? comparison.negated
-              ? messages.comparingNullableToTrueNegated
-              : messages.comparingNullableToTrueDirect
-            : messages.comparingNullableToFalse
-          : comparison.negated
-          ? messages.negated
-          : messages.direct,
-        node,
-      });
-    },
+          context.report({
+            message: comparison.expressionIsNullableBoolean
+              ? comparison.literalBooleanInComparison
+                ? comparison.negated
+                  ? messages.comparingNullableToTrueNegated
+                  : messages.comparingNullableToTrueDirect
+                : messages.comparingNullableToFalse
+              : comparison.negated
+              ? messages.negated
+              : messages.direct,
+            node,
+          });
+        },
+      },
+    };
   },
-});
+);
 
 function getBooleanComparison(
   node: AST.BinaryExpression,
@@ -199,7 +201,7 @@ function getEqualsKind(
 
 export const test = () =>
   ruleTester({
-    rule: noUnnecessaryBooleanLiteralCompare,
+    ruleFn: noUnnecessaryBooleanLiteralCompare,
     valid: [
       `
       declare const varAny: any;

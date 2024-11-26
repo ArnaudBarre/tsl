@@ -24,8 +24,8 @@ type ComparisonType =
   /** Use the sender's contextual type for comparison */
   | "Contextual";
 
-export const noUnsafeAssignment = createRule({
-  name: "no-unsafe-assignment",
+export const noUnsafeAssignment = createRule(() => ({
+  name: "core/noUnsafeAssignment",
   visitor: {
     VariableDeclaration(node, context) {
       if (!node.initializer) return;
@@ -132,7 +132,7 @@ export const noUnsafeAssignment = createRule({
       );
     },
   },
-});
+}));
 
 // returns true if the assignment reported
 function checkArrayDestructureHelper(
@@ -451,7 +451,7 @@ function assignmentTest(tests: [string, number, number, boolean?][]) {
 }
 export const test = () =>
   ruleTester({
-    rule: noUnsafeAssignment,
+    ruleFn: noUnsafeAssignment,
     valid: [
       "const x = 1;",
       "const x: number = 1;",

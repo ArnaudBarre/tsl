@@ -12,8 +12,8 @@ const messages = {
   fix: "Fix",
 };
 
-export const nonNullableTypeAssertionStyle = createRule({
-  name: "non-nullable-type-assertion-style",
+export const nonNullableTypeAssertionStyle = createRule(() => ({
+  name: "core/nonNullableTypeAssertionStyle",
   visitor: {
     AsExpression(node, context) {
       if (isConstAssertion(node.type)) return;
@@ -23,7 +23,7 @@ export const nonNullableTypeAssertionStyle = createRule({
       checkAssertion(node, context);
     },
   },
-});
+}));
 
 const checkAssertion = (
   node: AST.AsExpression | AST.TypeAssertion,
@@ -83,7 +83,7 @@ const checkAssertion = (
 
 export const test = () =>
   ruleTester({
-    rule: nonNullableTypeAssertionStyle,
+    ruleFn: nonNullableTypeAssertionStyle,
     valid: [
       `
 declare const original: number | string;

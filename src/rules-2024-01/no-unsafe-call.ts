@@ -10,8 +10,8 @@ const messages = {
   unsafeTemplateTag: "Unsafe any typed template tag.",
 };
 
-export const noUnsafeCall = createRule({
-  name: "no-unsafe-call",
+export const noUnsafeCall = createRule(() => ({
+  name: "core/noUnsafeCall",
   visitor: {
     CallExpression(node, context) {
       if (node.expression.kind === SyntaxKind.ImportKeyword) return;
@@ -24,7 +24,7 @@ export const noUnsafeCall = createRule({
       checkCall(node.tag, node, messages.unsafeTemplateTag, context);
     },
   },
-});
+}));
 
 function checkCall(
   node: AST.AnyNode,
@@ -40,7 +40,7 @@ function checkCall(
 
 export const test = () =>
   ruleTester({
-    rule: noUnsafeCall,
+    ruleFn: noUnsafeCall,
     valid: [
       `
 function foo(x: () => void) {

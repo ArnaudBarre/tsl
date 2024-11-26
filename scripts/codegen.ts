@@ -67,7 +67,7 @@ const outputParts: (
   | { name: string; kind: string; members?: ts.TypeElement[] }
 )[] = [
   "/** Generated **/",
-  "/* type-lint-ignore no-redundant-type-constituents */",
+  "/* type-lint-ignore core/noRedundantTypeConstituents */",
   `import type { ${importedTypes.join(", ")} } from "typescript";`,
   'import type { Context } from "./types.ts";',
   "",
@@ -406,11 +406,11 @@ for (const enumWithLotOfParents of [
 }
 
 outputParts.push(`
-export type Visitor<OptionsOutput = undefined, Data = undefined> = {
+export type Visitor<Data = undefined> = {
 ${visitorNodes
   .flatMap((n) => [
-    `  ${n.kind}?(node: ${n.node}, context: Context<OptionsOutput, Data>): void`,
-    `  "${n.kind}:exit"?(node: ${n.node}, context: Context<OptionsOutput, Data>): void`,
+    `  ${n.kind}?(node: ${n.node}, context: Context<Data>): void`,
+    `  "${n.kind}:exit"?(node: ${n.node}, context: Context<Data>): void`,
   ])
   .join("\n")}
 };`);

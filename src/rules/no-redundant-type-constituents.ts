@@ -12,8 +12,8 @@ const messages = {
     `${params.type} is assignable to ${params.assignableTo} and can be removed.`,
 };
 
-export const noRedundantTypeConstituents = createRule({
-  name: "no-redundant-type-constituents",
+export const noRedundantTypeConstituents = createRule(() => ({
+  name: "core/noRedundantTypeConstituents",
   visitor: {
     IntersectionType(node, context): void {
       if (
@@ -105,7 +105,7 @@ export const noRedundantTypeConstituents = createRule({
       }
     },
   },
-});
+}));
 
 const flattenUnion = (node: AST.UnionTypeNode): TypeNode[] =>
   node.types.flatMap((n) =>
@@ -149,7 +149,7 @@ const reportIntersection = (
 
 export const test = () =>
   ruleTester({
-    rule: noRedundantTypeConstituents,
+    ruleFn: noRedundantTypeConstituents,
     valid: [
       `
       type T = 1 | 2;

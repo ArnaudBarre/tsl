@@ -18,8 +18,8 @@ const messages = {
   removeAwait: "Remove unnecessary `await`.",
 };
 
-export const awaitThenable = createRule({
-  name: "await-thenable",
+export const awaitThenable = createRule(() => ({
+  name: "core/awaitThenable",
   visitor: {
     AwaitExpression(node, context) {
       const type = context.checker.getTypeAtLocation(node.expression);
@@ -113,11 +113,11 @@ export const awaitThenable = createRule({
       }
     },
   },
-});
+}));
 
 export const test = () =>
   ruleTester({
-    rule: awaitThenable,
+    ruleFn: awaitThenable,
     valid: [
       `
 async function test() {
