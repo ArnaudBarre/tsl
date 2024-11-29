@@ -59,6 +59,18 @@ export const noUnnecessaryTemplateExpression = createRule(() => ({
         ) {
           // Skip if contains a comment
           if (span.literal.getLeadingTriviaWidth()) continue;
+
+          if (
+            span.expression.kind === SyntaxKind.StringLiteral &&
+            isWhitespace(span.expression.text) &&
+            startsWithNewLine(span.literal.text)
+          ) {
+            // Allow making trailing whitespace visible
+            // `Head:${'    '}
+            // `
+            continue;
+          }
+
           context.report({
             node: span,
             message: messages.unnecessaryTemplateExpression,
@@ -109,6 +121,22 @@ function isUnderlyingTypeString(
   }
 
   return isString(type);
+}
+
+function isWhitespace(x: string): boolean {
+  // allow empty string too since we went to allow
+  // `      ${''}
+  // `;
+  //
+  // in addition to
+  // `${'        '}
+  // `;
+  //
+  return /^\s*$/.test(x);
+}
+
+function startsWithNewLine(x: string): boolean {
+  return x.startsWith("\n") || x.startsWith("\r\n");
 }
 
 export const test = () =>
@@ -208,6 +236,18 @@ export const test = () =>
       \`with windows \r new line\`;
     `,
       "`24 * ${7 /* days in week */}`",
+      `
+      \`
+      this code has trailing whitespace: \${'    '}
+      \`;
+    `,
+      `
+      \`this code has trailing whitespace with a windows \\\r new line: \${' '}\r\n\`;
+    `,
+      `
+      \`trailing position interpolated empty string also makes whitespace clear    \${''}
+      \`;
+    `,
     ],
     invalid: [
       {
