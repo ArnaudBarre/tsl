@@ -3,11 +3,7 @@ import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Checker, Context, Suggestion } from "../types.ts";
-import { isLogicalExpression } from "./utils";
-import {
-  getOperatorPrecedence,
-  OperatorPrecedence,
-} from "./utils/getOperatorPrecedence.ts";
+import { isHigherPrecedenceThanUnary, isLogicalExpression } from "./utils";
 import { isBuiltinSymbolLike } from "./utils/isBuiltinSymbolLike.ts";
 
 const messageBase =
@@ -155,14 +151,6 @@ function addAwait(
     { start: node.getStart(), length: 0, newText: "await (" },
     { start: node.expression.getEnd(), length: 0, newText: ")" },
   ];
-}
-
-function isHigherPrecedenceThanUnary(node: AST.AnyNode): boolean {
-  const operator =
-    node.kind === SyntaxKind.BinaryExpression
-      ? node.operatorToken.kind
-      : SyntaxKind.Unknown;
-  return getOperatorPrecedence(node.kind, operator) > OperatorPrecedence.Unary;
 }
 
 function isAsyncIife(node: AST.ExpressionStatement): boolean {

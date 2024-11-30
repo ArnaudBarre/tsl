@@ -2,6 +2,10 @@ import { intersectionTypeParts, unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import type { AnyNode, BinaryOperatorToken } from "../../ast.ts";
 import type { AST, Checker, Context } from "../../types.ts";
+import {
+  getOperatorPrecedence,
+  OperatorPrecedence,
+} from "./getOperatorPrecedence.ts";
 
 export const run = <T>(cb: () => T) => cb();
 
@@ -273,4 +277,12 @@ export function isReferenceToGlobalFunction(
   return symbol.declarations.some(
     (decl) => decl.getSourceFile().isDeclarationFile,
   );
+}
+
+export function isHigherPrecedenceThanUnary(node: AST.AnyNode): boolean {
+  const operator =
+    node.kind === SyntaxKind.BinaryExpression
+      ? node.operatorToken.kind
+      : SyntaxKind.Unknown;
+  return getOperatorPrecedence(node.kind, operator) > OperatorPrecedence.Unary;
 }

@@ -60,3 +60,4 @@
 - `no-unnecessary-condition` & `non-nullable-type-assertion-style` were re-implemented from scratch using `isTypeAssignableTo`
 - `no-unsafe-unary-minus` is using `import * as util`
 - `prefer-find`: Nobody writes code like `arr['filter']?.(-0.2n)`, why are you doing this to yourself?
+- `return-await` duplicate work from `await-thenable`

@@ -25,6 +25,7 @@ import { preferReturnThisType } from "./src/rules/prefer-return-this-type.ts";
 import { preferStringStartsEndsWith } from "./src/rules/prefer-string-starts-ends-with.ts";
 import { restrictPlusOperands } from "./src/rules/restrict-plus-operands.ts";
 import { restrictTemplateExpressions } from "./src/rules/restrict-template-expressions.ts";
+import { returnAwait } from "./src/rules/return-await.ts";
 
 export default defineConfig({
   rules: [
@@ -56,5 +57,6 @@ export default defineConfig({
     preferStringStartsEndsWith(),
     restrictPlusOperands(),
     restrictTemplateExpressions(),
+    returnAwait(),
   ],
 });

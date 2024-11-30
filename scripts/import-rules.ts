@@ -6,13 +6,13 @@ import traverse from "@babel/traverse";
 import type {
   BlockStatement,
   Expression,
-  Identifier,
   MemberExpression,
   ObjectExpression,
   ObjectMethod,
   ObjectProperty,
   PatternLike,
   SpreadElement,
+  Statement,
   TSType,
 } from "@babel/types";
 import { format } from "prettier";
@@ -72,7 +72,7 @@ const allTypedRules = {
   "require-await": "type information to handle async generators, which is a niche case",
   "restrict-plus-operands": true, // stricter defaults, always lint assignment
   "restrict-template-expressions": true,
-  "return-await": true,
+  "return-await": true, // only support always, remove unneeded await handled by await-thenable
   "strict-boolean-expressions": true,
   "switch-exhaustiveness-check": true,
   "unbound-method": "OOP edge cases are out of core",
@@ -307,33 +307,35 @@ for (const rule of rulesToImport) {
       const nameProp = getObjectValue(params, "name")!;
       assert(nameProp.value.type === "StringLiteral");
       exportName = kebabCaseToCamelCase(nameProp.value.value);
+      nameProp.value.value = `core/${exportName}`;
       const createProp = params.properties.find(
         (p): p is ObjectMethod =>
           p.type === "ObjectMethod" &&
           p.key.type === "Identifier" &&
           p.key.name === "create",
       )!;
+      const returnStatements: ObjectExpression[] = [];
       for (const s of createProp.body.body) {
         if (s.type === "ReturnStatement") {
-          if (s.argument!.type === "ObjectExpression") {
-            for (const p of s.argument.properties) {
-              if (p.type === "ObjectMethod") {
-                if (p.returnType) p.returnType = null;
-                p.params = [
-                  {
-                    type: "Identifier",
-                    name: p.params.length === 0 ? "_" : "node",
-                  },
-                  { type: "Identifier", name: "context" },
-                ];
-                if (
-                  p.key.type === "StringLiteral" &&
-                  p.key.value.endsWith(":exit")
-                ) {
-                  const nodeName = p.key.value.slice(0, -5);
-                  if (nodeName in estreeToTSTree)
-                    p.key.value = `${estreeToTSTree[nodeName]!}:exit`;
-                }
+          assert(s.argument!.type === "ObjectExpression");
+          returnStatements.push(s.argument);
+          for (const p of s.argument.properties) {
+            if (p.type === "ObjectMethod") {
+              if (p.returnType) p.returnType = null;
+              p.params = [
+                {
+                  type: "Identifier",
+                  name: p.params.length === 0 ? "_" : "node",
+                },
+                { type: "Identifier", name: "context" },
+              ];
+              if (
+                p.key.type === "StringLiteral" &&
+                p.key.value.endsWith(":exit")
+              ) {
+                const nodeName = p.key.value.slice(0, -5);
+                if (nodeName in estreeToTSTree)
+                  p.key.value = `${estreeToTSTree[nodeName]!}:exit`;
               }
             }
           }
@@ -344,20 +346,19 @@ for (const rule of rulesToImport) {
         shorthand: false,
         computed: false,
         key: { type: "Identifier", name: "visitor" },
-        value: {
-          type: "ArrowFunctionExpression",
-          params: createProp.params[1]
-            ? [
-                createProp.params[1].type === "ArrayPattern"
-                  ? (createProp.params[1].elements[0] as Identifier)
-                  : createProp.params[1],
-              ]
-            : [],
-          body: createProp.body,
-          async: false,
-          expression: false,
-        },
+        value:
+          returnStatements.length === 1
+            ? returnStatements[0]
+            : {
+                type: "ArrowFunctionExpression",
+                params: [],
+                body: createProp.body,
+                async: false,
+                expression: false,
+              },
       };
+
+      const body: Statement[] = [];
       if (options) {
         const defaults = getObjectValue(params, "defaultOptions")!.value;
         assert(defaults.type === "ArrayExpression");
@@ -365,42 +366,40 @@ for (const rule of rulesToImport) {
         const defaultsObject = defaults.elements[0]!;
         assert(defaultsObject.type === "ObjectExpression");
 
-        const optionsParam: ObjectProperty = {
-          type: "ObjectProperty",
-          shorthand: false,
-          computed: false,
-          key: { type: "Identifier", name: "parseOptions" },
-          value: {
-            type: "ArrowFunctionExpression",
-            params: [
-              {
-                type: "Identifier",
-                name: "options",
-                optional: true,
-                typeAnnotation: {
-                  type: "TSTypeAnnotation",
-                  typeAnnotation: options,
-                },
+        body.push({
+          type: "VariableDeclaration",
+          kind: "const",
+          declarations: [
+            {
+              type: "VariableDeclarator",
+              id: { type: "Identifier", name: "options" },
+              init: {
+                type: "ObjectExpression",
+                properties: [
+                  ...defaultsObject.properties,
+                  {
+                    type: "SpreadElement",
+                    argument: { type: "Identifier", name: "options" },
+                  },
+                ],
               },
-            ],
-            body: {
-              type: "ObjectExpression",
-              properties: [
-                ...defaultsObject.properties,
-                {
-                  type: "SpreadElement",
-                  argument: { type: "Identifier", name: "options" },
-                },
-              ],
             },
-            async: false,
-            expression: true,
-          },
-        };
-        params.properties = [nameProp, optionsParam, visitorProp];
-      } else {
-        params.properties = [nameProp, visitorProp];
+          ],
+        });
       }
+      if (returnStatements.length === 1) {
+        body.push(
+          ...createProp.body.body.filter((s) => s.type !== "ReturnStatement"),
+        );
+      }
+      body.push({
+        type: "ReturnStatement",
+        argument: {
+          type: "ObjectExpression",
+          properties: [nameProp, visitorProp],
+        },
+      });
+
       path.replaceWith({
         type: "ExportNamedDeclaration",
         declaration: {
@@ -410,7 +409,31 @@ for (const rule of rulesToImport) {
             {
               type: "VariableDeclarator",
               id: { type: "Identifier", name: exportName },
-              init: decl,
+              init: {
+                type: "CallExpression",
+                callee: { type: "Identifier", name: "createRule" },
+                arguments: [
+                  {
+                    type: "ArrowFunctionExpression",
+                    params: options
+                      ? [
+                          {
+                            type: "Identifier",
+                            name: "_options",
+                            optional: true,
+                            typeAnnotation: {
+                              type: "TSTypeAnnotation",
+                              typeAnnotation: options,
+                            },
+                          },
+                        ]
+                      : [],
+                    body: { type: "BlockStatement", body, directives: [] },
+                    async: false,
+                    expression: false,
+                  },
+                ],
+              },
             },
           ],
         },
@@ -911,11 +934,12 @@ for (const rule of rulesToImport) {
             optionsProp.value.elements.length === 1,
             "options length is not 1",
           );
+          const firstElement = optionsProp.value.elements[0];
           assert(
-            optionsProp.value.elements[0]?.type === "ObjectExpression",
-            "options length is not 1",
+            firstElement && firstElement.type !== "SpreadElement",
+            "options[0] is not an expression",
           );
-          optionsProp.value = optionsProp.value.elements[0];
+          optionsProp.value = firstElement;
         }
         const prevProperties = path.node.properties;
         path.node.properties = [];
