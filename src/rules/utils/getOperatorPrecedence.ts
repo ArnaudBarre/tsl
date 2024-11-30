@@ -449,6 +449,9 @@ export function getBinaryOperatorPrecedence(
 
     case SyntaxKind.BarBarToken:
       return OperatorPrecedence.LogicalOR;
+
+    default:
+      break;
   }
 
   // -1 is lower than all other precedences.  Returning it will cause binary expression

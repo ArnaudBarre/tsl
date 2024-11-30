@@ -379,7 +379,7 @@ for (const rule of rulesToImport) {
                   ...defaultsObject.properties,
                   {
                     type: "SpreadElement",
-                    argument: { type: "Identifier", name: "options" },
+                    argument: { type: "Identifier", name: "_options" },
                   },
                 ],
               },

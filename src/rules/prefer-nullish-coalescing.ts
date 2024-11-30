@@ -177,6 +177,9 @@ export const preferNullishCoalescing = createRule(
                   operator = SyntaxKind.ExclamationEqualsToken;
                 }
               }
+              break;
+            default:
+              break;
           }
 
           if (!operator) return;

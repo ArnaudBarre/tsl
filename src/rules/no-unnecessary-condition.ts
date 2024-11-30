@@ -96,6 +96,8 @@ export const noUnnecessaryCondition = createRule(
                 context,
               );
               break;
+            default:
+              break;
           }
         },
         CallExpression(node, context) {

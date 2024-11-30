@@ -299,6 +299,9 @@ function gatherLogicalOperands(
                 continue;
             }
           }
+
+          default:
+            break;
         }
 
         result.push({ type: "Invalid" });

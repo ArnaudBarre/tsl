@@ -26,6 +26,7 @@ import { preferStringStartsEndsWith } from "./src/rules/prefer-string-starts-end
 import { restrictPlusOperands } from "./src/rules/restrict-plus-operands.ts";
 import { restrictTemplateExpressions } from "./src/rules/restrict-template-expressions.ts";
 import { returnAwait } from "./src/rules/return-await.ts";
+import { switchExhaustivenessCheck } from "./src/rules/switch-exhaustiveness-check.ts";
 
 export default defineConfig({
   rules: [
@@ -58,5 +59,6 @@ export default defineConfig({
     restrictPlusOperands(),
     restrictTemplateExpressions(),
     returnAwait(),
+    switchExhaustivenessCheck({ considerDefaultExhaustiveForUnions: true }),
   ],
 });
