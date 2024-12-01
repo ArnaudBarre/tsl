@@ -1,5 +1,6 @@
 /.idea
 node_modules/
+dist/
 dev-plugin/index.js
 dev-plugin/get-plugin.mjs
 plugin-logs.txt

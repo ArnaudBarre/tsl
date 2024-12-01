@@ -1,3 +1,3 @@
 # type-lint
 
-Ongoing work for a TS focused linter
+Ongoing work for a modern TypeScript linter
