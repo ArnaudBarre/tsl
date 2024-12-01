@@ -1,4 +1,4 @@
-import { defineConfig } from "./src/public-utils.ts";
+import { defineConfig } from "./src/index.ts";
 import { awaitThenable } from "./src/rules/await-thenable/await-thenable.ts";
 import { dotNotation } from "./src/rules/dot-notation/dot-notation.ts";
 import { noArrayDelete } from "./src/rules/no-array-delete/no-array-delete.ts";

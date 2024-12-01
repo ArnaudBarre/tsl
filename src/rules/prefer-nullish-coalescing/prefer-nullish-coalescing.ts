@@ -1,9 +1,8 @@
 import { intersectionTypeParts, isTypeFlagSet } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
-import { isLogicalExpression } from "../_utils";
+import { isLogicalExpression, typeHasFlag } from "../_utils";
 import type { EqualityOperator } from "../../ast.ts";
-import { createRule } from "../../public-utils.ts";
-import { typeHasFlag } from "../../types-utils.ts";
+import { createRule } from "../../index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
 
 export const messages = {

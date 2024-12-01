@@ -1,8 +1,7 @@
 import { isTypeFlagSet } from "ts-api-utils";
 import { SyntaxKind, TypeFlags } from "typescript";
-import { isConstAssertion } from "../_utils";
-import { createRule } from "../../public-utils.ts";
-import { typeHasFlag } from "../../types-utils.ts";
+import { isConstAssertion, typeHasFlag } from "../_utils";
+import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {

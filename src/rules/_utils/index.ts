@@ -1,5 +1,5 @@
 import { intersectionTypeParts, unionTypeParts } from "ts-api-utils";
-import ts, { SyntaxKind } from "typescript";
+import ts, { SyntaxKind, TypeFlags } from "typescript";
 import type { AnyNode, BinaryOperatorToken } from "../../ast.ts";
 import type { AST, Checker, Context } from "../../types.ts";
 import {
@@ -303,4 +303,29 @@ export function requiresQuoting(
   }
 
   return false;
+}
+
+export function typeHasFlag(type: ts.Type, flag: ts.TypeFlags): boolean {
+  if (!type.isUnion()) return (type.flags & flag) !== 0;
+  // @ts-expect-error Since typescript 5.0, this is invalid, but uses 0 as the default value of TypeFlags.
+  let flags: ts.TypeFlags = 0;
+  for (const t of type.types) flags |= t.flags;
+  return (flags & flag) !== 0;
+}
+
+export function isTypeAnyArrayType(type: ts.Type, checker: Checker): boolean {
+  return (
+    checker.isArrayType(type) &&
+    typeHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Any)
+  );
+}
+
+export function isTypeUnknownArrayType(
+  type: ts.Type,
+  checker: Checker,
+): boolean {
+  return (
+    checker.isArrayType(type) &&
+    typeHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Unknown)
+  );
 }

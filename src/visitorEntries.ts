@@ -1,4 +1,4 @@
-/** Generated **/
+/* Generated */
 import { SyntaxKind } from "typescript";
 import type { AST } from "./types.ts";
 

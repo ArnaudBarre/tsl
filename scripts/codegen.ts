@@ -66,7 +66,7 @@ const outputParts: (
   | string
   | { name: string; kind: string; members?: ts.TypeElement[] }
 )[] = [
-  "/** Generated **/",
+  "/* Generated */",
   "/* type-lint-ignore core/noRedundantTypeConstituents */",
   `import type { ${importedTypes.join(", ")} } from "typescript";`,
   'import type { Context } from "./types.ts";',
@@ -459,7 +459,7 @@ writeOrCheck(
 
 writeOrCheck(
   "scripts/kindToNodeTypeMap.ts",
-  `/** Generated **/
+  `/* Generated */
 export const kindToNodeTypeMap: Record<string, string | undefined> = {
 ${visitorNodes.map((n) => `  ${n.kind}: "${n.node}",`).join("\n")}
 };
@@ -468,7 +468,7 @@ ${visitorNodes.map((n) => `  ${n.kind}: "${n.node}",`).join("\n")}
 
 writeOrCheck(
   "src/visitorEntries.ts",
-  `/** Generated **/
+  `/* Generated */
 import { SyntaxKind } from "typescript";
 import type { AST } from "./types.ts";
 

@@ -1,6 +1,6 @@
 import { isTypeFlagSet, unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
-import { createRule } from "../../public-utils.ts";
+import { createRule } from "../../index.ts";
 
 export const messages = {
   unaryMinus: (params: { type: string }) =>

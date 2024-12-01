@@ -35,7 +35,7 @@ export type Checker = Omit<
   | "isArrayType"
   | "isTupleType"
 > & {
-  /* Fix Expression _Brand check */
+  /** Fix Expression _Brand check */
   getContextualType(node: AST.Expression): Type | undefined;
   getTypeFromTypeNode(node: AST.TypeNode): Type;
   getResolvedSignature(
@@ -47,7 +47,7 @@ export type Checker = Omit<
       | AST.JsxSelfClosingElement
       | AST.JsxOpeningElement,
   ): Signature | undefined;
-  /* Improve narrowing, borrow from TS-ESLint */
+  /** Improve narrowing, borrow from TS-ESLint */
   isArrayType(type: Type): type is TypeReference;
   isTupleType(type: Type): type is TupleTypeReference;
   /**
@@ -88,3 +88,21 @@ export type Context<Data = undefined> = {
   report(descriptor: ReportDescriptor): void;
   data: Data;
 };
+
+export type AllRulesPreset<
+  Key extends string,
+  Props extends Partial<Record<Key, "off" | "on" | Record<string, unknown>>>,
+> = <UsedProps extends Props>(
+  rules: UsedProps,
+) => Promise<
+  Rule<
+    {
+      [K in keyof UsedProps]: K extends Key
+        ? UsedProps[K] extends "off"
+          ? never
+          : K
+        : never;
+    }[keyof UsedProps],
+    any
+  >[]
+>;

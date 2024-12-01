@@ -1,6 +1,6 @@
 import { isTypeFlagSet } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
-import { createRule } from "../public-utils.ts";
+import { createRule } from "../index.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Context } from "../types.ts";
 

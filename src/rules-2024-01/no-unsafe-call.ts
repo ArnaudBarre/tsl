@@ -1,6 +1,6 @@
 import { isIntrinsicAnyType } from "ts-api-utils";
 import { SyntaxKind } from "typescript";
-import { createRule } from "../public-utils.ts";
+import { createRule } from "../index.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Context } from "../types.ts";
 

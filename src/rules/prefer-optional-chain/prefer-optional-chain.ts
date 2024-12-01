@@ -10,6 +10,7 @@ import {
   isLogicalExpression,
   isReferenceToGlobalFunction,
   run,
+  typeHasFlag,
 } from "../_utils";
 import { compareNodes } from "../_utils/compareNodes.ts";
 import {
@@ -17,8 +18,7 @@ import {
   getOperatorPrecedenceForNode,
   OperatorPrecedence,
 } from "../_utils/getOperatorPrecedence.ts";
-import { createRule } from "../../public-utils.ts";
-import { typeHasFlag } from "../../types-utils.ts";
+import { createRule } from "../../index.ts";
 import type { AST, Context, ReportDescriptor } from "../../types.ts";
 
 export const messages = {

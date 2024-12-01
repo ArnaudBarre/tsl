@@ -1,4 +1,4 @@
-/** Generated **/
+/* Generated */
 /* type-lint-ignore core/noRedundantTypeConstituents */
 import type {
   __String,

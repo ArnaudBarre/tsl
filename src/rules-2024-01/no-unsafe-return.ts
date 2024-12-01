@@ -1,13 +1,14 @@
 import { isIntrinsicAnyType } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
-import { createRule } from "../public-utils.ts";
-import { getContextualType, getParentFunctionNode } from "../rules/_utils";
-import { ruleTester } from "../ruleTester.ts";
+import { createRule } from "../index.ts";
 import {
+  getContextualType,
+  getParentFunctionNode,
   isTypeAnyArrayType,
   isTypeUnknownArrayType,
   typeHasFlag,
-} from "../types-utils.ts";
+} from "../rules/_utils";
+import { ruleTester } from "../ruleTester.ts";
 import type { AST, Checker, Context } from "../types.ts";
 import { isUnsafeAssignment } from "./no-unsafe-argument.ts";
 

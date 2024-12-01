@@ -1,5 +1,5 @@
 import { SyntaxKind } from "typescript";
-import { createRule } from "../../public-utils.ts";
+import { createRule } from "../../index.ts";
 
 const validIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/u;
 

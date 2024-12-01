@@ -7,7 +7,7 @@ import {
 import ts, { SyntaxKind } from "typescript";
 import { getParentFunctionNode, isLogicalExpression } from "../_utils";
 import type { AnyNode } from "../../ast.ts";
-import { createRule } from "../../public-utils.ts";
+import { createRule } from "../../index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
 
 export const messages = {

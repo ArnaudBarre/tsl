@@ -1,5 +1,5 @@
 import ts, { SyntaxKind } from "typescript";
-import { createRule } from "../public-utils.ts";
+import { createRule } from "../index.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { Context } from "../types.ts";
 

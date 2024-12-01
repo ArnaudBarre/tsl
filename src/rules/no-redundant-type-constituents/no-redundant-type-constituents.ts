@@ -1,7 +1,7 @@
 import { isTypeFlagSet } from "ts-api-utils";
 import { SyntaxKind, TypeFlags } from "typescript";
 import type { TypeNode } from "../../ast.ts";
-import { createRule } from "../../public-utils.ts";
+import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {

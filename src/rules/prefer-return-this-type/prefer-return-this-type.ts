@@ -1,5 +1,5 @@
 import { type InterfaceType, SyntaxKind } from "typescript";
-import { createRule } from "../../public-utils.ts";
+import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {

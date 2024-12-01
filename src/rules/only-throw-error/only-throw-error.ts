@@ -1,7 +1,7 @@
 import { isIntrinsicAnyType, isIntrinsicUnknownType } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
-import { createRule } from "../../public-utils.ts";
+import { createRule } from "../../index.ts";
 
 export const messages = {
   object: "Expected an error object to be thrown.",

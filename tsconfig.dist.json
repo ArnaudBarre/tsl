@@ -1,27 +1,22 @@
 {
-  "include": ["**/*.ts"],
-  "exclude": ["dist"],
+  "include": ["dist"],
   "compilerOptions": {
-    "target": "ES2022",
-    "jsx": "react-jsx",
-    "module": "ESNext",
+    "target": "ES2023",
+    "module": "nodeNext",
     "lib": ["ES2023"],
+    "types": ["typescript"],
 
-    /* Bundler mode */
-    "moduleResolution": "bundler",
+    "moduleResolution": "NodeNext",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
 
     /* Linting */
-    "skipLibCheck": true,
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "useUnknownInCatchVariables": true,
-    "noPropertyAccessFromIndexSignature": true,
-
-    "plugins": [{ "name": "dev-plugin" }]
+    "noPropertyAccessFromIndexSignature": true
   }
 }

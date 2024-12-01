@@ -6,7 +6,7 @@ import {
 } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { requiresQuoting } from "../_utils/index.ts";
-import { createRule } from "../../public-utils.ts";
+import { createRule } from "../../index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
 
 export const messages = {

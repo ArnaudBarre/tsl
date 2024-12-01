@@ -14,9 +14,9 @@ import {
   isArrayMethodCallWithPredicate,
   isLiteralKind,
   isLogicalExpression,
+  typeHasFlag,
 } from "../_utils";
-import { createRule } from "../../public-utils.ts";
-import { typeHasFlag } from "../../types-utils.ts";
+import { createRule } from "../../index.ts";
 import type { AST, Checker, Context } from "../../types.ts";
 
 export const messages = {

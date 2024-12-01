@@ -1,6 +1,6 @@
 import { intersectionTypeParts, unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
-import { createRule } from "../../public-utils.ts";
+import { createRule } from "../../index.ts";
 import type { Context, Suggestion } from "../../types.ts";
 
 export const messages = {

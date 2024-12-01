@@ -1,8 +1,7 @@
 import { unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
-import { getContextualType, isConstAssertion } from "../_utils";
-import { createRule } from "../../public-utils.ts";
-import { typeHasFlag } from "../../types-utils.ts";
+import { getContextualType, isConstAssertion, typeHasFlag } from "../_utils";
+import { createRule } from "../../index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
 
 export const messages = {

@@ -1,6 +1,6 @@
 import ts, { SyntaxKind } from "typescript";
 import type { Expression } from "../../ast.ts";
-import { createRule } from "../../public-utils.ts";
+import { createRule } from "../../index.ts";
 import type { Checker } from "../../types.ts";
 
 export const messages = {

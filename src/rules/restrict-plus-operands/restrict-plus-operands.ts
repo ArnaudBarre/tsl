@@ -6,9 +6,8 @@ import {
   unionTypeParts,
 } from "ts-api-utils";
 import ts, { SyntaxKind, type Type, TypeFlags } from "typescript";
-import { getTypeName } from "../_utils/index.ts";
-import { createRule } from "../../public-utils.ts";
-import { typeHasFlag } from "../../types-utils.ts";
+import { getTypeName, typeHasFlag } from "../_utils/index.ts";
+import { createRule } from "../../index.ts";
 
 export const messages = {
   bigintAndNumber: (params: { left: string; right: string }) =>

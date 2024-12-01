@@ -1,7 +1,7 @@
 import { SyntaxKind } from "typescript";
 import { compareNodes } from "../_utils/compareNodes.ts";
 import { getTypeName, isLiteralKind } from "../_utils/index.ts";
-import { createRule } from "../../public-utils.ts";
+import { createRule } from "../../index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
 
 export const messages = {

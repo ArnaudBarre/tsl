@@ -3,7 +3,7 @@ import ts, { SyntaxKind } from "typescript";
 import { isReferenceToGlobalFunction } from "../_utils";
 import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
 import type { AnyNode } from "../../ast.ts";
-import { createRule } from "../../public-utils.ts";
+import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {

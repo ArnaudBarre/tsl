@@ -1,7 +1,7 @@
 import { isIntrinsicAnyType, isSymbolFlagSet } from "ts-api-utils";
 import ts, { type NodeArray, SyntaxKind } from "typescript";
 import type { AnyNode, TypeNode } from "../../ast.ts";
-import { createRule } from "../../public-utils.ts";
+import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {

@@ -2,7 +2,7 @@ import { unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { isHigherPrecedenceThanUnary, isLogicalExpression } from "../_utils";
 import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
-import { createRule } from "../../public-utils.ts";
+import { createRule } from "../../index.ts";
 import type { AST, Checker, Context, Suggestion } from "../../types.ts";
 
 const messageBase =
