@@ -41,16 +41,26 @@ export const messages = {
   removeOptionalChain: "Remove unnecessary optional chain.",
 };
 
+export type NoUnnecessaryConditionOptions = {
+  /**
+   * Whether to ignore constant loop conditions, such as `while (true)`.
+   * @default false
+   */
+  allowConstantLoopConditions?: boolean;
+  /**
+   * Whether to check the asserted argument of a type predicate function for unnecessary conditions.
+   * @default false
+   */
+  checkTypePredicates?: boolean;
+};
+
 type ParsedOptions = {
   allowConstantLoopConditions: boolean;
   checkTypePredicates: boolean;
 };
 
 export const noUnnecessaryCondition = createRule(
-  (_options?: {
-    allowConstantLoopConditions?: boolean;
-    checkTypePredicates?: boolean;
-  }) => {
+  (_options?: NoUnnecessaryConditionOptions) => {
     const options: ParsedOptions = {
       allowConstantLoopConditions: false,
       checkTypePredicates: false,

@@ -7,12 +7,14 @@ import type {
   Config,
   Context,
   ReportDescriptor,
+  Rule,
   Suggestion,
-  UnknownRule,
 } from "./types.ts";
 import { visitorEntries } from "./visitorEntries.ts";
 
 const timing = !!process.env["TIMING"];
+
+type UnknownRule = Rule<string, unknown>;
 
 const matchPattern = (pattern: string, fileName: string) =>
   fileName.includes(pattern);

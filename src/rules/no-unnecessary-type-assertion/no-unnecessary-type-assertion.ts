@@ -13,10 +13,16 @@ export const messages = {
   removeAssertion: "Remove the type assertion",
 };
 
-type Options = { typesToIgnore?: string[] };
+export type NoUnnecessaryTypeAssertionOptions = {
+  /**
+   * A list of type names to ignore.
+   * @default []
+   */
+  typesToIgnore?: string[];
+};
 
 export const noUnnecessaryTypeAssertion = createRule(
-  (options: Options = {}) => ({
+  (options: NoUnnecessaryTypeAssertionOptions = {}) => ({
     name: "core/noUnnecessaryTypeAssertion",
     visitor: {
       NonNullExpression(node, context) {
@@ -136,7 +142,7 @@ export const noUnnecessaryTypeAssertion = createRule(
 function checkAssertion(
   node: AST.AsExpression | AST.TypeAssertion,
   context: Context,
-  options: Options,
+  options: NoUnnecessaryTypeAssertionOptions,
 ) {
   if (options.typesToIgnore?.includes(node.type.getText())) {
     return;

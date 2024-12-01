@@ -2,7 +2,7 @@ import { isIntrinsicAnyType } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
-import type { AST, Infer } from "../types.ts";
+import type { AST, Context } from "../types.ts";
 
 const messages = {
   unsafeMemberExpression: (params: { property: string }) =>
@@ -13,7 +13,7 @@ const messages = {
 
 type State = "Unsafe" | "Safe";
 const createData = () => ({ stateCache: new Map<ts.Node, State>() });
-type Context = Infer<typeof createData>["Context"];
+type Data = ReturnType<typeof createData>;
 
 export const noUnsafeMemberAccess = createRule(() => ({
   name: "core/noUnsafeMemberAccess",
@@ -41,7 +41,7 @@ export const noUnsafeMemberAccess = createRule(() => ({
 
 function checkMemberExpression(
   node: AST.PropertyAccessExpression | AST.ElementAccessExpression,
-  context: Context,
+  context: Context<Data>,
 ): State {
   const cachedState = context.data.stateCache.get(node);
   if (cachedState) {

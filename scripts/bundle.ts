@@ -23,27 +23,36 @@ const rules = readdirSync("src/rules").filter(
 
 await build({
   ...commonOptions,
-  stdin: {
-    contents: [
-      "export const allRules = async (config) => {",
-      "  const rules = [];",
-      "  for (const key in config) {",
-      "    if (!key) continue;",
-      "    if (key === 'off') continue;",
-      ...rules.map(
-        (r) =>
-          `    if (key === "${r}") rules.push(import("./src/rules/${r}/${r}.ts").then((m) => m.${fileToFunction(
-            r,
-          )}));`,
-      ),
-      "  }",
-      "  return await Promise.all(rules);",
-      "};",
-    ].join("\n"),
-  },
-  outdir: "dist/all-rules",
+  entryPoints: rules.map((r) => ({ in: `src/rules/${r}/${r}.ts`, out: r })),
+  outdir: "dist/rules",
   splitting: true,
 });
+
+writeFileSync(
+  "dist/allRules.js",
+  [
+    "export const allRules = async (config) => {",
+    "  const rules = [];",
+    "  for (const key in config) {",
+    "    if (!key) continue;",
+    "    if (key === 'off') continue;",
+    ...rules.map(
+      (r) =>
+        `    if (key === "${r}") rules.push(import("./rules/${r}.js").then((m) => m.${fileToFunction(
+          r,
+        )}));`,
+    ),
+    "  }",
+    "  return await Promise.all(rules);",
+    "};",
+  ].join("\n"),
+);
+writeFileSync(
+  "dist/rules.js",
+  rules
+    .map((r) => `export { ${fileToFunction(r)} } from "./rules/${r}.js";`)
+    .join("\n"),
+);
 await build({
   ...commonOptions,
   entryPoints: ["src/cli.ts"],

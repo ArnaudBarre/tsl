@@ -1,14 +1,7 @@
 import ts, { ModuleResolutionKind, NodeFlags, SyntaxKind } from "typescript";
 import type { SourceFile, Visitor } from "./ast.ts";
 import { getContextUtils } from "./getContextUtils.ts";
-import type {
-  AnyRule,
-  AST,
-  Checker,
-  Context,
-  ReportDescriptor,
-  Rule,
-} from "./types.ts";
+import type { AST, Checker, Context, ReportDescriptor, Rule } from "./types.ts";
 import { visitorEntries } from "./visitorEntries.ts";
 
 export function print(...args: any[]) {
@@ -117,7 +110,9 @@ export type InvalidTestCase<TRule extends (options?: unknown) => Rule> =
       | [message: string, line?: number, column?: number]
     )[];
   };
-export const ruleTester = <RuleFn extends (options?: any) => AnyRule>({
+export const ruleTester = <
+  RuleFn extends (options?: any) => Rule<string, any>,
+>({
   ruleFn,
   tsx,
   valid,

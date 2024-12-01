@@ -34,12 +34,26 @@ type ParsedOptions = {
   ignoreVoid: boolean;
 };
 
+export type NoFloatingPromisesOptions = {
+  /**
+   * Functions whose calls are safe to float.
+   * @default []
+   */
+  allowList?: string[];
+  /**
+   * Whether to ignore async IIFEs (Immediately Invoked Function Expressions).
+   * @default false
+   */
+  ignoreIIFE?: boolean;
+  /**
+   * Whether to ignore `void` expressions.
+   * @default true
+   */
+  ignoreVoid?: boolean;
+};
+
 export const noFloatingPromises = createRule(
-  (_options?: {
-    allowList?: string[];
-    ignoreIIFE?: boolean;
-    ignoreVoid?: boolean;
-  }) => {
+  (_options?: NoFloatingPromisesOptions) => {
     const options: ParsedOptions = {
       allowList: [],
       ignoreIIFE: false,

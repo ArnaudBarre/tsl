@@ -1,6 +1,6 @@
 import { type InterfaceType, SyntaxKind } from "typescript";
 import { createRule } from "../../public-utils.ts";
-import type { AST, Infer } from "../../types.ts";
+import type { AST, Context } from "../../types.ts";
 
 export const messages = {
   useThisType: "Use `this` type instead.",
@@ -19,11 +19,9 @@ type Data = {
   };
 };
 
-const createData = (): Data | undefined => undefined;
-type Context = Infer<typeof createData>["Context"];
 export const preferReturnThisType = createRule(() => ({
   name: "core/preferReturnThisType",
-  createData,
+  createData: (): Data | undefined => undefined,
   visitor: {
     ClassDeclaration(node, context) {
       const className = node.name?.text;
@@ -73,7 +71,7 @@ export const preferReturnThisType = createRule(() => ({
 }));
 
 function functionEnter(
-  context: Context,
+  context: Context<Data | undefined>,
   func: AST.MethodDeclaration | AST.FunctionExpression | AST.ArrowFunction,
 ): void {
   if (!context.data) return;
@@ -101,7 +99,7 @@ function functionEnter(
   };
 }
 
-function functionExit(context: Context) {
+function functionExit(context: Context<Data | undefined>) {
   const data = context.data?.currentMethod;
   if (!data) return;
 
@@ -119,7 +117,10 @@ function functionExit(context: Context) {
   }
 }
 
-function checkReturnExpression(context: Context, node: AST.Expression): void {
+function checkReturnExpression(
+  context: Context<Data | undefined>,
+  node: AST.Expression,
+): void {
   if (!context.data?.currentMethod) return;
 
   if (node.kind === SyntaxKind.ThisKeyword) {
@@ -139,7 +140,7 @@ function checkReturnExpression(context: Context, node: AST.Expression): void {
 function tryGetNameInType(
   name: string,
   typeNode: AST.TypeNode,
-  context: Context,
+  context: Context<Data | undefined>,
 ): AST.TypeReferenceNode | undefined {
   if (
     typeNode.kind === SyntaxKind.TypeReference &&

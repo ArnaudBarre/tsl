@@ -1,14 +1,12 @@
 import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
-import type { Infer } from "../types.ts";
+import type { Context } from "../types.ts";
 
 const messages = {
   baseToString: (params: { name: string; certainty: string }) =>
     `'${params.name}' ${params.certainty} evaluate to '[object Object]' when stringified.`,
 };
-
-type Context = Infer<typeof noBaseToString>["Context"];
 
 enum Usefulness {
   Always = "always",

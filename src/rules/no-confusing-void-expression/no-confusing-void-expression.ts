@@ -39,12 +39,26 @@ export const messages = {
   moveBeforeReturn: "Move before the `return` keyword.",
 };
 
+export type NoConfusingVoidExpressionOptions = {
+  /**
+   * Whether to ignore "shorthand" `() =>` arrow functions: those without `{ ... }` braces.
+   * @default false
+   */
+  ignoreArrowShorthand?: boolean;
+  /**
+   * Whether to ignore returns that start with the `void` operator.
+   * @default false
+   */
+  ignoreVoidOperator?: boolean;
+  /**
+   * Whether to ignore returns from functions with explicit `void` return types and functions with contextual `void` return types.
+   * @default false
+   */
+  ignoreVoidReturningFunctions?: boolean;
+};
+
 export const noConfusingVoidExpression = createRule(
-  (_options?: {
-    ignoreArrowShorthand?: boolean;
-    ignoreVoidOperator?: boolean;
-    ignoreVoidReturningFunctions?: boolean;
-  }) => {
+  (_options?: NoConfusingVoidExpressionOptions) => {
     const options = {
       ignoreArrowShorthand: false,
       ignoreVoidOperator: false,

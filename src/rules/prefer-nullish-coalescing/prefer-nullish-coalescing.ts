@@ -19,6 +19,46 @@ export const messages = {
     `Fix to nullish coalescing operator (\`??${params.equals}\`).`,
 };
 
+export type PreferNullishCoalescingOptions = {
+  /**
+   * Whether to ignore arguments to the `Boolean` constructor.
+   * @default false
+   */
+  ignoreBooleanCoercion?: boolean;
+  /**
+   * Whether to ignore cases that are located within a conditional test.
+   * @default true
+   */
+  ignoreConditionalTests?: boolean;
+  /**
+   * Whether to ignore any logical or expressions that are part of a mixed logical expression (with `&&`).
+   * @default false
+   */
+  ignoreMixedLogicalExpressions?: boolean;
+  /**
+   * Whether to ignore any ternary expressions that could be simplified by using the nullish coalescing operator.
+   * @default false
+   */
+  ignoreTernaryTests?: boolean;
+  /**
+   * Whether to ignore all (`true`) or some (an object with properties) primitive types.
+   * @default false
+   */
+  ignorePrimitives?:
+    | {
+        /** Ignore bigint primitive types. */
+        bigint?: boolean;
+        /** Ignore boolean primitive types. */
+        boolean?: boolean;
+        /** Ignore number primitive types. */
+        number?: boolean;
+        /** Ignore string primitive types. */
+        string?: boolean;
+      }
+    /** Ignore all primitive types. */
+    | true;
+};
+
 type ParsedOptions = {
   ignoreBooleanCoercion: boolean;
   ignoreConditionalTests: boolean;

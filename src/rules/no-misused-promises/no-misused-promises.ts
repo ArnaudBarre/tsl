@@ -8,7 +8,7 @@ import {
   run,
 } from "../_utils";
 import { createRule } from "../../public-utils.ts";
-import type { AST, Infer } from "../../types.ts";
+import type { AST, Context } from "../../types.ts";
 
 export const messages = {
   conditional: "Expected non-Promise value in a boolean conditional.",
@@ -28,57 +28,76 @@ export const messages = {
     "Promise-returning function provided to variable where a void return was expected.",
 };
 
-interface ChecksVoidReturnOptions {
-  arguments?: boolean;
-  attributes?: boolean;
-  inheritedMethods?: boolean;
-  properties?: boolean;
-  returns?: boolean;
-  variables?: boolean;
-}
+export type NoMisusedPromisesOptions = {
+  /**
+   * Whether to warn when a Promise is provided to conditional statements.
+   * @default true
+   */
+  checksConditionals?: boolean;
+  /**
+   * Whether to warn when `...` spreading a `Promise`.
+   * @default true
+   */
+  checksSpreads?: boolean;
+  /**
+   * Whether to warn when a Promise is returned from a function typed as returning `void`.
+   * `true` enables checking all cases.
+   * @default true
+   */
+  checksVoidReturn?:
+    | boolean
+    | {
+        /** Disables checking an asynchronous function passed as argument where the parameter type expects a function that returns `void`. */
+        arguments?: boolean;
+        /** Disables checking an asynchronous function passed as a JSX attribute expected to be a function that returns `void`. */
+        attributes?: boolean;
+        /** Disables checking an asynchronous method in a type that extends or implements another type expecting that method to return `void`. */
+        inheritedMethods?: boolean;
+        /** Disables checking an asynchronous function passed as an object property expected to be a function that returns `void`. */
+        properties?: boolean;
+        /** Disables checking an asynchronous function returned in a function whose return type is a function that returns `void`. */
+        returns?: boolean;
+        /** Disables checking an asynchronous function used as a variable whose return type is a function that returns `void`. */
+        variables?: boolean;
+      };
+};
 
 const createData = () => ({ checkedNodes: new Set<ts.Node>() });
-type Visitor = Infer<typeof createData>["Visitor"];
-type Context = Infer<typeof createData>["Context"];
+type Data = ReturnType<typeof createData>;
 export const noMisusedPromises = createRule(
-  (_options?: {
-    checksConditionals?: boolean;
-    checksVoidReturn?: ChecksVoidReturnOptions | boolean;
-    checksSpreads?: boolean;
-  }) => {
-    const checksVoidReturn = run(() => {
-      switch (_options?.checksVoidReturn) {
-        case false:
-          return false as const;
-        case true:
-        case undefined:
-          return {
-            arguments: true,
-            attributes: true,
-            inheritedMethods: true,
-            properties: true,
-            returns: true,
-            variables: true,
-          };
-        default:
-          return {
-            arguments: _options?.checksVoidReturn.arguments ?? true,
-            attributes: _options?.checksVoidReturn.attributes ?? true,
-            inheritedMethods:
-              _options?.checksVoidReturn.inheritedMethods ?? true,
-            properties: _options?.checksVoidReturn.properties ?? true,
-            returns: _options?.checksVoidReturn.returns ?? true,
-            variables: _options?.checksVoidReturn.variables ?? true,
-          };
-      }
-    });
+  (_options?: NoMisusedPromisesOptions) => {
     const options = {
       checksConditionals: _options?.checksConditionals ?? true,
-      checksVoidReturn,
       checksSpreads: _options?.checksSpreads ?? true,
+      checksVoidReturn: run(() => {
+        switch (_options?.checksVoidReturn) {
+          case false:
+            return false as const;
+          case true:
+          case undefined:
+            return {
+              arguments: true,
+              attributes: true,
+              inheritedMethods: true,
+              properties: true,
+              returns: true,
+              variables: true,
+            };
+          default:
+            return {
+              arguments: _options?.checksVoidReturn.arguments ?? true,
+              attributes: _options?.checksVoidReturn.attributes ?? true,
+              inheritedMethods:
+                _options?.checksVoidReturn.inheritedMethods ?? true,
+              properties: _options?.checksVoidReturn.properties ?? true,
+              returns: _options?.checksVoidReturn.returns ?? true,
+              variables: _options?.checksVoidReturn.variables ?? true,
+            };
+        }
+      }),
     };
 
-    const conditionalChecks: Visitor = options.checksConditionals
+    const conditionalChecks: AST.Visitor<Data> = options.checksConditionals
       ? {
           CallExpression(node, context) {
             if (node.expression.kind === SyntaxKind.PropertyAccessExpression) {
@@ -111,42 +130,42 @@ export const noMisusedPromises = createRule(
         }
       : {};
 
-    const voidReturnChecks: Visitor = options.checksVoidReturn
+    const voidReturnChecks: AST.Visitor<Data> = options.checksVoidReturn
       ? {
           ...(options.checksVoidReturn.arguments &&
             ({
               CallExpression: checkArguments,
               NewExpression: checkArguments,
-            } satisfies Visitor)),
+            } satisfies AST.Visitor<Data>)),
           ...(options.checksVoidReturn.attributes &&
             ({
               JsxAttribute: checkJSXAttribute,
-            } satisfies Visitor)),
+            } satisfies AST.Visitor<Data>)),
           ...(options.checksVoidReturn.inheritedMethods &&
             ({
               ClassDeclaration: checkClassLikeOrInterfaceNode,
               ClassExpression: checkClassLikeOrInterfaceNode,
               InterfaceDeclaration: checkClassLikeOrInterfaceNode,
-            } satisfies Visitor)),
+            } satisfies AST.Visitor<Data>)),
           ...(options.checksVoidReturn.properties &&
             ({
               PropertyAssignment: checkPropertyAssignment,
               ShorthandPropertyAssignment: checkShorthandPropertyAssignment,
               MethodDeclaration: checkMethodDeclaration,
-            } satisfies Visitor)),
+            } satisfies AST.Visitor<Data>)),
           ...(options.checksVoidReturn.returns &&
             ({
               ReturnStatement: checkReturnStatement,
-            } satisfies Visitor)),
+            } satisfies AST.Visitor<Data>)),
           ...(options.checksVoidReturn.variables &&
             ({
               BinaryExpression: checkAssignment,
               VariableDeclaration: checkVariableDeclaration,
-            } satisfies Visitor)),
+            } satisfies AST.Visitor<Data>)),
         }
       : {};
 
-    const spreadChecks: Visitor = options.checksSpreads
+    const spreadChecks: AST.Visitor<Data> = options.checksSpreads
       ? { SpreadAssignment: checkSpread }
       : {};
 
@@ -175,11 +194,12 @@ export const noMisusedPromises = createRule(
  * It uses recursion when checking nested logical operators.
  * @param node The AST node to check.
  * @param isTestExpr Whether the node is a descendant of a test expression.
+ * @param context The context object.
  */
 function checkConditional(
   node: AST.Expression,
   isTestExpr: boolean,
-  context: Context,
+  context: Context<Data>,
 ): void {
   if (
     node.kind === SyntaxKind.BinaryExpression &&
@@ -204,15 +224,14 @@ function checkConditional(
 }
 
 function checkArrayPredicates(
-  context: Context,
+  context: Context<Data>,
   node: AST.MemberExpression,
 ): void {
   const parent = node.parent;
   if (parent.kind === SyntaxKind.CallExpression) {
     const callback = parent.arguments.at(0);
     if (callback && isArrayMethodCallWithPredicate(context, parent)) {
-      const type = callback;
-      if (returnsThenable(context, type)) {
+      if (returnsThenable(context, callback)) {
         context.report({ node: callback, message: messages.predicate });
       }
     }
@@ -221,7 +240,7 @@ function checkArrayPredicates(
 
 function checkArguments(
   node: AST.CallExpression | AST.NewExpression,
-  context: Context,
+  context: Context<Data>,
 ): void {
   const voidArgs = voidFunctionArguments(context, node);
   if (voidArgs.size === 0) {
@@ -241,7 +260,10 @@ function checkArguments(
   }
 }
 
-function checkAssignment(node: AST.BinaryExpression, context: Context): void {
+function checkAssignment(
+  node: AST.BinaryExpression,
+  context: Context<Data>,
+): void {
   if (!isAssignmentExpression(node.operatorToken)) return;
   const varType = context.checker.getTypeAtLocation(node.left);
   if (!isVoidReturningFunctionType(context, node.left, varType)) {
@@ -255,7 +277,7 @@ function checkAssignment(node: AST.BinaryExpression, context: Context): void {
 
 function checkVariableDeclaration(
   node: AST.VariableDeclaration,
-  context: Context,
+  context: Context<Data>,
 ): void {
   if (node.initializer === undefined) {
     return;
@@ -276,7 +298,7 @@ function checkVariableDeclaration(
 
 export function checkPropertyAssignment(
   node: AST.PropertyAssignment,
-  context: Context,
+  context: Context<Data>,
 ) {
   const contextualType = context.checker.getContextualType(node.initializer);
   if (
@@ -299,7 +321,7 @@ export function checkPropertyAssignment(
 
 export function checkShorthandPropertyAssignment(
   node: AST.ShorthandPropertyAssignment,
-  context: Context,
+  context: Context<Data>,
 ) {
   const contextualType = context.checker.getContextualType(node.name);
   if (
@@ -313,7 +335,7 @@ export function checkShorthandPropertyAssignment(
 
 export function checkMethodDeclaration(
   node: AST.MethodDeclaration,
-  context: Context,
+  context: Context<Data>,
 ) {
   if (node.name.kind === SyntaxKind.ComputedPropertyName) {
     return;
@@ -364,7 +386,7 @@ export function checkMethodDeclaration(
 
 function checkReturnStatement(
   node: AST.ReturnStatement,
-  context: Context,
+  context: Context<Data>,
 ): void {
   if (!node.expression) return;
   const contextualType = context.checker.getContextualType(node.expression);
@@ -382,7 +404,7 @@ function checkReturnStatement(
 
 function checkClassLikeOrInterfaceNode(
   node: AST.ClassDeclaration | AST.ClassExpression | AST.InterfaceDeclaration,
-  context: Context,
+  context: Context<Data>,
 ): void {
   const heritageTypes = getHeritageTypes(context, node);
   if (!heritageTypes?.length) {
@@ -420,12 +442,13 @@ function checkClassLikeOrInterfaceNode(
 /**
  * Checks `heritageType` for a member named `memberName` that returns void; reports the
  * 'voidReturnInheritedMethod' message if found.
+ * @param context The context object
  * @param nodeMember Node member that returns a Promise
  * @param heritageType Heritage type to check against
  * @param memberName Name of the member to check for
  */
 function checkHeritageTypeForMemberReturningVoid(
-  context: Context,
+  context: Context<Data>,
   nodeMember: AST.AnyNode,
   heritageType: ts.Type,
   memberName: string,
@@ -449,7 +472,10 @@ function checkHeritageTypeForMemberReturningVoid(
   });
 }
 
-function checkJSXAttribute(node: AST.JsxAttribute, context: Context): void {
+function checkJSXAttribute(
+  node: AST.JsxAttribute,
+  context: Context<Data>,
+): void {
   if (
     node.initializer == null ||
     node.initializer.kind !== SyntaxKind.JsxExpression
@@ -471,7 +497,7 @@ function checkJSXAttribute(node: AST.JsxAttribute, context: Context): void {
   }
 }
 
-function checkSpread(node: AST.SpreadAssignment, context: Context): void {
+function checkSpread(node: AST.SpreadAssignment, context: Context<Data>): void {
   if (isSometimesThenable(context, node.expression)) {
     context.report({
       node: node.expression,
@@ -480,7 +506,10 @@ function checkSpread(node: AST.SpreadAssignment, context: Context): void {
   }
 }
 
-function isSometimesThenable(context: Context, node: AST.AnyNode): boolean {
+function isSometimesThenable(
+  context: Context<Data>,
+  node: AST.AnyNode,
+): boolean {
   const type = context.checker.getTypeAtLocation(node);
 
   for (const subType of unionTypeParts(context.checker.getApparentType(type))) {
@@ -496,7 +525,7 @@ function isSometimesThenable(context: Context, node: AST.AnyNode): boolean {
 // alternates in a union) to be thenable. Otherwise, you might be trying to
 // check if something is defined or undefined and get caught because one of the
 // branches is thenable.
-function isAlwaysThenable(context: Context, node: AST.AnyNode): boolean {
+function isAlwaysThenable(context: Context<Data>, node: AST.AnyNode): boolean {
   const type = context.checker.getTypeAtLocation(node);
 
   for (const subType of unionTypeParts(context.checker.getApparentType(type))) {
@@ -544,7 +573,7 @@ function isAlwaysThenable(context: Context, node: AST.AnyNode): boolean {
 }
 
 function isFunctionParam(
-  context: Context,
+  context: Context<Data>,
   param: ts.Symbol,
   node: AST.AnyNode,
 ): boolean {
@@ -560,7 +589,7 @@ function isFunctionParam(
 }
 
 function checkThenableOrVoidArgument(
-  context: Context,
+  context: Context<Data>,
   node: AST.CallExpression | AST.NewExpression,
   type: ts.Type,
   index: number,
@@ -600,7 +629,7 @@ function checkThenableOrVoidArgument(
 // the array type parameter (e.g. '...args:Array<SomeType>') when determining
 // if trailing arguments are candidates.
 function voidFunctionArguments(
-  context: Context,
+  context: Context<Data>,
   node: AST.CallExpression | AST.NewExpression,
 ): Set<number> {
   // 'new' can be used without any arguments, as in 'let b = new Object;'
@@ -690,7 +719,7 @@ function voidFunctionArguments(
  * @returns Whether any call signature of the type has a thenable return type.
  */
 function anySignatureIsThenableType(
-  context: Context,
+  context: Context<Data>,
   node: ts.Node,
   type: ts.Type,
 ): boolean {
@@ -708,7 +737,7 @@ function anySignatureIsThenableType(
  * @returns Whether type is a thenable-returning function.
  */
 function isThenableReturningFunctionType(
-  context: Context,
+  context: Context<Data>,
   node: ts.Node,
   type: ts.Type,
 ): boolean {
@@ -725,7 +754,7 @@ function isThenableReturningFunctionType(
  * @returns Whether type is a void-returning function.
  */
 function isVoidReturningFunctionType(
-  context: Context,
+  context: Context<Data>,
   node: ts.Node,
   type: ts.Type,
 ): boolean {
@@ -751,7 +780,7 @@ function isVoidReturningFunctionType(
 /**
  * @returns Whether expression is a function that returns a thenable.
  */
-function returnsThenable(context: Context, node: ts.Node): boolean {
+function returnsThenable(context: Context<Data>, node: ts.Node): boolean {
   const type = context.checker.getApparentType(
     context.checker.getTypeAtLocation(node),
   );
@@ -761,7 +790,7 @@ function returnsThenable(context: Context, node: ts.Node): boolean {
 }
 
 function getHeritageTypes(
-  context: Context,
+  context: Context<Data>,
   tsNode: AST.ClassDeclaration | AST.ClassExpression | AST.InterfaceDeclaration,
 ): ts.Type[] | undefined {
   return tsNode.heritageClauses

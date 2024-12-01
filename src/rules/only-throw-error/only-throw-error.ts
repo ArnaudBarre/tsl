@@ -8,62 +8,74 @@ export const messages = {
   undef: "Do not throw undefined.",
 };
 
-export const onlyThrowError = createRule(
-  (_options?: {
-    allowThrowingAny?: boolean;
-    allowThrowingUnknown?: boolean;
-    allow?: string[];
-  }) => {
-    const options = {
-      allowThrowingAny: true,
-      allowThrowingUnknown: true,
-      ..._options,
-    };
+export type OnlyThrowErrorOptions = {
+  /**
+   * Whether to always allow throwing values typed as `any`.
+   * @default true
+   */
+  allowThrowingAny?: boolean;
+  /**
+   * Whether to always allow throwing values typed as `unknown`.
+   * @default true
+   */
+  allowThrowingUnknown?: boolean;
+  /**
+   * A list of identifiers to ignore.
+   * @default []
+   */
+  allow?: string[];
+};
 
-    return {
-      name: "core/onlyThrowError",
-      visitor: {
-        ThrowStatement({ expression: node }, context) {
-          if (
-            node.kind === SyntaxKind.AwaitExpression ||
-            node.kind === SyntaxKind.YieldExpression
-          ) {
+export const onlyThrowError = createRule((_options?: OnlyThrowErrorOptions) => {
+  const options = {
+    allowThrowingAny: true,
+    allowThrowingUnknown: true,
+    ..._options,
+  };
+
+  return {
+    name: "core/onlyThrowError",
+    visitor: {
+      ThrowStatement({ expression: node }, context) {
+        if (
+          node.kind === SyntaxKind.AwaitExpression ||
+          node.kind === SyntaxKind.YieldExpression
+        ) {
+          return;
+        }
+
+        const type = context.checker.getTypeAtLocation(node);
+
+        if (options.allow) {
+          const identifier =
+            node.kind === SyntaxKind.NewExpression ||
+            node.kind === SyntaxKind.CallExpression
+              ? node.expression
+              : node;
+          if (options.allow.includes(identifier.getText())) {
             return;
           }
+        }
 
-          const type = context.checker.getTypeAtLocation(node);
+        if (type.flags & ts.TypeFlags.Undefined) {
+          context.report({ node, message: messages.undef });
+          return;
+        }
 
-          if (options.allow) {
-            const identifier =
-              node.kind === SyntaxKind.NewExpression ||
-              node.kind === SyntaxKind.CallExpression
-                ? node.expression
-                : node;
-            if (options.allow.includes(identifier.getText())) {
-              return;
-            }
-          }
+        if (options.allowThrowingAny && isIntrinsicAnyType(type)) {
+          return;
+        }
 
-          if (type.flags & ts.TypeFlags.Undefined) {
-            context.report({ node, message: messages.undef });
-            return;
-          }
+        if (options.allowThrowingUnknown && isIntrinsicUnknownType(type)) {
+          return;
+        }
 
-          if (options.allowThrowingAny && isIntrinsicAnyType(type)) {
-            return;
-          }
+        if (isBuiltinSymbolLike(context.program, type, "Error")) {
+          return;
+        }
 
-          if (options.allowThrowingUnknown && isIntrinsicUnknownType(type)) {
-            return;
-          }
-
-          if (isBuiltinSymbolLike(context.program, type, "Error")) {
-            return;
-          }
-
-          context.report({ node, message: messages.object });
-        },
+        context.report({ node, message: messages.object });
       },
-    };
-  },
-);
+    },
+  };
+});

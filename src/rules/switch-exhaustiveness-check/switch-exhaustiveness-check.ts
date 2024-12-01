@@ -18,6 +18,25 @@ export const messages = {
     `Switch is not exhaustive. Cases not matched: ${params.missingCases}`,
 };
 
+export type SwitchExhaustivenessCheckOptions = {
+  /**
+   * If `true`, allow `default` cases on switch statements with exhaustive
+   * cases.
+   * @default true
+   */
+  allowDefaultCaseForExhaustiveSwitch?: boolean;
+  /**
+   * If `true`, require a `default` clause for switches on non-union types.
+   * @default false
+   */
+  requireDefaultForNonUnion?: boolean;
+  /**
+   * If `true`, the `default` clause is used to determine whether the switch statement is exhaustive for union types.
+   * @default false
+   */
+  considerDefaultExhaustiveForUnions?: boolean;
+};
+
 type SwitchMetadata = {
   containsNonLiteralType: boolean;
   defaultCase: AST.DefaultClause | undefined;
@@ -25,29 +44,7 @@ type SwitchMetadata = {
   symbolName: string | undefined;
 };
 export const switchExhaustivenessCheck = createRule(
-  (_options?: {
-    /**
-     * If `true`, allow `default` cases on switch statements with exhaustive
-     * cases.
-     *
-     * @default true
-     */
-    allowDefaultCaseForExhaustiveSwitch?: boolean;
-
-    /**
-     * If `true`, require a `default` clause for switches on non-union types.
-     *
-     * @default false
-     */
-    requireDefaultForNonUnion?: boolean;
-
-    /**
-     * If `true`, the `default` clause is used to determine whether the switch statement is exhaustive for union types.
-     *
-     * @default false
-     */
-    considerDefaultExhaustiveForUnions?: boolean;
-  }) => {
+  (_options?: SwitchExhaustivenessCheckOptions) => {
     const options = {
       allowDefaultCaseForExhaustiveSwitch: true,
       considerDefaultExhaustiveForUnions: false,

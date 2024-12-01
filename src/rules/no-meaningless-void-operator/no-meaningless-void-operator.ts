@@ -8,8 +8,16 @@ export const messages = {
   removeVoid: "Remove 'void'",
 };
 
+export type NoMeaninglessVoidOperatorOptions = {
+  /**
+   * Whether to suggest removing `void` when the argument has type `never`.
+   * @default false
+   */
+  checkNever?: boolean;
+};
+
 export const noMeaninglessVoidOperator = createRule(
-  (options?: { checkNever: boolean }) => ({
+  (options?: NoMeaninglessVoidOperatorOptions) => ({
     name: "core/noMeaninglessVoidOperator",
     visitor: {
       VoidExpression(node, context) {
