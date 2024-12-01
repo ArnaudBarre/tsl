@@ -1,13 +1,19 @@
-const rules = new Bun.Glob("src/rules/*.ts");
+import { readdirSync } from "node:fs";
+
+const rules = readdirSync("src/rules").filter(
+  (f) => !f.startsWith(".") && !f.startsWith("_"),
+);
 
 let fileFocus = process.argv[2];
 if (fileFocus && !fileFocus.endsWith(".ts")) fileFocus += ".ts";
 
 let hasError = false;
 
-for await (let rule of rules.scan()) {
-  if (fileFocus && rule.split("/").pop() !== fileFocus) continue;
-  const module = (await import(`../${rule}`)) as { test?: () => boolean };
+for (const rule of rules) {
+  if (fileFocus && rule !== fileFocus) continue;
+  const module = (await import(`../src/rules/${rule}/${rule}.test.ts`)) as {
+    test?: () => boolean;
+  };
   if (module.test) {
     hasError ||= module.test();
   } else {

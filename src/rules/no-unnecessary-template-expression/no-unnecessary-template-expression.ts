@@ -1,0 +1,139 @@
+import { isTypeFlagSet } from "ts-api-utils";
+import ts, { SyntaxKind } from "typescript";
+import { createRule } from "../../public-utils.ts";
+import type { AST, Context } from "../../types.ts";
+
+export const messages = {
+  unnecessaryTemplateString: "Template string is unnecessary.",
+  removeUnnecessaryTemplateString: "Remove unnecessary template string.",
+  unnecessaryTemplateExpression:
+    "Template literal expression is unnecessary and can be simplified.",
+  removeUnnecessaryTemplateExpression:
+    "Remove unnecessary template expression.",
+};
+
+export const noUnnecessaryTemplateExpression = createRule(() => ({
+  name: "core/noUnnecessaryTemplateExpression",
+  visitor: {
+    TemplateExpression(node, context) {
+      if (node.parent.kind === SyntaxKind.TaggedTemplateExpression) {
+        return;
+      }
+
+      const hasSingleStringVariable =
+        node.head.text === "" &&
+        node.templateSpans.length === 1 &&
+        node.templateSpans[0].literal.text === "" &&
+        isUnderlyingTypeString(node.templateSpans[0].expression, context);
+
+      if (hasSingleStringVariable) {
+        context.report({
+          node: node.templateSpans[0],
+          message: messages.unnecessaryTemplateString,
+          suggestions: [
+            {
+              message: messages.removeUnnecessaryTemplateString,
+              changes: [
+                {
+                  node,
+                  newText: node.templateSpans[0].expression.getFullText(),
+                },
+              ],
+            },
+          ],
+        });
+        return;
+      }
+
+      for (const span of node.templateSpans) {
+        if (
+          span.expression.kind === SyntaxKind.StringLiteral ||
+          span.expression.kind === SyntaxKind.BigIntLiteral ||
+          span.expression.kind === SyntaxKind.NumericLiteral ||
+          span.expression.kind === SyntaxKind.TrueKeyword ||
+          span.expression.kind === SyntaxKind.FalseKeyword ||
+          span.expression.kind === SyntaxKind.NullKeyword ||
+          (span.expression.kind === SyntaxKind.Identifier &&
+            span.expression.text === "undefined")
+        ) {
+          // Skip if contains a comment
+          if (span.literal.getLeadingTriviaWidth()) continue;
+
+          if (
+            span.expression.kind === SyntaxKind.StringLiteral &&
+            isWhitespace(span.expression.text) &&
+            startsWithNewLine(span.literal.text)
+          ) {
+            // Allow making trailing whitespace visible
+            // `Head:${'    '}
+            // `
+            continue;
+          }
+
+          context.report({
+            node: span,
+            message: messages.unnecessaryTemplateExpression,
+            suggestions: () => {
+              const expressionText =
+                span.expression.kind === SyntaxKind.StringLiteral
+                  ? span.expression.getText().slice(1, -1)
+                  : span.expression.kind === SyntaxKind.BigIntLiteral
+                  ? parseInt(span.expression.getText()).toString()
+                  : span.expression.getText();
+              const isLastSpan = span === node.templateSpans.at(-1);
+              return [
+                {
+                  message: messages.removeUnnecessaryTemplateExpression,
+                  changes: [
+                    {
+                      start: span.getStart() - 2,
+                      end: span.getEnd() - (isLastSpan ? 1 : 2),
+                      newText: expressionText + span.literal.text,
+                    },
+                  ],
+                },
+              ];
+            },
+          });
+        }
+      }
+    },
+  },
+}));
+
+function isUnderlyingTypeString(
+  expression: AST.Expression,
+  context: Context,
+): expression is AST.Identifier | AST.StringLiteral {
+  const type = context.utils.getConstrainedTypeAtLocation(expression);
+
+  const isString = (t: ts.Type): boolean => {
+    return isTypeFlagSet(t, ts.TypeFlags.StringLike);
+  };
+
+  if (type.isUnion()) {
+    return type.types.every(isString);
+  }
+
+  if (type.isIntersection()) {
+    return type.types.some(isString);
+  }
+
+  return isString(type);
+}
+
+function isWhitespace(x: string): boolean {
+  // allow empty string too since we went to allow
+  // `      ${''}
+  // `;
+  //
+  // in addition to
+  // `${'        '}
+  // `;
+  //
+  return /^\s*$/.test(x);
+}
+
+function startsWithNewLine(x: string): boolean {
+  return x.startsWith("\n") || x.startsWith("\r\n");
+}
