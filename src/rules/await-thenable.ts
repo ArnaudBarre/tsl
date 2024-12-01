@@ -6,7 +6,7 @@ import {
 import { NodeFlags } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
-import { needsToBeAwaited } from "./utils/needsToBeAwaited.ts";
+import { needsToBeAwaited } from "./_utils/needsToBeAwaited.ts";
 
 const messages = {
   await: 'Unexpected `await` of a non-Promise (non-"Thenable") value.',

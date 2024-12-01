@@ -4,7 +4,7 @@ import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { typeHasFlag } from "../types-utils.ts";
 import type { Context } from "../types.ts";
-import { getTypeName } from "./utils/index.ts";
+import { getTypeName } from "./_utils/index.ts";
 
 const messages = {
   invalidType: (params: { type: string }) =>

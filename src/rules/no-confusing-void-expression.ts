@@ -9,7 +9,7 @@ import type { AnyNode } from "../ast.ts";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Context, Suggestion } from "../types.ts";
-import { getParentFunctionNode, isLogicalExpression } from "./utils";
+import { getParentFunctionNode, isLogicalExpression } from "./_utils";
 
 const messages = {
   invalidVoidExpr:

@@ -4,7 +4,7 @@ import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { typeHasFlag } from "../types-utils.ts";
 import type { AST, Context, Suggestion } from "../types.ts";
-import { getContextualType, isConstAssertion } from "./utils";
+import { getContextualType, isConstAssertion } from "./_utils";
 
 const messages = {
   contextuallyUnnecessary:

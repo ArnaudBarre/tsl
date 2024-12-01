@@ -5,7 +5,7 @@ import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { typeHasFlag } from "../types-utils.ts";
 import type { AST, Context, Suggestion } from "../types.ts";
-import { isLogicalExpression } from "./utils";
+import { isLogicalExpression } from "./_utils";
 
 const messages = {
   noStrictNullCheck:

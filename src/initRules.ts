@@ -1,7 +1,6 @@
 import ts from "typescript";
 import type { AnyNode, SourceFile, Visitor } from "./ast.ts";
 import { getContextUtils } from "./getContextUtils.ts";
-import { run } from "./rules/utils";
 import type {
   AST,
   Checker,
@@ -17,6 +16,8 @@ const timing = !!process.env["TIMING"];
 
 const matchPattern = (pattern: string, fileName: string) =>
   fileName.includes(pattern);
+
+const run = <T>(cb: () => T) => cb();
 
 export const initRules = async (
   getProgram: () => ts.Program,

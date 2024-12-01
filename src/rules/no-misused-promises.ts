@@ -9,7 +9,7 @@ import {
   isFunction,
   isLogicalExpression,
   run,
-} from "./utils";
+} from "./_utils";
 
 const messages = {
   conditional: "Expected non-Promise value in a boolean conditional.",

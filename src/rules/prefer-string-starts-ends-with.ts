@@ -2,8 +2,8 @@ import { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Context, Suggestion } from "../types.ts";
-import { compareNodes } from "./utils/compareNodes.ts";
-import { getTypeName, isLiteralKind } from "./utils/index.ts";
+import { compareNodes } from "./_utils/compareNodes.ts";
+import { getTypeName, isLiteralKind } from "./_utils/index.ts";
 
 const messages = {
   preferStartsWith: "Use 'String#startsWith' instead.",

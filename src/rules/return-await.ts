@@ -2,8 +2,8 @@ import { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Context, Suggestion } from "../types.ts";
-import { isHigherPrecedenceThanUnary } from "./utils/index.ts";
-import { needsToBeAwaited } from "./utils/needsToBeAwaited.ts";
+import { isHigherPrecedenceThanUnary } from "./_utils/index.ts";
+import { needsToBeAwaited } from "./_utils/needsToBeAwaited.ts";
 
 const messages = {
   requiredPromiseAwait: "Returned value must be awaited.",

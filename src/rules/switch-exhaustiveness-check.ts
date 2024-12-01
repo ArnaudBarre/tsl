@@ -8,7 +8,7 @@ import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Context, Suggestion } from "../types.ts";
-import { requiresQuoting } from "./utils/index.ts";
+import { requiresQuoting } from "./_utils/index.ts";
 
 const messages = {
   addMissingCases: "Add branches for missing cases.",

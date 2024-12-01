@@ -4,7 +4,7 @@ import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { typeHasFlag } from "../types-utils.ts";
 import type { AST, Context } from "../types.ts";
-import { isConstAssertion } from "./utils";
+import { isConstAssertion } from "./_utils";
 
 const messages = {
   preferNonNullAssertion:

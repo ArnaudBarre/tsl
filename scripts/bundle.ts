@@ -17,7 +17,9 @@ const commonOptions = {
 const fileToFunction = (folder: string) =>
   folder.replace(/-([a-z])/gu, (_, c) => c.toUpperCase());
 
-const rules = readdirSync("src/rules").filter((f) => !f.startsWith("."));
+const rules = readdirSync("src/rules").filter(
+  (f) => !f.startsWith(".") && !f.startsWith("_"),
+);
 
 await build({
   ...commonOptions,

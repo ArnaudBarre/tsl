@@ -4,8 +4,8 @@ import type { AnyNode } from "../ast.ts";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Context } from "../types.ts";
-import { isReferenceToGlobalFunction } from "./utils";
-import { isBuiltinSymbolLike } from "./utils/isBuiltinSymbolLike.ts";
+import { isReferenceToGlobalFunction } from "./_utils";
+import { isBuiltinSymbolLike } from "./_utils/isBuiltinSymbolLike.ts";
 
 const messages = {
   noImpliedEvalError: "Implied eval. Consider passing a function.",

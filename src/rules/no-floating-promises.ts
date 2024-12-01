@@ -3,8 +3,8 @@ import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Checker, Context, Suggestion } from "../types.ts";
-import { isHigherPrecedenceThanUnary, isLogicalExpression } from "./utils";
-import { isBuiltinSymbolLike } from "./utils/isBuiltinSymbolLike.ts";
+import { isHigherPrecedenceThanUnary, isLogicalExpression } from "./_utils";
+import { isBuiltinSymbolLike } from "./_utils/isBuiltinSymbolLike.ts";
 
 const messageBase =
   "Promises must be awaited, end with a call to .catch, or end with a call to .then with a rejection handler.";

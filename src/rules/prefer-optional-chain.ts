@@ -10,13 +10,17 @@ import { createRule } from "../public-utils.ts";
 import { ruleTester } from "../ruleTester.ts";
 import { typeHasFlag } from "../types-utils.ts";
 import type { AST, Context, ReportDescriptor } from "../types.ts";
-import { isLogicalExpression, isReferenceToGlobalFunction, run } from "./utils";
-import { compareNodes } from "./utils/compareNodes.ts";
+import {
+  isLogicalExpression,
+  isReferenceToGlobalFunction,
+  run,
+} from "./_utils";
+import { compareNodes } from "./_utils/compareNodes.ts";
 import {
   getOperatorPrecedence,
   getOperatorPrecedenceForNode,
   OperatorPrecedence,
-} from "./utils/getOperatorPrecedence.ts";
+} from "./_utils/getOperatorPrecedence.ts";
 
 const messages = {
   optionalChainSuggest: "Change to an optional chain.",

@@ -18,7 +18,7 @@ import {
   isArrayMethodCallWithPredicate,
   isLiteralKind,
   isLogicalExpression,
-} from "./utils";
+} from "./_utils";
 
 const messages = {
   alwaysFalsy: "Unnecessary conditional, value is always falsy.",
@@ -855,7 +855,7 @@ const isPossiblyTruthy = (type: ts.Type): boolean =>
       intersectionParts.every(
         (type) =>
           !isFalsyType(type) &&
-          // below is a workaround for ts-api-utils bug
+          // below is a workaround for ts-api-_utils bug
           // see https://github.com/JoshuaKGoldberg/ts-api-utils/issues/544
           !isFalsyBigInt(type),
       ),
