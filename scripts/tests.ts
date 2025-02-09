@@ -4,9 +4,12 @@ const rules = readdirSync("src/rules").filter(
   (f) => !f.startsWith(".") && !f.startsWith("_"),
 );
 
-let fileFocus = process.argv[2];
-if (fileFocus && !fileFocus.endsWith(".ts")) fileFocus += ".ts";
-
+let fileFocus = process.argv
+  .at(2)
+  ?.replaceAll(/[A-Z]/g, (l) => `-${l.toLowerCase()}`);
+if (fileFocus?.endsWith(".ts")) fileFocus = fileFocus.slice(0, -3);
+if (fileFocus?.startsWith("core/")) fileFocus = fileFocus.slice(5);
+if (fileFocus?.startsWith("src/rules/")) fileFocus = fileFocus.slice(10);
 let hasError = false;
 
 for (const rule of rules) {
@@ -15,7 +18,8 @@ for (const rule of rules) {
     test?: () => boolean;
   };
   if (module.test) {
-    hasError ||= module.test();
+    const result = module.test();
+    hasError ||= result;
   } else {
     hasError = true;
     console.log(`No tests for ${rule}`);

@@ -28,6 +28,11 @@ export const test = () =>
   ruleTester({
     ruleFn: preferNullishCoalescing,
     valid: [
+      "declare let x: string | undefined; x ? x : '1';",
+      "declare let x: number | undefined; x ? x : 1;",
+      "declare let x: string | undefined; !x ? '1' : x;",
+      "declare let x: number | undefined; !x ? 1 : x;",
+      "declare let x: number | undefined; 15 !== x && x !== undefined ? x : y;",
       ...types.map(
         (type) => `
 declare let x: ${type};
@@ -471,8 +476,36 @@ if (((a = b), b || c)) {
         `,
       },
     ],
-
     invalid: [
+      // ternaries
+      {
+        code: "declare let x: object | undefined; x ? x : {};",
+        errors: [
+          {
+            message: messages.preferNullishOverTernary,
+            suggestions: [
+              {
+                message: messages.suggestNullish({ equals: "" }),
+                output: "declare let x: object | undefined; x ?? {};",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: "declare let x: object | undefined; !x ? {} : x;",
+        errors: [
+          {
+            message: messages.preferNullishOverTernary,
+            suggestions: [
+              {
+                message: messages.suggestNullish({ equals: "" }),
+                output: "declare let x: object | undefined; x ?? {};",
+              },
+            ],
+          },
+        ],
+      },
       ...nullishTypeTest((nullish, type, equals) => ({
         code: `
 declare let x: ${type} | ${nullish};

@@ -90,7 +90,6 @@ function first<T extends A | B | null>(array: ArrayLike<T>): T | null {
         code,
       })),
     ],
-
     invalid: [
       {
         code: `

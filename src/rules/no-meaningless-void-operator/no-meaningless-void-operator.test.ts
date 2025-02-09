@@ -26,7 +26,6 @@ function bar(x: never) {
 }
     `,
     ],
-
     invalid: [
       {
         code: "void (() => {})();",

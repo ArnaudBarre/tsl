@@ -56,7 +56,6 @@ export const test = () =>
       }
     `,
     ],
-
     invalid: [
       // positive
       {

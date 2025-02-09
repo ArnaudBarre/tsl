@@ -142,8 +142,25 @@ type A = Map<string, string>;
 type B<T = A> = T;
 type C2 = B<Map<string, number>>;
     `,
+      {
+        tsx: true,
+        code: `
+function Button<T>() {
+  return <div></div>;
+}
+const button = <Button<string>></Button>;
+      `,
+      },
+      {
+        tsx: true,
+        code: `
+function Button<T>() {
+  return <div></div>;
+}
+const button = <Button<string> />;
+      `,
+      },
     ],
-
     invalid: [
       {
         code: `
@@ -537,6 +554,162 @@ type D = C;
 type E<T = B> = T;
 type F = E;
       `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+interface Foo {}
+declare var Foo: {
+  new <T = string>(type: T): any;
+};
+class Bar extends Foo<string> {}
+      `,
+        errors: [
+          {
+            message: messages.unnecessaryTypeParameter,
+            line: 6,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+                output: `
+interface Foo {}
+declare var Foo: {
+  new <T = string>(type: T): any;
+};
+class Bar extends Foo {}
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+declare var Foo: {
+  new <T = string>(type: T): any;
+};
+interface Foo {}
+class Bar extends Foo<string> {}
+      `,
+        errors: [
+          {
+            message: messages.unnecessaryTypeParameter,
+            line: 6,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+                output: `
+declare var Foo: {
+  new <T = string>(type: T): any;
+};
+interface Foo {}
+class Bar extends Foo {}
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+class Foo<T> {}
+interface Foo<T = string> {}
+class Bar implements Foo<string> {}
+      `,
+        errors: [
+          {
+            message: messages.unnecessaryTypeParameter,
+            line: 4,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+                output: `
+class Foo<T> {}
+interface Foo<T = string> {}
+class Bar implements Foo {}
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+class Foo<T = string> {}
+namespace Foo {
+  export class Bar {}
+}
+class Bar extends Foo<string> {}
+      `,
+        errors: [
+          {
+            message: messages.unnecessaryTypeParameter,
+            line: 6,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+                output: `
+class Foo<T = string> {}
+namespace Foo {
+  export class Bar {}
+}
+class Bar extends Foo {}
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        tsx: true,
+        code: `
+function Button<T = string>() {
+  return <div></div>;
+}
+const button = <Button<string>></Button>;
+        `,
+        errors: [
+          {
+            message: messages.unnecessaryTypeParameter,
+            line: 5,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+                output: `
+function Button<T = string>() {
+  return <div></div>;
+}
+const button = <Button></Button>;
+        `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        tsx: true,
+        code: `
+function Button<T = string>() {
+  return <div></div>;
+}
+const button = <Button<string> />;
+        `,
+        errors: [
+          {
+            message: messages.unnecessaryTypeParameter,
+            line: 5,
+            suggestions: [
+              {
+                message: messages.removeTypeArgument,
+                output: `
+function Button<T = string>() {
+  return <div></div>;
+}
+const button = <Button />;
+        `,
               },
             ],
           },

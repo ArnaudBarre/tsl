@@ -49,25 +49,33 @@ export const test = () =>
         return a.concat(1);
       }, [] as number[]);
     `,
+      `
+    ['a', 'b'].reduce(
+      (accum, name) => ({
+        ...accum,
+        [name]: true,
+      }),
+      {} as Record<'a' | 'b', boolean>,
+    );
+  `,
     ],
-
     invalid: [
       {
         code: `
 declare const arr: string[];
-arr.reduce<string>(acc => acc, arr.shift() as string);
+arr.reduce<string | undefined>(acc => acc, arr.shift() as string | undefined);
       `,
         errors: [
           {
             message: messages.preferTypeParameter,
             line: 3,
-            column: 32,
+            column: 44,
             suggestions: [
               {
                 message: messages.fix,
                 output: `
 declare const arr: string[];
-arr.reduce<string>(acc => acc, arr.shift());
+arr.reduce<string | undefined>(acc => acc, arr.shift());
       `,
               },
             ],

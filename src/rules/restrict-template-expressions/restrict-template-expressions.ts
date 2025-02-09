@@ -76,7 +76,6 @@ const optionTesters = (
           context.checker.isTupleType(type)) &&
         recursivelyCheckType(type.getNumberIndexType()!, context),
     ],
-
     ["Boolean", testTypeFlag(TypeFlags.BooleanLike)],
     ["Nullish", testTypeFlag(TypeFlags.Null | TypeFlags.Undefined)],
     ["Number", testTypeFlag(TypeFlags.NumberLike | TypeFlags.BigIntLike)],
@@ -85,7 +84,6 @@ const optionTesters = (
       (type, context): boolean =>
         getTypeName(context.rawChecker, type) === "RegExp",
     ],
-
     ["Never", isIntrinsicNeverType],
   ] as const satisfies [string, OptionTester][]
 ).map(([type, tester]) => ({

@@ -1,6 +1,6 @@
 import { isTypeFlagSet } from "ts-api-utils";
 import { SyntaxKind, TypeFlags } from "typescript";
-import { isConstAssertion, typeHasFlag } from "../_utils";
+import { isConstAssertion, typeHasFlag } from "../_utils/index.ts";
 import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 

@@ -303,7 +303,6 @@ export const test = () =>
       `,
       },
     ],
-
     invalid: [
       // String indexing
       {

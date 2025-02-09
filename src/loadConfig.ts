@@ -113,12 +113,7 @@ const logEsbuildErrors = ({ errors, warnings }: BuildResult): void => {
 const getHash = (content: string | Buffer): string =>
   typeof content === "string"
     ? createHash("sha1").update(content, "utf-8").digest("hex")
-    : createHash("sha1")
-        .update(
-          // @ts-expect-error
-          content,
-        )
-        .digest("hex");
+    : createHash("sha1").update(content).digest("hex");
 
 const readMaybeFileSync = (path: string): string | undefined => {
   try {

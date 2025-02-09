@@ -5,7 +5,7 @@ import type { Context, Suggestion } from "../../types.ts";
 
 export const messages = {
   preferTypeParameter:
-    "Unnecessary cast: Array#reduce accepts a type parameter for the default value.",
+    "Unnecessary assertion: Array#reduce accepts a type parameter for the default value.",
   fix: "Replace with a type parameter.",
 };
 
@@ -29,6 +29,22 @@ export const preferReduceTypeParameter = createRule(() => ({
         callee.expression,
       );
       if (!isArrayType(calleeObjType, context)) return;
+
+      const initializerType = context.checker.getTypeAtLocation(
+        secondArg.expression,
+      );
+
+      const assertedType = context.checker.getTypeAtLocation(secondArg.type);
+
+      const isAssertionNecessary = !context.checker.isTypeAssignableTo(
+        initializerType,
+        assertedType,
+      );
+
+      // don't report this if the resulting fix will be a type error
+      if (isAssertionNecessary) {
+        return;
+      }
 
       context.report({
         node: secondArg,

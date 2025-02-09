@@ -1,6 +1,9 @@
 import { unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
-import { isHigherPrecedenceThanUnary, isLogicalExpression } from "../_utils";
+import {
+  isHigherPrecedenceThanUnary,
+  isLogicalExpression,
+} from "../_utils/index.ts";
 import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
 import { createRule } from "../../index.ts";
 import type { AST, Checker, Context, Suggestion } from "../../types.ts";

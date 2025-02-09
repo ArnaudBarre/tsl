@@ -1,12 +1,13 @@
 import { getPropertyOfType, isTypeFlagSet, unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import {
+  hasModifier,
   isArrayMethodCallWithPredicate,
   isAssignmentExpression,
   isFunction,
   isLogicalExpression,
   run,
-} from "../_utils";
+} from "../_utils/index.ts";
 import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 
@@ -814,6 +815,6 @@ function isStaticMember(node: AST.AnyNode): boolean {
   return (
     (node.kind === SyntaxKind.MethodDeclaration ||
       node.kind === SyntaxKind.PropertyDeclaration) &&
-    (node.modifiers?.some((m) => m.kind === SyntaxKind.StaticKeyword) ?? false)
+    hasModifier(node, SyntaxKind.StaticKeyword)
   );
 }

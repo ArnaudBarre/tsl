@@ -352,7 +352,6 @@ export const test = () =>
       "const msg = `arg = ${123}`;",
       "const msg = `arg = ${'abc'}`;",
     ],
-
     invalid: [
       {
         options: { allowNumber: false },

@@ -280,8 +280,11 @@ const f = (a: string | number, b: number) => a + b;
 const f = (a: string | number, b: string | number) => a + b;
       `,
       },
+      {
+        code: "let foo = '1' + 1n;",
+        options: { allowNumberAndString: true },
+      },
     ],
-
     invalid: [
       {
         options: { allowNumberAndString: false },
@@ -1475,6 +1478,19 @@ const f = (a: any, b: unknown) => a + b;
             }),
             line: 2,
             column: 39,
+          },
+        ],
+      },
+      {
+        code: "let foo = '1' + 1n;",
+        options: { allowNumberAndString: false },
+        errors: [
+          {
+            message: messages.mismatched({
+              left: '"1"',
+              right: "1n",
+              stringLike: "string, allowing a string + `boolean`",
+            }),
           },
         ],
       },

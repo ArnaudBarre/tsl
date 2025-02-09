@@ -256,7 +256,24 @@ function count(
 ) {
   return list.filter(predicate).length;
 }
-    `, // Ignores non-array methods of the same name
+    `,
+      `
+declare const test: <T>() => T;
+
+[1, null].filter(test);
+    `,
+      `
+declare const test: <T extends boolean>() => T;
+
+[1, null].filter(test);
+    `,
+      `
+[1, null].filter(1 as any);
+    `,
+      `
+[1, null].filter(1 as never);
+    `,
+      // Ignores non-array methods of the same name
       `
 const notArray = {
   filter: (func: () => boolean) => func(),
@@ -600,6 +617,22 @@ declare const key: Key;
 foo?.[key]?.trim();
       `,
       },
+      {
+        compilerOptions: { noUncheckedIndexedAccess: true },
+        code: `
+type A = {
+  [name in Lowercase<string>]?: {
+    [name in Lowercase<string>]: {
+      a: 1;
+    };
+  };
+};
+
+declare const a: A;
+
+a.a?.a?.a;
+      `,
+      },
       `
 let latencies: number[][] = [];
 
@@ -877,8 +910,25 @@ declare function isString(x: unknown): x is string;
 isString('falafel');
       `,
       },
+      `
+function test<T>(arg: T, key: keyof T) {
+  if (arg[key]?.toString()) {
+  }
+}
+    `,
+      `
+function test<T>(arg: T, key: keyof T) {
+  if (arg?.toString()) {
+  }
+}
+    `,
+      `
+function test<T>(arg: T | { value: string }) {
+  if (arg?.value) {
+  }
+}
+    `,
     ],
-
     invalid: [
       // Ensure that it's checking in all the right places
       {
@@ -914,7 +964,12 @@ switch (b1) {
           { message: messages.alwaysTruthy, line: 15, column: 12 },
           { message: messages.alwaysTruthy, line: 16, column: 18 },
           {
-            message: messages.literalBooleanExpression({ trueOrFalse: "true" }),
+            message: messages.comparisonBetweenLiteralTypes({
+              trueOrFalse: "true",
+              left: "true",
+              operator: "===",
+              right: "true",
+            }),
             line: 18,
             column: 8,
           },
@@ -1002,7 +1057,12 @@ function test(a: 'a') {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({ trueOrFalse: "true" }),
+            message: messages.comparisonBetweenLiteralTypes({
+              trueOrFalse: "true",
+              left: '"a"',
+              operator: "===",
+              right: '"a"',
+            }),
             line: 3,
             column: 10,
           },
@@ -1016,8 +1076,11 @@ a > b;
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({
+            message: messages.comparisonBetweenLiteralTypes({
               trueOrFalse: "false",
+              left: '"34"',
+              operator: ">",
+              right: '"56"',
             }),
             line: 4,
           },
@@ -1031,8 +1094,11 @@ if (y === 0) {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({
+            message: messages.comparisonBetweenLiteralTypes({
               trueOrFalse: "false",
+              left: "1",
+              operator: "===",
+              right: "0",
             }),
             line: 3,
           },
@@ -1046,7 +1112,12 @@ if (1 == '1') {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({ trueOrFalse: "true" }),
+            message: messages.comparisonBetweenLiteralTypes({
+              trueOrFalse: "true",
+              left: "1",
+              operator: "==",
+              right: '"1"',
+            }),
             line: 3,
           },
         ],
@@ -1057,8 +1128,11 @@ if (1 == '1') {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({
+            message: messages.comparisonBetweenLiteralTypes({
               trueOrFalse: "false",
+              left: "2.3",
+              operator: ">",
+              right: "2.3",
             }),
             line: 2,
           },
@@ -1070,7 +1144,12 @@ if (1 == '1') {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({ trueOrFalse: "true" }),
+            message: messages.comparisonBetweenLiteralTypes({
+              trueOrFalse: "true",
+              left: "2.3",
+              operator: ">=",
+              right: "2.3",
+            }),
             line: 2,
           },
         ],
@@ -1081,8 +1160,11 @@ if (1 == '1') {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({
+            message: messages.comparisonBetweenLiteralTypes({
               trueOrFalse: "false",
+              left: "2n",
+              operator: "<",
+              right: "2n",
             }),
             line: 2,
           },
@@ -1094,7 +1176,12 @@ if (1 == '1') {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({ trueOrFalse: "true" }),
+            message: messages.comparisonBetweenLiteralTypes({
+              trueOrFalse: "true",
+              left: "2n",
+              operator: "<=",
+              right: "2n",
+            }),
             line: 2,
           },
         ],
@@ -1105,7 +1192,12 @@ if (1 == '1') {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({ trueOrFalse: "true" }),
+            message: messages.comparisonBetweenLiteralTypes({
+              trueOrFalse: "true",
+              left: "-2n",
+              operator: "!==",
+              right: "2n",
+            }),
             line: 2,
           },
         ],
@@ -1118,8 +1210,11 @@ if (1 == '2') {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({
+            message: messages.comparisonBetweenLiteralTypes({
               trueOrFalse: "false",
+              left: "1",
+              operator: "==",
+              right: '"2"',
             }),
             line: 3,
           },
@@ -1133,7 +1228,12 @@ if (1 != '2') {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({ trueOrFalse: "true" }),
+            message: messages.comparisonBetweenLiteralTypes({
+              trueOrFalse: "true",
+              left: "1",
+              operator: "!=",
+              right: '"2"',
+            }),
             line: 3,
           },
         ],
@@ -1151,7 +1251,12 @@ if (x === Foo.a) {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({ trueOrFalse: "true" }),
+            message: messages.comparisonBetweenLiteralTypes({
+              trueOrFalse: "true",
+              left: "Foo.a",
+              operator: "===",
+              right: "Foo.a",
+            }),
             line: 8,
             column: 5,
           },
@@ -1168,7 +1273,12 @@ function takesMaybeValue(a: null | object) {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({ trueOrFalse: "true" }),
+            message: messages.comparisonBetweenLiteralTypes({
+              trueOrFalse: "true",
+              left: "null",
+              operator: "==",
+              right: "undefined",
+            }),
             line: 4,
             column: 14,
             endColumn: 28,
@@ -1187,8 +1297,11 @@ function takesMaybeValue(a: null | object) {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({
+            message: messages.comparisonBetweenLiteralTypes({
               trueOrFalse: "false",
+              left: "null",
+              operator: "===",
+              right: "undefined",
             }),
             line: 4,
             column: 14,
@@ -1208,8 +1321,11 @@ function takesMaybeValue(a: null | object) {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({
+            message: messages.comparisonBetweenLiteralTypes({
               trueOrFalse: "false",
+              left: "null",
+              operator: "!=",
+              right: "undefined",
             }),
             line: 4,
             column: 14,
@@ -1229,7 +1345,12 @@ function takesMaybeValue(a: null | object) {
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({ trueOrFalse: "true" }),
+            message: messages.comparisonBetweenLiteralTypes({
+              trueOrFalse: "true",
+              left: "null",
+              operator: "!==",
+              right: "undefined",
+            }),
             line: 4,
             column: 14,
             endColumn: 29,
@@ -1243,8 +1364,11 @@ true === false;
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({
+            message: messages.comparisonBetweenLiteralTypes({
               trueOrFalse: "false",
+              left: "true",
+              operator: "===",
+              right: "false",
             }),
           },
         ],
@@ -1255,7 +1379,12 @@ true === true;
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({ trueOrFalse: "true" }),
+            message: messages.comparisonBetweenLiteralTypes({
+              trueOrFalse: "true",
+              left: "true",
+              operator: "===",
+              right: "true",
+            }),
           },
         ],
       },
@@ -1265,8 +1394,11 @@ true === undefined;
       `,
         errors: [
           {
-            message: messages.literalBooleanExpression({
+            message: messages.comparisonBetweenLiteralTypes({
               trueOrFalse: "false",
+              left: "true",
+              operator: "===",
+              right: "undefined",
             }),
           },
         ],
@@ -1518,7 +1650,16 @@ function nothing3(x: [string, string]) {
           { message: messages.alwaysFalsy, line: 13, column: 25 },
           { message: messages.alwaysFalsy, line: 17, column: 25 },
         ],
-      }, // Indexing cases
+      },
+      {
+        code: `
+declare const test: <T extends true>() => T;
+  
+[1, null].filter(test);
+        `,
+        errors: [{ message: messages.alwaysTruthyFunc, line: 4, column: 18 }],
+      },
+      // Indexing cases
       {
         // This is an error because 'dict' doesn't represent
         //  the potential for undefined in its types
@@ -2988,5 +3129,47 @@ isString('fa' + 'lafel');
         '((string & { __brandA: string }) | (number & { __brandB: string })) & ("foo" | 123)',
         "alwaysTruthy",
       ),
+      {
+        code: `
+type A = {
+  [name in Lowercase<string>]?: {
+    [name in Lowercase<string>]: {
+      a: 1;
+    };
+  };
+};
+
+declare const a: A;
+
+a.a?.a?.a;
+      `,
+        errors: [
+          {
+            message: messages.neverOptionalChain,
+            line: 12,
+            column: 7,
+            endLine: 12,
+            endColumn: 9,
+            suggestions: [
+              {
+                message: messages.removeOptionalChain,
+                output: `
+type A = {
+  [name in Lowercase<string>]?: {
+    [name in Lowercase<string>]: {
+      a: 1;
+    };
+  };
+};
+
+declare const a: A;
+
+a.a?.a.a;
+      `,
+              },
+            ],
+          },
+        ],
+      },
     ],
   });

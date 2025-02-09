@@ -2,20 +2,23 @@ import {
   getCallSignaturesOfType,
   intersectionTypeParts,
   isBooleanLiteralType,
+  isFalseLiteralType,
   isFalsyType,
-  isLiteralType,
   isSymbolFlagSet,
   isTrueLiteralType,
+  isTypeParameter,
   unionTypeParts,
 } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
   getTypeName,
+  getValueOfLiteralType,
   isArrayMethodCallWithPredicate,
   isLiteralKind,
   isLogicalExpression,
+  isTypeRecurser,
   typeHasFlag,
-} from "../_utils";
+} from "../_utils/index.ts";
 import { createRule } from "../../index.ts";
 import type { AST, Checker, Context } from "../../types.ts";
 
@@ -28,8 +31,13 @@ export const messages = {
   alwaysTruthy: "Unnecessary conditional, value is always truthy.",
   alwaysTruthyFunc:
     "This callback should return a conditional, but return is always truthy.",
-  literalBooleanExpression: (params: { trueOrFalse: string }) =>
-    `Unnecessary conditional, comparison is always ${params.trueOrFalse}. Both sides of the comparison always have a literal type.`,
+  comparisonBetweenLiteralTypes: (params: {
+    trueOrFalse: string;
+    left: string;
+    operator: string;
+    right: string;
+  }) =>
+    `Unnecessary conditional, comparison is always ${params.trueOrFalse}, since ${params.left} ${params.operator} ${params.right} is ${params.trueOrFalse}.`,
   never: "Unnecessary conditional, value is `never`.",
   neverNullish:
     "Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined.",
@@ -183,6 +191,15 @@ function isArrayIndexExpression(
   );
 }
 
+// Conditional is always necessary if it involves:
+//    `any` or `unknown` or a naked type variable
+function isConditionalAlwaysNecessary(type: ts.Type): boolean {
+  return typeHasFlag(
+    type,
+    TypeFlags.Any | TypeFlags.Unknown | TypeFlags.TypeVariable,
+  );
+}
+
 function isNullableMemberExpression(
   node: AST.PropertyAccessExpression | AST.ElementAccessExpression,
   context: Context,
@@ -250,14 +267,7 @@ function checkNode(
 
   const type = context.utils.getConstrainedTypeAtLocation(expression);
 
-  // Conditional is always necessary if it involves:
-  //    `any` or `unknown` or a naked type variable
-  if (
-    typeHasFlag(
-      type,
-      TypeFlags.Any | TypeFlags.Unknown | TypeFlags.TypeVariable,
-    )
-  ) {
+  if (isConditionalAlwaysNecessary(type)) {
     return;
   }
   let message: string | null = null;
@@ -359,8 +369,11 @@ function checkIfBoolExpressionIsNecessaryConditional(
 
     context.report({
       node,
-      message: messages.literalBooleanExpression({
+      message: messages.comparisonBetweenLiteralTypes({
         trueOrFalse: conditionIsTrue ? "true" : "false",
+        left: context.checker.typeToString(leftType),
+        operator: displayBooleanOperator(operator),
+        right: context.checker.typeToString(rightType),
       }),
     });
     return;
@@ -499,28 +512,55 @@ function checkCallExpression(
     // Otherwise just do type analysis on the function as a whole.
     const returnTypes = getCallSignaturesOfType(
       context.utils.getConstrainedTypeAtLocation(callback),
-    ).map((sig) => sig.getReturnType());
-    /* istanbul ignore if */ if (returnTypes.length === 0) {
-      // Not a callable function
+    ).map((sig) => {
+      const returnType = sig.getReturnType();
+      if (isTypeParameter(returnType)) {
+        return context.checker.getBaseConstraintOfType(returnType);
+      }
+      return returnType;
+    });
+
+    if (returnTypes.length === 0) {
+      // Not a callable function, e.g. `any`
       return;
     }
-    // Predicate is always necessary if it involves `any` or `unknown`
-    if (
-      returnTypes.some(
-        (t) =>
-          typeHasFlag(t, TypeFlags.Any) || typeHasFlag(t, TypeFlags.Unknown),
-      )
-    ) {
-      return;
+
+    let hasFalsyReturnTypes = false;
+    let hasTruthyReturnTypes = false;
+
+    for (const type of returnTypes) {
+      // Predicate is always necessary if it involves `any` or `unknown`
+      if (
+        !type ||
+        typeHasFlag(type, TypeFlags.Any) ||
+        typeHasFlag(type, TypeFlags.Unknown)
+      ) {
+        return;
+      }
+
+      if (isPossiblyFalsy(type)) {
+        hasFalsyReturnTypes = true;
+      }
+
+      if (isPossiblyTruthy(type)) {
+        hasTruthyReturnTypes = true;
+      }
+
+      // bail early if both a possibly-truthy and a possibly-falsy have been detected
+      if (hasFalsyReturnTypes && hasTruthyReturnTypes) {
+        return;
+      }
     }
-    if (!returnTypes.some(isPossiblyFalsy)) {
+
+    if (!hasFalsyReturnTypes) {
       context.report({
         node: callback,
         message: messages.alwaysTruthyFunc,
       });
       return;
     }
-    if (!returnTypes.some(isPossiblyTruthy)) {
+
+    if (!hasTruthyReturnTypes) {
       context.report({
         node: callback,
         message: messages.alwaysFalsyFunc,
@@ -744,7 +784,17 @@ function isMemberExpressionNullableOriginFromObject(
         return isNullableType(propType);
       }
 
-      return !!context.checker.getIndexInfoOfType(type, ts.IndexKind.String);
+      const usingNoUncheckedIndexedAccess =
+        context.compilerOptions.noUncheckedIndexedAccess ?? false;
+
+      return context.checker.getIndexInfosOfType(type).some((info) => {
+        const isStringTypeName =
+          getTypeName(context.rawChecker, info.keyType) === "string";
+        return (
+          isStringTypeName &&
+          (usingNoUncheckedIndexedAccess || isNullableType(info.type))
+        );
+      });
     });
     return !isOwnNullable && isNullableType(prevType);
   }
@@ -782,7 +832,7 @@ function isOptionableExpression(
       : true;
 
   return (
-    typeHasFlag(type, TypeFlags.Any | TypeFlags.Unknown) ||
+    isConditionalAlwaysNecessary(type) ||
     (isOwnNullable && isNullableType(type))
   );
 }
@@ -819,56 +869,29 @@ function checkOptionalChain(
 }
 
 // Truthiness utilities
-const valueIsPseudoBigInt = (
-  value: number | string | ts.PseudoBigInt,
-): value is ts.PseudoBigInt => {
-  return typeof value === "object";
-};
-
-const getValueOfLiteralType = (
-  type: ts.LiteralType,
-): bigint | number | string => {
-  if (valueIsPseudoBigInt(type.value)) {
-    return pseudoBigIntToBigInt(type.value);
-  }
-  return type.value;
-};
-
-const isFalsyBigInt = (type: ts.Type): boolean => {
-  return (
-    isLiteralType(type) &&
-    valueIsPseudoBigInt(type.value) &&
-    !getValueOfLiteralType(type)
-  );
-};
-const isTruthyLiteral = (type: ts.Type): boolean =>
-  isTrueLiteralType(type) ||
-  (type.isLiteral() && !!getValueOfLiteralType(type));
-
-const isPossiblyFalsy = (type: ts.Type): boolean =>
-  unionTypeParts(type)
-    // Intersections like `string & {}` can also be possibly falsy,
-    // requiring us to look into the intersection.
-    .flatMap((type) => intersectionTypeParts(type))
-    // PossiblyFalsy flag includes literal values, so exclude ones that
-    // are definitely truthy
-    .filter((t) => !isTruthyLiteral(t))
-    .some((type) => typeHasFlag(type, ts.TypeFlags.PossiblyFalsy));
+export function isPossiblyFalsy(type: ts.Type): boolean {
+  return isTypeRecurser(type, (t) => {
+    return t.isLiteral()
+      ? !getValueOfLiteralType(t)
+      : t.flags === TypeFlags.Any ||
+          t.flags === TypeFlags.Unknown ||
+          t.flags === TypeFlags.Null ||
+          t.flags === TypeFlags.Undefined ||
+          t.flags === TypeFlags.Void ||
+          t.flags === TypeFlags.String ||
+          t.flags === TypeFlags.Number ||
+          t.flags === TypeFlags.BigInt ||
+          t.flags === TypeFlags.Boolean ||
+          isFalseLiteralType(t);
+  });
+}
 
 const isPossiblyTruthy = (type: ts.Type): boolean =>
-  unionTypeParts(type)
-    .map((type) => intersectionTypeParts(type))
-    .some((intersectionParts) =>
-      // It is possible to define intersections that are always falsy,
-      // like `"" & { __brand: string }`.
-      intersectionParts.every(
-        (type) =>
-          !isFalsyType(type) &&
-          // below is a workaround for ts-api-_utils bug
-          // see https://github.com/JoshuaKGoldberg/ts-api-utils/issues/544
-          !isFalsyBigInt(type),
-      ),
-    );
+  unionTypeParts(type).some((type) =>
+    // It is possible to define intersections that are always falsy,
+    // like `"" & { __brand: string }`.
+    intersectionTypeParts(type).every((t2) => !isFalsyType(t2)),
+  );
 
 // Nullish utilities
 const nullishFlag = ts.TypeFlags.Undefined | ts.TypeFlags.Null;
@@ -888,10 +911,7 @@ function toStaticValue(
   | undefined {
   // type.isLiteral() only covers numbers/bigints and strings, hence the rest of the branches.
   if (isBooleanLiteralType(type)) {
-    // Using `type.intrinsicName` instead of `type.value` because `type.value`
-    // is `undefined`, contrary to what the type guard tells us.
-    // See https://github.com/JoshuaKGoldberg/ts-api-utils/issues/528
-    return { value: type.intrinsicName === "true" };
+    return { value: isTrueLiteralType(type) };
   }
   if (type.flags === ts.TypeFlags.Undefined) {
     return { value: undefined };
@@ -904,10 +924,6 @@ function toStaticValue(
   }
 
   return undefined;
-}
-
-function pseudoBigIntToBigInt(value: ts.PseudoBigInt): bigint {
-  return BigInt((value.negative ? "-" : "") + value.base10Value);
 }
 
 type BooleanOperator =
@@ -947,5 +963,26 @@ function booleanComparison(
     case SyntaxKind.GreaterThanEqualsToken:
       // @ts-expect-error: we don't care if the comparison seems unintentional.
       return left >= right;
+  }
+}
+
+function displayBooleanOperator(operator: BooleanOperator) {
+  switch (operator) {
+    case SyntaxKind.ExclamationEqualsToken:
+      return "!=";
+    case SyntaxKind.ExclamationEqualsEqualsToken:
+      return "!==";
+    case SyntaxKind.LessThanToken:
+      return "<";
+    case SyntaxKind.LessThanEqualsToken:
+      return "<=";
+    case SyntaxKind.EqualsEqualsToken:
+      return "==";
+    case SyntaxKind.EqualsEqualsEqualsToken:
+      return "===";
+    case SyntaxKind.GreaterThanToken:
+      return ">";
+    case SyntaxKind.GreaterThanEqualsToken:
+      return ">=";
   }
 }

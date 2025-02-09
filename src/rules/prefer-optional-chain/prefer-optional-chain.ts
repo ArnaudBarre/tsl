@@ -6,18 +6,18 @@ import {
   unionTypeParts,
 } from "ts-api-utils";
 import { SyntaxKind, TypeFlags } from "typescript";
-import {
-  isLogicalExpression,
-  isReferenceToGlobalFunction,
-  run,
-  typeHasFlag,
-} from "../_utils";
 import { compareNodes } from "../_utils/compareNodes.ts";
 import {
   getOperatorPrecedence,
   getOperatorPrecedenceForNode,
   OperatorPrecedence,
 } from "../_utils/getOperatorPrecedence.ts";
+import {
+  isLogicalExpression,
+  isReferenceToGlobalFunction,
+  run,
+  typeHasFlag,
+} from "../_utils/index.ts";
 import { createRule } from "../../index.ts";
 import type { AST, Context, ReportDescriptor } from "../../types.ts";
 

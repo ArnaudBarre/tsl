@@ -562,7 +562,6 @@ declare function createMyThenable(): MyThenable;
 createMyThenable();
     `,
     ],
-
     invalid: [
       {
         code: `

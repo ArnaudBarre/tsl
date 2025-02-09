@@ -1,6 +1,8 @@
-import { isTypeFlagSet, unionTypeParts } from "ts-api-utils";
+import { isTypeFlagSet } from "ts-api-utils";
 import ts from "typescript";
+import { isTypeRecurser } from "../_utils/index.ts";
 import { createRule } from "../../index.ts";
+import type { Checker } from "../../types.ts";
 
 export const messages = {
   forInViolation:
@@ -13,8 +15,12 @@ export const noForInArray = createRule(() => ({
     ForInStatement(node, context) {
       const type = context.utils.getConstrainedTypeAtLocation(node.expression);
       if (
-        unionTypeParts(type).every((t) => context.checker.isArrayType(t)) ||
-        isTypeFlagSet(type, ts.TypeFlags.StringLike)
+        isTypeRecurser(
+          type,
+          (t) =>
+            t.getNumberIndexType() != null &&
+            hasArrayishLength(context.checker, t),
+        )
       ) {
         context.report({
           node: node.expression,
@@ -24,3 +30,14 @@ export const noForInArray = createRule(() => ({
     },
   },
 }));
+
+function hasArrayishLength(checker: Checker, type: ts.Type): boolean {
+  const lengthProperty = type.getProperty("length");
+
+  if (lengthProperty == null) return false;
+
+  return isTypeFlagSet(
+    checker.getTypeOfSymbol(lengthProperty),
+    ts.TypeFlags.NumberLike,
+  );
+}

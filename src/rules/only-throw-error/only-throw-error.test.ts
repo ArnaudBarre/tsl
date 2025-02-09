@@ -173,7 +173,6 @@ throw new Map();
       `,
       },
     ],
-
     invalid: [
       { code: "throw undefined;", errors: [{ message: messages.undef }] },
       { code: "throw new String('');", errors: [{ message: messages.object }] },

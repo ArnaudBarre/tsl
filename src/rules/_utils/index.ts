@@ -1,6 +1,6 @@
 import { intersectionTypeParts, unionTypeParts } from "ts-api-utils";
-import ts, { SyntaxKind, TypeFlags } from "typescript";
-import type { AnyNode, BinaryOperatorToken } from "../../ast.ts";
+import ts, { type NodeArray, SyntaxKind, TypeFlags } from "typescript";
+import type { AnyNode, BinaryOperatorToken, ModifierLike } from "../../ast.ts";
 import type { AST, Checker, Context } from "../../types.ts";
 import {
   getOperatorPrecedence,
@@ -136,6 +136,11 @@ export function isArrayMethodCallWithPredicate(
       (t) => context.checker.isArrayType(t) || context.checker.isTupleType(t),
     );
 }
+
+export const hasModifier = (
+  node: { readonly modifiers?: NodeArray<ModifierLike> },
+  modifier: ModifierLike["kind"],
+) => node.modifiers?.some((m) => m.kind === modifier) ?? false;
 
 /**
  * Get the type name of a given type.
@@ -329,3 +334,23 @@ export function isTypeUnknownArrayType(
     typeHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Unknown)
   );
 }
+
+export function isTypeRecurser(
+  type: ts.Type,
+  predicate: (t: ts.Type) => boolean,
+): boolean {
+  if (type.isUnionOrIntersection()) {
+    return type.types.some((t) => isTypeRecurser(t, predicate));
+  }
+
+  return predicate(type);
+}
+
+export const getValueOfLiteralType = (
+  type: ts.LiteralType,
+): bigint | number | string => {
+  if (typeof type.value === "object") {
+    return BigInt((type.value.negative ? "-" : "") + type.value.base10Value);
+  }
+  return type.value;
+};

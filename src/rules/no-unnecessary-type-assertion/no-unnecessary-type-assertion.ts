@@ -1,6 +1,11 @@
 import { unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
-import { getContextualType, isConstAssertion, typeHasFlag } from "../_utils";
+import {
+  getContextualType,
+  hasModifier,
+  isConstAssertion,
+  typeHasFlag,
+} from "../_utils/index.ts";
 import { createRule } from "../../index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
 
@@ -152,7 +157,7 @@ function checkAssertion(
   const typeIsUnchanged = isTypeUnchanged(uncastType, castType, context);
 
   const wouldSameTypeBeInferred = castType.isLiteral()
-    ? isImplicitlyNarrowedConstDeclaration(node)
+    ? isImplicitlyNarrowedLiteralDeclaration(node)
     : !isConstAssertion(node.type);
 
   if (typeIsUnchanged && wouldSameTypeBeInferred) {
@@ -229,9 +234,7 @@ function isPossiblyUsedBeforeAssigned(
       !(
         declaration.parent.kind === SyntaxKind.VariableDeclarationList &&
         declaration.parent.parent.kind === SyntaxKind.VariableStatement &&
-        declaration.parent.parent.modifiers?.some(
-          (it) => it.kind === SyntaxKind.DeclareKeyword,
-        )
+        hasModifier(declaration.parent.parent, SyntaxKind.DeclareKeyword)
       )
     ) {
       // possibly used before assigned, so just skip it
@@ -245,7 +248,7 @@ function isPossiblyUsedBeforeAssigned(
   return false;
 }
 
-function isImplicitlyNarrowedConstDeclaration(
+function isImplicitlyNarrowedLiteralDeclaration(
   node: AST.AsExpression | AST.TypeAssertion,
 ): boolean {
   if (node.expression.kind === SyntaxKind.TemplateExpression) {
@@ -253,10 +256,12 @@ function isImplicitlyNarrowedConstDeclaration(
     // https://github.com/typescript-eslint/typescript-eslint/issues/8737
     return false;
   }
-  if (node.parent.parent.kind !== SyntaxKind.VariableDeclarationList) {
-    return false;
-  }
-  return node.parent.parent.getText().startsWith("const ");
+  return (
+    (node.parent.parent.kind === SyntaxKind.VariableDeclarationList &&
+      node.parent.parent.getText().startsWith("const ")) ||
+    (node.parent.kind === SyntaxKind.PropertyDeclaration &&
+      hasModifier(node.parent, SyntaxKind.ReadonlyKeyword))
+  );
 }
 
 function isTypeUnchanged(

@@ -5,7 +5,7 @@ import {
   unionTypeParts,
 } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
-import { getParentFunctionNode, isLogicalExpression } from "../_utils";
+import { getParentFunctionNode, isLogicalExpression } from "../_utils/index.ts";
 import type { AnyNode } from "../../ast.ts";
 import { createRule } from "../../index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";

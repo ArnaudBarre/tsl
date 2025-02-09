@@ -38,7 +38,6 @@ export const test = () =>
       delete test[0];
     `,
     ],
-
     invalid: [
       {
         code: `

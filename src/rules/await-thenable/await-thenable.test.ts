@@ -300,7 +300,6 @@ for await (const s of asyncIter) {
   }
         `,
     ],
-
     invalid: [
       {
         code: "await 0;",

@@ -1025,7 +1025,6 @@ declare const useCallback: <T extends (...args: unknown[]) => unknown>(
 useCallback<ReturnsVoid | ReturnsPromiseVoid>(async () => {});
     `,
     ],
-
     invalid: [
       {
         code: `

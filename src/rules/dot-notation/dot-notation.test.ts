@@ -33,7 +33,6 @@ dingus?.nested['hello'];
       `,
       },
     ],
-
     invalid: [
       {
         code: "a['true'];",

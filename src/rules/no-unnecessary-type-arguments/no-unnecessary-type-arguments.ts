@@ -58,6 +58,8 @@ function getTypeParametersFromNode(
 
   if (
     node.kind === SyntaxKind.CallExpression ||
+    node.kind === SyntaxKind.JsxOpeningElement ||
+    node.kind === SyntaxKind.JsxSelfClosingElement ||
     node.kind === SyntaxKind.NewExpression ||
     node.kind === SyntaxKind.TaggedTemplateExpression
   ) {
@@ -114,7 +116,7 @@ function checkTSArgsAndParameters(
 function getTypeParametersFromType(
   type: AST.ClassDeclaration | AST.EntityName | AST.Expression,
   context: Context,
-): readonly AST.TypeParameterDeclaration[] | undefined {
+) {
   const symAtLocation = context.checker.getSymbolAtLocation(type);
   if (!symAtLocation) return;
 
@@ -123,20 +125,49 @@ function getTypeParametersFromType(
 
   if (!declarations) return;
 
-  for (const decl of declarations) {
+  const isInTypeContent =
+    type.parent.kind === SyntaxKind.HeritageClause ||
+    type.parent.kind === SyntaxKind.TypeReference;
+
+  const isTypeContextDeclaration = (decl: AnyNode) =>
+    decl.kind === SyntaxKind.TypeAliasDeclaration ||
+    decl.kind === SyntaxKind.InterfaceDeclaration
+      ? 1
+      : 0;
+
+  let typeParameters: readonly AST.TypeParameterDeclaration[] | undefined;
+
+  for (const decl of declarations.sort((a, b) =>
+    isInTypeContent
+      ? isTypeContextDeclaration(a) - isTypeContextDeclaration(b)
+      : isTypeContextDeclaration(b) - isTypeContextDeclaration(a),
+  )) {
     if (
       decl.kind === SyntaxKind.TypeAliasDeclaration ||
       decl.kind === SyntaxKind.InterfaceDeclaration ||
       decl.kind === SyntaxKind.ClassDeclaration ||
       decl.kind === SyntaxKind.ClassExpression
     ) {
-      return decl.typeParameters;
+      typeParameters = decl.typeParameters;
     }
+    if (decl.kind === SyntaxKind.VariableDeclaration) {
+      const type = context.checker.getTypeOfSymbol(symAtLocation);
+      const sig = type.getConstructSignatures();
+      typeParameters = sig.at(0)?.getDeclaration()
+        .typeParameters as typeof typeParameters;
+    }
+    if (typeParameters) break;
   }
+  return typeParameters;
 }
 
 function getTypeParametersFromCall(
-  node: AST.CallExpression | AST.NewExpression | AST.TaggedTemplateExpression,
+  node:
+    | AST.CallExpression
+    | AST.JsxOpeningElement
+    | AST.JsxSelfClosingElement
+    | AST.NewExpression
+    | AST.TaggedTemplateExpression,
   context: Context,
 ): readonly AST.TypeParameterDeclaration[] | undefined {
   const sig = context.checker.getResolvedSignature(node);

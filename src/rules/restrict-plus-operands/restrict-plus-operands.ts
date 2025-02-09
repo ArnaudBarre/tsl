@@ -150,7 +150,10 @@ export const restrictPlusOperands = createRule(
             if (
               !options.allowNumberAndString &&
               isTypeFlagSetInUnion(baseType, ts.TypeFlags.StringLike) &&
-              isTypeFlagSetInUnion(otherType, ts.TypeFlags.NumberLike)
+              isTypeFlagSetInUnion(
+                otherType,
+                ts.TypeFlags.NumberLike | ts.TypeFlags.BigIntLike,
+              )
             ) {
               context.report({
                 node,

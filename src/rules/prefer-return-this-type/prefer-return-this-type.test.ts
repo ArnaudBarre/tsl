@@ -71,7 +71,6 @@ class Derived extends Base {
 }
     `,
     ],
-
     invalid: [
       {
         code: `

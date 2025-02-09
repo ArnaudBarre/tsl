@@ -1,6 +1,15 @@
-import { intersectionTypeParts, isTypeFlagSet } from "ts-api-utils";
+import {
+  intersectionTypeParts,
+  isFalseLiteralType,
+  isTypeFlagSet,
+} from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
-import { isLogicalExpression, typeHasFlag } from "../_utils";
+import {
+  getValueOfLiteralType,
+  isLogicalExpression,
+  isTypeRecurser,
+  typeHasFlag,
+} from "../_utils/index.ts";
 import type { EqualityOperator } from "../../ast.ts";
 import { createRule } from "../../index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
@@ -132,6 +141,70 @@ export const preferNullishCoalescing = createRule(
         },
         ConditionalExpression(node, context) {
           if (options.ignoreTernaryTests) return;
+
+          // !x ? y : x
+          if (
+            node.condition.kind === SyntaxKind.PrefixUnaryExpression &&
+            node.condition.operator === SyntaxKind.ExclamationToken &&
+            node.condition.operand.kind === SyntaxKind.Identifier &&
+            node.whenFalse.kind === SyntaxKind.Identifier &&
+            node.condition.operand.text === node.whenFalse.text
+          ) {
+            const type = context.checker.getTypeAtLocation(
+              node.condition.operand,
+            );
+            if (!typeHasFlag(type, TypeFlags.Null | TypeFlags.Undefined)) {
+              return;
+            }
+            if (isUnsafeConditional(type)) return;
+            context.report({
+              node,
+              message: messages.preferNullishOverTernary,
+              suggestions: [
+                {
+                  message: messages.suggestNullish({ equals: "" }),
+                  changes: [
+                    {
+                      node,
+                      newText: `${
+                        node.whenFalse.text
+                      } ?? ${node.whenTrue.getText()}`,
+                    },
+                  ],
+                },
+              ],
+            });
+            return;
+          }
+          // x ? x : y
+          if (
+            node.condition.kind === SyntaxKind.Identifier &&
+            node.whenTrue.kind === SyntaxKind.Identifier &&
+            node.condition.text === node.whenTrue.text
+          ) {
+            const type = context.checker.getTypeAtLocation(node.condition);
+            if (!typeHasFlag(type, TypeFlags.Null | TypeFlags.Undefined)) {
+              return;
+            }
+            if (isUnsafeConditional(type)) return;
+            context.report({
+              node,
+              message: messages.preferNullishOverTernary,
+              suggestions: [
+                {
+                  message: messages.suggestNullish({ equals: "" }),
+                  changes: [
+                    {
+                      node,
+                      newText: `${node.whenTrue.getText()} ?? ${node.whenFalse.getText()}`,
+                    },
+                  ],
+                },
+              ],
+            });
+            return;
+          }
+
           if (node.condition.kind !== SyntaxKind.BinaryExpression) return;
 
           let operator: EqualityOperator | undefined;
@@ -326,11 +399,6 @@ function checkAssignmentOrLogicalExpression(
   context: Context,
   options: ParsedOptions,
 ): void {
-  const type = context.checker.getTypeAtLocation(node.left);
-  if (!typeHasFlag(type, TypeFlags.Null | TypeFlags.Undefined)) {
-    return;
-  }
-
   if (options.ignoreConditionalTests && isConditionalTest(node)) {
     return;
   }
@@ -339,8 +407,13 @@ function checkAssignmentOrLogicalExpression(
     return;
   }
 
+  const type = context.checker.getTypeAtLocation(node.left);
+  if (!typeHasFlag(type, TypeFlags.Null | TypeFlags.Undefined)) {
+    return;
+  }
+
   let ignorableFlags = 0;
-  const ignorePrimitives = options.ignorePrimitives;
+  const { ignorePrimitives } = options;
   if (ignorePrimitives.bigint) ignorableFlags |= TypeFlags.BigIntLike;
   if (ignorePrimitives.boolean) ignorableFlags |= TypeFlags.BooleanLike;
   if (ignorePrimitives.number) ignorableFlags |= TypeFlags.NumberLike;
@@ -396,6 +469,20 @@ function checkAssignmentOrLogicalExpression(
       }
       return [{ message: messages.suggestNullish({ equals }), changes }];
     },
+  });
+}
+
+function isUnsafeConditional(type: ts.Type): boolean {
+  return isTypeRecurser(type, (t) => {
+    return t.isLiteral()
+      ? !getValueOfLiteralType(t)
+      : t.flags === TypeFlags.Any ||
+          t.flags === TypeFlags.Unknown ||
+          t.flags === TypeFlags.String ||
+          t.flags === TypeFlags.Number ||
+          t.flags === TypeFlags.BigInt ||
+          t.flags === TypeFlags.Boolean ||
+          isFalseLiteralType(t);
   });
 }
 

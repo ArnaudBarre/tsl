@@ -289,7 +289,6 @@ function setTimeout() {}
 }
     `,
     ],
-
     invalid: [
       {
         code: `

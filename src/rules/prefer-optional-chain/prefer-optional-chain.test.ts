@@ -494,7 +494,6 @@ export const test = () =>
         operator: "||",
       }),
     ],
-
     invalid: [
       {
         code: "(foo || {}).bar;",
@@ -502,11 +501,10 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 16,
             suggestions: [
               { message: messages.optionalChainSuggest, output: "foo?.bar;" },
             ],
-
-            endColumn: 16,
           },
         ],
       },
@@ -516,11 +514,10 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 18,
             suggestions: [
               { message: messages.optionalChainSuggest, output: "foo?.bar;" },
             ],
-
-            endColumn: 18,
           },
         ],
       },
@@ -530,14 +527,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 22,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(await foo)?.bar;",
               },
             ],
-
-            endColumn: 22,
           },
         ],
       },
@@ -547,14 +543,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 24,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "foo1?.foo2?.foo3;",
               },
             ],
-
-            endColumn: 24,
           },
         ],
       },
@@ -564,14 +559,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 26,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "foo1?.foo2?.foo3;",
               },
             ],
-
-            endColumn: 26,
           },
         ],
       },
@@ -581,14 +575,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 28,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(() => foo())()?.bar;",
               },
             ],
-
-            endColumn: 28,
           },
         ],
       },
@@ -598,14 +591,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 13,
+            endColumn: 28,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "const foo = bar?.baz;",
               },
             ],
-
-            endColumn: 28,
           },
         ],
       },
@@ -615,14 +607,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 21,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "foo.bar?.[baz];",
               },
             ],
-
-            endColumn: 21,
           },
         ],
       },
@@ -632,26 +623,24 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 31,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(foo1 || {}).foo2?.foo3;",
               },
             ],
-
-            endColumn: 31,
           },
           {
             message: messages.preferOptionalChain,
             column: 2,
+            endColumn: 19,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(foo1?.foo2 || {}).foo3;",
               },
             ],
-
-            endColumn: 19,
           },
         ],
       },
@@ -675,14 +664,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 25,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(foo() || bar)?.baz;",
               },
             ],
-
-            endColumn: 25,
           },
         ],
       },
@@ -692,14 +680,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 34,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(foo1 ? foo2 : foo3)?.foo4;",
               },
             ],
-
-            endColumn: 34,
           },
         ],
       },
@@ -713,6 +700,7 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 11,
+            endColumn: 26,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
@@ -723,8 +711,6 @@ export const test = () =>
       `,
               },
             ],
-
-            endColumn: 26,
           },
         ],
       },
@@ -738,6 +724,7 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 13,
+            endColumn: 28,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
@@ -748,8 +735,6 @@ export const test = () =>
       `,
               },
             ],
-
-            endColumn: 28,
           },
         ],
       },
@@ -759,14 +744,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 29,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(undefined && foo)?.bar;",
               },
             ],
-
-            endColumn: 29,
           },
         ],
       },
@@ -776,11 +760,10 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 16,
             suggestions: [
               { message: messages.optionalChainSuggest, output: "foo?.bar;" },
             ],
-
-            endColumn: 16,
           },
         ],
       },
@@ -790,11 +773,10 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 18,
             suggestions: [
               { message: messages.optionalChainSuggest, output: "foo?.bar;" },
             ],
-
-            endColumn: 18,
           },
         ],
       },
@@ -804,14 +786,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 22,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(await foo)?.bar;",
               },
             ],
-
-            endColumn: 22,
           },
         ],
       },
@@ -821,14 +802,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 24,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "foo1?.foo2?.foo3;",
               },
             ],
-
-            endColumn: 24,
           },
         ],
       },
@@ -838,14 +818,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 28,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(() => foo())()?.bar;",
               },
             ],
-
-            endColumn: 28,
           },
         ],
       },
@@ -855,14 +834,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 13,
+            endColumn: 28,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "const foo = bar?.baz;",
               },
             ],
-
-            endColumn: 28,
           },
         ],
       },
@@ -872,14 +850,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 21,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "foo.bar?.[baz];",
               },
             ],
-
-            endColumn: 21,
           },
         ],
       },
@@ -889,26 +866,24 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 31,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(foo1 ?? {}).foo2?.foo3;",
               },
             ],
-
-            endColumn: 31,
           },
           {
             message: messages.preferOptionalChain,
             column: 2,
+            endColumn: 19,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(foo1?.foo2 ?? {}).foo3;",
               },
             ],
-
-            endColumn: 19,
           },
         ],
       },
@@ -932,14 +907,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 25,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(foo() ?? bar)?.baz;",
               },
             ],
-
-            endColumn: 25,
           },
         ],
       },
@@ -949,14 +923,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 34,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(foo1 ? foo2 : foo3)?.foo4;",
               },
             ],
-
-            endColumn: 34,
           },
         ],
       },
@@ -966,14 +939,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 12,
+            endColumn: 27,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "if (foo) { foo?.bar; }",
               },
             ],
-
-            endColumn: 27,
           },
         ],
       },
@@ -983,14 +955,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 5,
+            endColumn: 20,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "if (foo?.bar) { foo.bar; }",
               },
             ],
-
-            endColumn: 20,
           },
         ],
       },
@@ -1000,14 +971,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 29,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(undefined && foo)?.bar;",
               },
             ],
-
-            endColumn: 29,
           },
         ],
       },
@@ -1017,14 +987,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 18,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(a > b)?.bar;",
               },
             ],
-
-            endColumn: 18,
           },
         ],
       },
@@ -1034,14 +1003,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 35,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "((typeof x) as string)?.bar;",
               },
             ],
-
-            endColumn: 35,
           },
         ],
       },
@@ -1051,14 +1019,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 23,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(void foo())?.bar;",
               },
             ],
-
-            endColumn: 23,
           },
         ],
       },
@@ -1068,14 +1035,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 24,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(a ? b : c)?.bar;",
               },
             ],
-
-            endColumn: 24,
           },
         ],
       },
@@ -1085,14 +1051,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 33,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(a instanceof Error)?.bar;",
               },
             ],
-
-            endColumn: 33,
           },
         ],
       },
@@ -1102,14 +1067,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 21,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(a << b)?.bar;",
               },
             ],
-
-            endColumn: 21,
           },
         ],
       },
@@ -1119,14 +1083,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 23,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(foo ** 2)?.bar;",
               },
             ],
-
-            endColumn: 23,
           },
         ],
       },
@@ -1136,14 +1099,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 21,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(foo ** 2)?.bar;",
               },
             ],
-
-            endColumn: 21,
           },
         ],
       },
@@ -1153,14 +1115,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 18,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(foo++)?.bar;",
               },
             ],
-
-            endColumn: 18,
           },
         ],
       },
@@ -1170,14 +1131,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 17,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "(+foo)?.bar;",
               },
             ],
-
-            endColumn: 17,
           },
         ],
       },
@@ -2614,11 +2574,10 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 20,
             suggestions: [
               { message: messages.optionalChainSuggest, output: "a?.b?.c" },
             ],
-
-            endColumn: 20,
           },
         ],
       },
@@ -2628,11 +2587,10 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 20,
             suggestions: [
               { message: messages.optionalChainSuggest, output: "a?.b?.c" },
             ],
-
-            endColumn: 20,
           },
         ],
       },
@@ -2642,11 +2600,10 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 22,
             suggestions: [
               { message: messages.optionalChainSuggest, output: "a?.b?.c" },
             ],
-
-            endColumn: 22,
           },
         ],
       },
@@ -2656,14 +2613,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 5,
+            endColumn: 24,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "foo(a?.b?.c)",
               },
             ],
-
-            endColumn: 24,
           },
         ],
       },
@@ -2673,14 +2629,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 5,
+            endColumn: 22,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "foo(a?.b?.c)",
               },
             ],
-
-            endColumn: 22,
           },
         ],
       },
@@ -2690,14 +2645,13 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 59,
             suggestions: [
               {
                 message: messages.optionalChainSuggest,
                 output: "!foo?.bar?.baz?.();",
               },
             ],
-
-            endColumn: 59,
           },
         ],
       },
@@ -2707,11 +2661,10 @@ export const test = () =>
           {
             message: messages.preferOptionalChain,
             column: 1,
+            endColumn: 44,
             suggestions: [
               { message: messages.optionalChainSuggest, output: "a?.prop;" },
             ],
-
-            endColumn: 44,
           },
         ],
       },

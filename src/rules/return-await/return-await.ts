@@ -1,5 +1,5 @@
 import { SyntaxKind } from "typescript";
-import { isHigherPrecedenceThanUnary } from "../_utils/index.ts";
+import { hasModifier, isHigherPrecedenceThanUnary } from "../_utils/index.ts";
 import { needsToBeAwaited } from "../_utils/needsToBeAwaited.ts";
 import { createRule } from "../../index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
@@ -22,7 +22,10 @@ export const returnAwait = createRule(() => ({
     ArrowFunction: enterFunction,
     "ArrowFunction:exit"(node, context) {
       context.data.pop();
-      if (isAsyncFunction(node) && node.body.kind !== SyntaxKind.Block) {
+      if (
+        hasModifier(node, SyntaxKind.AsyncKeyword) &&
+        node.body.kind !== SyntaxKind.Block
+      ) {
         for (const expression of findPossiblyReturnedNodes(node.body)) {
           checkExpression(expression, context);
         }
@@ -46,16 +49,8 @@ export const returnAwait = createRule(() => ({
   },
 }));
 
-function isAsyncFunction(node: FunctionNode): boolean {
-  return (
-    node.modifiers?.some(
-      (modifier) => modifier.kind === SyntaxKind.AsyncKeyword,
-    ) ?? false
-  );
-}
-
 function enterFunction(node: FunctionNode, context: Context<boolean[]>): void {
-  context.data.push(isAsyncFunction(node));
+  context.data.push(hasModifier(node, SyntaxKind.AsyncKeyword));
 }
 
 function findPossiblyReturnedNodes(node: AST.Expression): AST.Expression[] {

@@ -20,7 +20,6 @@ export const test = () =>
       "(a: never) => -a;",
       "<T extends number>(t: T) => -t;",
     ],
-
     invalid: [
       {
         code: "(a: string) => -a;",

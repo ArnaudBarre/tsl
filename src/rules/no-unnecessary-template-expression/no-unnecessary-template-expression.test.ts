@@ -113,8 +113,15 @@ export const test = () =>
       \`trailing position interpolated empty string also makes whitespace clear    \${''}
       \`;
     `,
+      `
+      function foo<T extends string>() {
+        const a: \`\${T}\` = 'a';
+      }
+        `,
+      "type T<A extends string> = `${A}`;",
+      "type Foo = `${/* year */ 2024}`;",
+      "type Setter = `set${string}`;",
     ],
-
     invalid: [
       {
         code: "`${1}2`;",
@@ -394,6 +401,55 @@ export const test = () =>
           arg;
         }
       `,
+              },
+            ],
+          },
+        ],
+      },
+      ...[
+        ["`a${1}`", "`a1`"],
+        ["`${1n}b`", "`1b`"],
+        ["`${null}`", "`null`"],
+        ["`${undefined}`", "`undefined`"],
+        ["`${'foo'}`", "`foo`"],
+        ["`foo${'bar'}baz`", "`foobarbaz`"],
+      ].map(([code, output]) => ({
+        code: `type Foo = ${code};`,
+        errors: [
+          {
+            message: messages.unnecessaryTemplateExpression,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateExpression,
+                output: `type Foo = ${output};`,
+              },
+            ],
+          },
+        ],
+      })),
+      {
+        code: "type Foo = `${string}`;",
+        errors: [
+          {
+            message: messages.unnecessaryTemplateString,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateString,
+                output: "type Foo = string;",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: "type Foo = 'A' | 'B'; type Bar = `${Foo}`;",
+        errors: [
+          {
+            message: messages.unnecessaryTemplateString,
+            suggestions: [
+              {
+                message: messages.removeUnnecessaryTemplateString,
+                output: "type Foo = 'A' | 'B'; type Bar = Foo;",
               },
             ],
           },

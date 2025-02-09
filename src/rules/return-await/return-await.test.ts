@@ -115,7 +115,6 @@ class C<R extends unknown> {
 }
       `,
     ],
-
     invalid: [
       {
         code: `

@@ -820,7 +820,6 @@ function foo(x: string[], y: string | undefined) {
       `,
       },
     ],
-
     invalid: [
       {
         options: {

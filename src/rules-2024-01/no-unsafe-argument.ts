@@ -1,7 +1,7 @@
 import { isTypeReference } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../index.ts";
-import { isTypeAnyArrayType, typeHasFlag } from "../rules/_utils";
+import { isTypeAnyArrayType, typeHasFlag } from "../rules/_utils/index.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Checker, Context } from "../types.ts";
 

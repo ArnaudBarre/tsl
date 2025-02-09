@@ -329,10 +329,18 @@ export const ruleTester = <
               hasError = true;
               introLogged = true;
             }
+            const whiteSpaceDiff =
+              expected &&
+              got &&
+              expected.replaceAll(/ /g, "") === got.replaceAll(/ /g, "");
             /* type-lint-ignore core/restrictTemplateExpressions */
             console.log(
-              `  #${i}${prefix}: Expected: ${expected}
-           ${" ".repeat(prefix.length)}Got: ${got}`,
+              `  #${i}${prefix}: Expected: ${
+                whiteSpaceDiff ? expected.replaceAll(/ /g, "·") : expected
+              }
+           ${" ".repeat(prefix.length)}Got: ${
+             whiteSpaceDiff ? got.replaceAll(/ /g, "·") : got
+           }`,
             );
           };
           const expected = caseProps.errors!.at(i);

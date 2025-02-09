@@ -35,6 +35,7 @@ const allTypedRules = {
   "no-implied-eval": true, // do not check for global shadowing
   "no-meaningless-void-operator": true,
   "no-misused-promises": true,
+  "no-misused-spread": true,
   "no-mixed-enums": "type rule only to handle cases not supported in isolatedModules",
   "no-redundant-type-constituents": true, // smarter thanks to `isTypeAssignableTo`
   "no-unnecessary-boolean-literal-compare": true,
@@ -74,7 +75,7 @@ const allTypedRules = {
   "restrict-template-expressions": true,
   "return-await": true, // only support always, remove unneeded await handled by await-thenable
   "strict-boolean-expressions": true,
-  "switch-exhaustiveness-check": true,
+  "switch-exhaustiveness-check": true, // missing no default comment #10218
   "unbound-method": "OOP edge cases are out of core",
   "use-unknown-in-catch-callback-variable": "use global types instead",
 } satisfies Record<string, true | string>;

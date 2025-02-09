@@ -1,6 +1,6 @@
 import { isSymbolFlagSet } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
-import { isReferenceToGlobalFunction } from "../_utils";
+import { isReferenceToGlobalFunction } from "../_utils/index.ts";
 import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
 import type { AnyNode } from "../../ast.ts";
 import { createRule } from "../../index.ts";

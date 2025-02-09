@@ -4,7 +4,7 @@ import {
   getContextualType,
   isTypeAnyArrayType,
   typeHasFlag,
-} from "../rules/_utils";
+} from "../rules/_utils/index.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Context } from "../types.ts";
 import { isUnsafeAssignment } from "./no-unsafe-argument.ts";

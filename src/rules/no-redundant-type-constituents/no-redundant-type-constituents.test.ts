@@ -44,7 +44,6 @@ export const test = () =>
       type Output<Name extends keyof Mutations> = Mutations[Name]["output"];
       type GetOutput<Name extends keyof Mutations> = Output<Name> | null`,
     ],
-
     invalid: [
       // intersections: never > any > number > unknown
       {

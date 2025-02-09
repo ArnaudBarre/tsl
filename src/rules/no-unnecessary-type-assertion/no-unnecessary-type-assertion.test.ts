@@ -319,8 +319,29 @@ if (Math.random()) {
 x!;
       `,
       },
+      `
+      class T {
+        a = 'a' as const;
+      }
+      `,
+      `
+      class T {
+        a = 3 as 3;
+      }
+      `,
+      `
+      const foo = 'foo';
+      
+      class T {
+        readonly test = \`\${foo}\` as const;
+      }
+      `,
+      `
+      class T {
+        readonly a = { foo: 'foo' } as const;
+      }
+      `,
     ],
-
     invalid: [
       // https://github.com/typescript-eslint/typescript-eslint/issues/8737
       {
@@ -1309,6 +1330,98 @@ const b: string | undefined = (a ? undefined : a)!;
                 output: `
 const a = '';
 const b: string | undefined = (a ? undefined : a);
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+class T {
+  readonly a = 'a' as const;
+}
+      `,
+        errors: [
+          {
+            message: messages.unnecessaryAssertion,
+            suggestions: [
+              {
+                message: messages.removeAssertion,
+                output: `
+class T {
+  readonly a = 'a';
+}
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+class T {
+  readonly a = 3 as 3;
+}
+      `,
+        errors: [
+          {
+            message: messages.unnecessaryAssertion,
+            suggestions: [
+              {
+                message: messages.removeAssertion,
+                output: `
+class T {
+  readonly a = 3;
+}
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+type S = 10;
+
+class T {
+  readonly a = 10 as S;
+}
+      `,
+        errors: [
+          {
+            message: messages.unnecessaryAssertion,
+            suggestions: [
+              {
+                message: messages.removeAssertion,
+                output: `
+type S = 10;
+
+class T {
+  readonly a = 10;
+}
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+class T {
+  readonly a = (3 + 5) as number;
+}
+      `,
+        errors: [
+          {
+            message: messages.unnecessaryAssertion,
+            suggestions: [
+              {
+                message: messages.removeAssertion,
+                output: `
+class T {
+  readonly a = (3 + 5);
+}
       `,
               },
             ],
