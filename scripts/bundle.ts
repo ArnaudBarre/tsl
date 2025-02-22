@@ -14,14 +14,8 @@ const commonOptions = {
   treeShaking: true,
 } satisfies BuildOptions;
 
-const getFunctionName = (folder: string) =>
-  folder.replace(/-([a-z])/gu, (_, c) => c.toUpperCase());
-
-export const getRuleName = (folder: string) =>
-  `core/${getFunctionName(folder)}`;
-
-const getOptionsName = (folder: string) =>
-  folder.replace(/(?:^|-)([a-z])/gu, (_, c) => c.toUpperCase()) + "Options";
+const getOptionsName = (rule: string) =>
+  rule.charAt(0).toUpperCase() + rule.slice(1) + "Options";
 
 const rules = readdirSync("src/rules").filter(
   (f) => !f.startsWith(".") && !f.startsWith("_"),
@@ -59,19 +53,17 @@ await build({
 
 writeFileSync(
   "dist/rules.js",
-  rules
-    .map((r) => `export { ${getFunctionName(r)} } from "./rules/${r}.js";`)
-    .join("\n"),
+  rules.map((r) => `export { ${r} } from "./rules/${r}.js";`).join("\n"),
 );
 writeFileSync(
   "dist/rules.d.ts",
   'import type { Rule } from "./types.d.ts";\n\n' +
     rules
       .map((r) => {
-        const prefix = `export declare const ${getFunctionName(r)}:`;
+        const prefix = `export declare const ${r}:`;
         const args =
           r in optionsTypes ? `(options: ${getOptionsName(r)})` : "()";
-        return prefix + args + ` => Rule<"${getRuleName(r)}", any>;`;
+        return prefix + args + ` => Rule<"core/${r}", unknown>;`;
       })
       .join("\n") +
     "\n" +
@@ -84,13 +76,10 @@ writeFileSync(
     "export const allRules = async (config) => {",
     "  const rules = [];",
     "  for (const key in config) {",
-    "    if (!key) continue;",
-    "    if (key === 'off') continue;",
+    "    if (!config[key] || config[key] === 'off') continue;",
     ...rules.map(
       (r) =>
-        `    if (key === "${r}") rules.push(import("./rules/${r}.js").then((m) => m.${getFunctionName(
-          r,
-        )}));`,
+        `    if (key === "core/${r}") rules.push(import("./rules/${r}.js").then((m) => m.${r}));`,
     ),
     "  }",
     "  return await Promise.all(rules);",
@@ -111,7 +100,7 @@ writeFileSync(
         r in optionsTypes
           ? `${getOptionsName(r)} | "on" | "off"`
           : '"on" | "off"';
-      return `  "${getRuleName(r)}"?: ${arg};`;
+      return `  "core/${r}"?: ${arg};`;
     }),
     "};",
     "export declare const allRules: AllRulesPreset<keyof Props, Props>;",

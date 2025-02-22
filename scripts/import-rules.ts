@@ -91,53 +91,25 @@ const extensionsRules = [
   "return-await",
 ];
 
-const usedRules: (keyof typeof allTypedRules)[] = [
-  "await-thenable",
-  "dot-notation",
-  "no-array-delete",
-  "no-confusing-void-expression",
-  "no-floating-promises",
-  "no-for-in-array",
-  "no-implied-eval",
-  "no-meaningless-void-operator",
-  "no-misused-promises",
-  "no-misused-spread",
-  "no-redundant-type-constituents",
-  "no-unnecessary-condition",
-  "no-unnecessary-template-expression",
-  "no-unnecessary-type-arguments",
-  "no-unnecessary-type-assertion",
-  "no-unsafe-unary-minus",
-  "non-nullable-type-assertion-style",
-  "only-throw-error",
-  "prefer-find",
-  "prefer-includes",
-  "prefer-nullish-coalescing",
-  "prefer-optional-chain",
-  "prefer-reduce-type-parameter",
-  "prefer-return-this-type",
-  "prefer-string-starts-ends-with",
-  "restrict-plus-operands",
-  "restrict-template-expressions",
-  "return-await",
-  "switch-exhaustiveness-check",
-] as const;
+const kebabCaseToCamelCase = (str: string) =>
+  str.replace(/-([a-z])/gu, (_, c) => c.toUpperCase());
 
 const firstIterationRules = readdirSync("src/rules-2024-01");
 const alreadyImportedRules = readdirSync("src/rules").filter(
-  (it) => !it.startsWith("_"),
+  (it) => !it.startsWith("_") && !it.startsWith("."),
 );
 
 const arg = process.argv[2];
 if (!arg) throw new Error("No rule provided");
 
-const stillToImport = usedRules.filter(
-  (r) => !alreadyImportedRules.includes(r),
-);
+const stillToImport = Object.entries(allTypedRules)
+  .filter(
+    ([key, value]) =>
+      value === true &&
+      !alreadyImportedRules.includes(kebabCaseToCamelCase(key)),
+  )
+  .map(([key]) => key);
 const rulesToImport = arg === "next" ? stillToImport.slice(0, 1) : [arg];
-
-const kebabCaseToCamelCase = (str: string) =>
-  str.replace(/-([a-z])/gu, (_, c) => c.toUpperCase());
 
 const getObjectValue = (node: ObjectExpression, name: string) =>
   node.properties.find(
@@ -232,6 +204,7 @@ const astNodes = Object.values(kindToNodeTypeMap);
 
 for (const rule of rulesToImport) {
   const filename = `${rule}.ts`;
+  const camelCaseRule = kebabCaseToCamelCase(rule);
   const srcPath = `../typescript-eslint/packages/eslint-plugin/src/rules/${filename}`;
   const testPath =
     rule === "prefer-optional-chain"
@@ -1158,7 +1131,7 @@ for (const rule of rulesToImport) {
     : "";
 
   await Bun.write(
-    `src/rules/${rule}/${rule}.ts`,
+    `src/rules/${camelCaseRule}/${camelCaseRule}.ts`,
     await format(
       `import ts, { SyntaxKind, SymbolFlags } from "typescript";${tsApiUtilsImports}
       import { createRule } from "../../index.ts";
@@ -1173,10 +1146,10 @@ for (const rule of rulesToImport) {
     ),
   );
   await Bun.write(
-    `src/rules/${rule}/${rule}.test.ts`,
+    `src/rules/${camelCaseRule}/${camelCaseRule}.test.ts`,
     await format(
       `import { ruleTester } from "../../ruleTester.ts";
-import { messages, ${kebabCaseToCamelCase(rule)} } from "./${rule}.ts";
+import { messages, ${camelCaseRule} } from "./${camelCaseRule}.ts";
 
 ` +
         generate(testAST, { filename, compact: true }).code.replace(
