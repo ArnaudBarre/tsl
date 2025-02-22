@@ -8,6 +8,7 @@ import { noForInArray } from "./src/rules/no-for-in-array/no-for-in-array.ts";
 import { noImpliedEval } from "./src/rules/no-implied-eval/no-implied-eval.ts";
 import { noMeaninglessVoidOperator } from "./src/rules/no-meaningless-void-operator/no-meaningless-void-operator.ts";
 import { noMisusedPromises } from "./src/rules/no-misused-promises/no-misused-promises.ts";
+import { noMisusedSpread } from "./src/rules/no-misused-spread/no-misused-spread.ts";
 import { noRedundantTypeConstituents } from "./src/rules/no-redundant-type-constituents/no-redundant-type-constituents.ts";
 import { noUnnecessaryCondition } from "./src/rules/no-unnecessary-condition/no-unnecessary-condition.ts";
 import { noUnnecessaryTemplateExpression } from "./src/rules/no-unnecessary-template-expression/no-unnecessary-template-expression.ts";
@@ -41,6 +42,7 @@ export default defineConfig({
     noMisusedPromises({
       checksVoidReturn: { arguments: false, attributes: false },
     }),
+    noMisusedSpread(),
     noRedundantTypeConstituents(),
     noUnnecessaryCondition(),
     noUnnecessaryTemplateExpression(),

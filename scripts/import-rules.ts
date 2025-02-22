@@ -1,5 +1,5 @@
 import assert from "node:assert";
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import generate from "@babel/generator";
 import * as parser from "@babel/parser";
 import traverse from "@babel/traverse";
@@ -35,7 +35,7 @@ const allTypedRules = {
   "no-implied-eval": true, // do not check for global shadowing
   "no-meaningless-void-operator": true,
   "no-misused-promises": true,
-  "no-misused-spread": true,
+  "no-misused-spread": true, // no allow option
   "no-mixed-enums": "type rule only to handle cases not supported in isolatedModules",
   "no-redundant-type-constituents": true, // smarter thanks to `isTypeAssignableTo`
   "no-unnecessary-boolean-literal-compare": true,
@@ -101,6 +101,7 @@ const usedRules: (keyof typeof allTypedRules)[] = [
   "no-implied-eval",
   "no-meaningless-void-operator",
   "no-misused-promises",
+  "no-misused-spread",
   "no-redundant-type-constituents",
   "no-unnecessary-condition",
   "no-unnecessary-template-expression",
@@ -123,8 +124,8 @@ const usedRules: (keyof typeof allTypedRules)[] = [
 ] as const;
 
 const firstIterationRules = readdirSync("src/rules-2024-01");
-const alreadyImportedRules = readdirSync("src/rules").map((it) =>
-  it.replace(".ts", ""),
+const alreadyImportedRules = readdirSync("src/rules").filter(
+  (it) => !it.startsWith("_"),
 );
 
 const arg = process.argv[2];
@@ -166,6 +167,7 @@ const estreeToTSTree: Record<
   JSXExpressionContainer: "JsxExpression",
   JSXSpreadChild: "JsxExpression",
   JSXMemberExpression: "PropertyAccessExpression",
+  JSXSpreadAttribute: "JsxSpreadAttribute",
   ObjectExpression: "ObjectLiteralExpression",
   Program: "SourceFile",
   StaticBlock: "ClassStaticBlockDeclaration",
@@ -236,7 +238,7 @@ for (const rule of rulesToImport) {
       ? `../typescript-eslint/packages/eslint-plugin/tests/rules/${rule}/${rule}.test.ts`
       : `../typescript-eslint/packages/eslint-plugin/tests/rules/${rule}.test.ts`;
   console.log(rule, {
-    new: `./src/rules/${filename}`,
+    new: `./src/rules/${rule}/${filename}`,
     previousIteration: firstIterationRules.includes(filename)
       ? `./src/rules-2024-01/${filename}`
       : undefined,
@@ -1154,27 +1156,34 @@ for (const rule of rulesToImport) {
         .sort()
         .join(", ")} } from "ts-api-utils";`
     : "";
-  const content =
-    `import ts, { SyntaxKind, SymbolFlags } from "typescript";${tsApiUtilsImports}
-import type { AST, Checker, Context } from "../types.ts";
-import { createRule } from "../public-utils.ts";
-import { ruleTester } from "../ruleTester.ts";
 
-const messages = ${toTemplateStrings ? `{${toTemplateStrings}}` : '"extended"'}
+  await Bun.write(
+    `src/rules/${rule}/${rule}.ts`,
+    await format(
+      `import ts, { SyntaxKind, SymbolFlags } from "typescript";${tsApiUtilsImports}
+      import { createRule } from "../../index.ts";
+      import type { AST, Checker, Context } from "../../types.ts";
+      
+      export const messages = ${
+        toTemplateStrings ? `{${toTemplateStrings}}` : '"extended"'
+      }
+      
+      ` + generate(srcAST, { retainLines: true, filename }).code,
+      { filepath: `${rule}.ts`, parser: "babel-ts", trailingComma: "all" },
+    ),
+  );
+  await Bun.write(
+    `src/rules/${rule}/${rule}.test.ts`,
+    await format(
+      `import { ruleTester } from "../../ruleTester.ts";
+import { messages, ${kebabCaseToCamelCase(rule)} } from "./${rule}.ts";
 
 ` +
-    generate(srcAST, { retainLines: true, filename }).code +
-    "\n\n/** Tests */\n" +
-    generate(testAST, { filename, compact: true }).code.replace(
-      "ruleTester(",
-      "export const test = () => ruleTester(",
-    );
-  writeFileSync(
-    `src/rules/${rule}.ts`,
-    await format(content, {
-      filepath: filename,
-      parser: "babel-ts",
-      trailingComma: "all",
-    }),
+        generate(testAST, { filename, compact: true }).code.replace(
+          "ruleTester(",
+          "export const test = () => ruleTester(",
+        ),
+      { filepath: `${rule}.test.ts`, parser: "babel-ts", trailingComma: "all" },
+    ),
   );
 }
