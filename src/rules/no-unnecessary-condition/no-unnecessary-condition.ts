@@ -52,9 +52,9 @@ export const messages = {
 export type NoUnnecessaryConditionOptions = {
   /**
    * Whether to ignore constant loop conditions, such as `while (true)`.
-   * @default false
+   * @default "never"
    */
-  allowConstantLoopConditions?: boolean;
+  allowConstantLoopConditions?: "always" | "never" | "only-allowed-literals";
   /**
    * Whether to check the asserted argument of a type predicate function for unnecessary conditions.
    * @default false
@@ -63,14 +63,14 @@ export type NoUnnecessaryConditionOptions = {
 };
 
 type ParsedOptions = {
-  allowConstantLoopConditions: boolean;
+  allowConstantLoopConditions: "always" | "never" | "only-allowed-literals";
   checkTypePredicates: boolean;
 };
 
 export const noUnnecessaryCondition = createRule(
   (_options?: NoUnnecessaryConditionOptions) => {
     const options: ParsedOptions = {
-      allowConstantLoopConditions: false,
+      allowConstantLoopConditions: "never",
       checkTypePredicates: false,
       ..._options,
     };
@@ -154,6 +154,16 @@ export const noUnnecessaryCondition = createRule(
           );
         },
         WhileStatement(node, context) {
+          if (
+            options.allowConstantLoopConditions === "only-allowed-literals" &&
+            (node.expression.kind === SyntaxKind.TrueKeyword ||
+              node.expression.kind === SyntaxKind.FalseKeyword ||
+              (node.expression.kind === SyntaxKind.NumericLiteral &&
+                (node.expression.text === "0" || node.expression.text === "1")))
+          ) {
+            return;
+          }
+
           checkIfLoopIsNecessaryConditional(node.expression, context, options);
         },
       },
@@ -426,14 +436,8 @@ function checkIfLoopIsNecessaryConditional(
   context: Context,
   options: ParsedOptions,
 ): void {
-  /**
-   * Allow:
-   *   while (true) {}
-   *   for (;true;) {}
-   *   do {} while (true)
-   */
   if (
-    options.allowConstantLoopConditions &&
+    options.allowConstantLoopConditions === "always" &&
     isTrueLiteralType(context.utils.getConstrainedTypeAtLocation(testNode))
   ) {
     return;

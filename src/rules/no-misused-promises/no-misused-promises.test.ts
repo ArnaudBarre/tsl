@@ -421,6 +421,10 @@ class Foo {
 class Bar extends Foo {
   public static async doThing(): Promise<void> {}
 }
+
+class Bar extends Foo {
+  public static accessor doThing = async (): Promise<void> => {};
+}
     `,
       `
 class Foo {

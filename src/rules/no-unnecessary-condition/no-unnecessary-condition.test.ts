@@ -378,11 +378,20 @@ const x = b1 && b2;
       `,
       },
       {
-        options: { allowConstantLoopConditions: true },
+        options: { allowConstantLoopConditions: "always" },
         code: `
 while (true) {}
 for (; true; ) {}
 do {} while (true);
+      `,
+      },
+      {
+        options: { allowConstantLoopConditions: "only-allowed-literals" },
+        code: `
+while (true) {}
+while (false) {}
+while (1) {}
+while (0) {}
       `,
       },
       `
@@ -1738,7 +1747,7 @@ function falsy() {}
       //       errors: [({ line: 6, column: 23, messageId: 'alwaysTruthyFunc' })],
       //     },
       {
-        options: { allowConstantLoopConditions: false },
+        options: { allowConstantLoopConditions: "never" },
         code: `
 while (true) {}
 for (; true; ) {}

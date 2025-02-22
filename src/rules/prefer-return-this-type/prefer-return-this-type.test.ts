@@ -70,6 +70,13 @@ class Derived extends Base {
   }
 }
     `,
+      `
+class Foo {
+  accessor f = () => {
+    return this;
+  };
+}
+    `,
     ],
     invalid: [
       {
@@ -207,6 +214,58 @@ class Foo {
   f = (): this => this;
 }
       `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+class Foo {
+  accessor f = (): Foo => {
+    return this;
+  };
+}
+        `,
+        errors: [
+          {
+            message: messages.useThisType,
+            line: 3,
+            column: 20,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+class Foo {
+  accessor f = (): this => {
+    return this;
+  };
+}
+        `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+class Foo {
+  accessor f = (): Foo => this;
+}
+        `,
+        errors: [
+          {
+            message: messages.useThisType,
+            line: 3,
+            column: 20,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+class Foo {
+  accessor f = (): this => this;
+}
+        `,
               },
             ],
           },
