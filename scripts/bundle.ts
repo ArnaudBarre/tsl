@@ -1,5 +1,11 @@
 import { execSync } from "node:child_process";
-import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { build, type BuildOptions } from "esbuild";
 import packageJSON from "../package.json";
 
@@ -109,10 +115,16 @@ writeFileSync(
 
 await build({
   ...commonOptions,
-  entryPoints: ["src/cli.ts", "src/plugin.ts"],
+  entryPoints: ["src/cli.ts", "src/plugin.ts", "src/ruleTester.ts"],
   outdir: "dist",
   splitting: true,
 });
+execSync(
+  "tsc src/ruleTester.ts --declaration --noCheck --emitDeclarationOnly --outDir dist/ruleTester --target es2023 --module es2022 --moduleResolution bundler",
+  { stdio: "inherit" },
+);
+renameSync("dist/ruleTester/ruleTester.d.ts", "dist/ruleTester.d.ts");
+rmSync("dist/ruleTester", { recursive: true });
 
 await build({
   ...commonOptions,
@@ -142,6 +154,10 @@ writeFileSync(
         "./rules": { types: "./rules.d.ts", import: "./rules.js" },
         "./allRules": { types: "./allRules.d.ts", import: "./allRules.js" },
         "./plugin": { import: "./plugin.js" },
+        "./ruleTester": {
+          types: "./ruleTester.d.ts",
+          import: "./ruleTester.js",
+        },
       },
       bin: { "type-lint": "cli.js" },
       peerDependencies: packageJSON.peerDependencies,
