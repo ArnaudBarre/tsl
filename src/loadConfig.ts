@@ -40,7 +40,7 @@ export const loadConfig = async (
         {
           name: "externalize-deps",
           setup: ({ onResolve }) => {
-            onResolve({ filter: /.*/u }, ({ path }) => {
+            onResolve({ filter: /.*/ }, ({ path }) => {
               if (path !== entryPoint && !path.startsWith(".")) {
                 return { external: true };
               }

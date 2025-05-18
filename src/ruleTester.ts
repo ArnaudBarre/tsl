@@ -192,8 +192,8 @@ export const ruleTester = <
             : e,
         )
       : invalidCase.error
-      ? [{ message: invalidCase.error }]
-      : [];
+        ? [{ message: invalidCase.error }]
+        : [];
     if (errors.length === 0) {
       throw new Error(`Invalid case ${index} has no errors`);
     }
@@ -418,16 +418,16 @@ export const ruleTester = <
                         newText: it.newText,
                       }
                     : "length" in it
-                    ? {
-                        start: it.start,
-                        end: it.start + it.length,
-                        newText: it.newText,
-                      }
-                    : {
-                        start: it.start,
-                        end: it.end,
-                        newText: it.newText,
-                      },
+                      ? {
+                          start: it.start,
+                          end: it.start + it.length,
+                          newText: it.newText,
+                        }
+                      : {
+                          start: it.start,
+                          end: it.end,
+                          newText: it.newText,
+                        },
                 )
                 .sort((a, b) => a.start - b.start);
               const hasOverlap = gotChanges.some(

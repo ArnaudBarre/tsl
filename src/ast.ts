@@ -852,11 +852,18 @@ export interface TypeQueryNode extends Node {
 export interface ExpressionWithTypeArguments extends Node {
   readonly kind: SyntaxKind.ExpressionWithTypeArguments;
   readonly parent:
-    | ExpressionParent
-    | TypeElement
+    | IterationStatement
+    | ObjectLiteralElementLike
     | NodeWithTypeArguments
     | FunctionOrConstructorTypeNodeBase
+    | TypeParameterDeclaration
+    | ParameterDeclaration
     | TypePredicateNode
+    | CallSignatureDeclaration
+    | ConstructSignatureDeclaration
+    | PropertySignature
+    | MethodSignature
+    | IndexSignatureDeclaration
     | ArrayTypeNode
     | TupleTypeNode
     | NamedTupleMember
@@ -878,14 +885,20 @@ export interface ExpressionWithTypeArguments extends Node {
     | JSDocVariadicType
     | JSDocNamepathType
     | TypeAssertion
+    | ArrowFunction
+    | AsExpression
+    | SatisfiesExpression
     | JsxOpeningElement
     | JsxSelfClosingElement
     | FunctionExpression
-    | MethodDeclaration
+    | NewExpression
+    | PropertyDeclaration
     | ConstructorDeclaration
     | TaggedTemplateExpression
+    | CallExpression
     | FunctionDeclaration
     | TypeAliasDeclaration
+    | VariableDeclaration
     | HeritageClause
     | PostfixUnaryExpression
     | PrefixUnaryExpression
@@ -893,6 +906,34 @@ export interface ExpressionWithTypeArguments extends Node {
     | TypeOfExpression
     | VoidExpression
     | AwaitExpression
+    | ComputedPropertyName
+    | BindingElement
+    | ImportAttribute
+    | YieldExpression
+    | BinaryExpression
+    | ConditionalExpression
+    | SpreadElement
+    | JsxExpression
+    | JsxSpreadAttribute
+    | CommaListExpression
+    | PartiallyEmittedExpression
+    | TemplateSpan
+    | ParenthesizedExpression
+    | ArrayLiteralExpression
+    | ElementAccessExpression
+    | NonNullExpression
+    | EnumMember
+    | ExternalModuleReference
+    | ExportDeclaration
+    | ExportAssignment
+    | ExpressionStatement
+    | IfStatement
+    | ReturnStatement
+    | WithStatement
+    | SwitchStatement
+    | CaseClause
+    | ThrowStatement
+    | ImportDeclaration
     | PropertyAccessExpression
     | Decorator;
   readonly expression: LeftHandSideExpression;
@@ -921,7 +962,8 @@ export type TypeElement =
   | MethodSignature
   | GetAccessorDeclaration
   | SetAccessorDeclaration
-  | IndexSignatureDeclaration;
+  | IndexSignatureDeclaration
+  | NotEmittedTypeElement;
 export interface CallSignatureDeclaration extends Node {
   readonly kind: SyntaxKind.CallSignature;
   readonly parent: TypeLiteralNode | MappedTypeNode | InterfaceDeclaration;
@@ -1043,6 +1085,12 @@ export interface IndexSignatureDeclaration extends Node {
   readonly name?: PropertyName;
   readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
   readonly parameters: NodeArray<ParameterDeclaration>;
+  readonly questionToken?: QuestionToken | undefined;
+}
+export interface NotEmittedTypeElement extends Node {
+  readonly kind: SyntaxKind.NotEmittedTypeElement;
+  readonly parent: TypeLiteralNode | MappedTypeNode | InterfaceDeclaration;
+  readonly name?: PropertyName;
   readonly questionToken?: QuestionToken | undefined;
 }
 export interface ArrayTypeNode extends Node {
@@ -2519,6 +2567,7 @@ export type AnyNode =
   | NoSubstitutionTemplateLiteral
   | NonNullExpression
   | NotEmittedStatement
+  | NotEmittedTypeElement
   | NullLiteral
   | NumberKeyword
   | NumericLiteral
@@ -2634,12 +2683,17 @@ export type ExpressionParent =
   | ThrowStatement
   | ImportDeclaration;
 export type TypeNodeParent =
-  | TypeElement
+  | AccessorDeclaration
   | NodeWithTypeArguments
   | FunctionOrConstructorTypeNodeBase
   | TypeParameterDeclaration
   | ParameterDeclaration
   | TypePredicateNode
+  | CallSignatureDeclaration
+  | ConstructSignatureDeclaration
+  | PropertySignature
+  | MethodSignature
+  | IndexSignatureDeclaration
   | ArrayTypeNode
   | TupleTypeNode
   | NamedTupleMember
@@ -2973,6 +3027,8 @@ export type Visitor<Data = undefined> = {
   "NonNullExpression:exit"?(node: NonNullExpression, context: Context<Data>): void;
   NotEmittedStatement?(node: NotEmittedStatement, context: Context<Data>): void;
   "NotEmittedStatement:exit"?(node: NotEmittedStatement, context: Context<Data>): void;
+  NotEmittedTypeElement?(node: NotEmittedTypeElement, context: Context<Data>): void;
+  "NotEmittedTypeElement:exit"?(node: NotEmittedTypeElement, context: Context<Data>): void;
   NullKeyword?(node: NullLiteral, context: Context<Data>): void;
   "NullKeyword:exit"?(node: NullLiteral, context: Context<Data>): void;
   NumberKeyword?(node: NumberKeyword, context: Context<Data>): void;

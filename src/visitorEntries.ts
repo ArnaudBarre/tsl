@@ -126,6 +126,7 @@ export const visitorEntries: [number, keyof AST.Visitor][] = [
   [SyntaxKind.NoSubstitutionTemplateLiteral, "NoSubstitutionTemplateLiteral"],
   [SyntaxKind.NonNullExpression, "NonNullExpression"],
   [SyntaxKind.NotEmittedStatement, "NotEmittedStatement"],
+  [SyntaxKind.NotEmittedTypeElement, "NotEmittedTypeElement"],
   [SyntaxKind.NullKeyword, "NullKeyword"],
   [SyntaxKind.NumberKeyword, "NumberKeyword"],
   [SyntaxKind.NumericLiteral, "NumericLiteral"],

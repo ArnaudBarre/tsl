@@ -68,8 +68,8 @@ export const noUnnecessaryBooleanLiteralCompare = createRule(
                   : messages.comparingNullableToTrueDirect
                 : messages.comparingNullableToFalse
               : comparison.negated
-              ? messages.negated
-              : messages.direct,
+                ? messages.negated
+                : messages.direct,
             node,
           });
         },

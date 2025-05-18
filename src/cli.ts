@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import fs from "node:fs";
 import ts from "typescript";
 import type { SourceFile } from "./ast.ts";

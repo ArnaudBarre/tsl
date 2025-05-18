@@ -356,8 +356,8 @@ function checkAssignment(
 ): boolean {
   const receiverType =
     comparisonType === "Contextual"
-      ? getContextualType(context.checker, receiverNode as AST.Expression) ??
-        context.checker.getTypeAtLocation(receiverNode)
+      ? (getContextualType(context.checker, receiverNode as AST.Expression) ??
+        context.checker.getTypeAtLocation(receiverNode))
       : context.checker.getTypeAtLocation(receiverNode);
   const senderType = context.checker.getTypeAtLocation(senderNode);
 

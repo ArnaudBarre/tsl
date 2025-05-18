@@ -2,16 +2,16 @@
 import { SyntaxKind } from "typescript";
 import type { AST } from "../../types.ts";
 
-export enum OperatorPrecedence {
+export const OperatorPrecedence = {
   // Expression:
   //     AssignmentExpression
   //     Expression `,` AssignmentExpression
-  Comma,
+  Comma: 1,
 
   // NOTE: `Spread` is higher than `Comma` due to how it is parsed in |ElementList|
   // SpreadElement:
   //     `...` AssignmentExpression
-  Spread,
+  Spread: 2,
 
   // AssignmentExpression:
   //     ConditionalExpression
@@ -29,13 +29,13 @@ export enum OperatorPrecedence {
   //     `yield`
   //     `yield` AssignmentExpression
   //     `yield` `*` AssignmentExpression
-  Yield,
+  Yield: 3,
 
   // AssignmentExpression: LeftHandSideExpression `=` AssignmentExpression
   // AssignmentExpression: LeftHandSideExpression AssignmentOperator AssignmentExpression
   // AssignmentOperator: one of
   //     `*=` `/=` `%=` `+=` `-=` `<<=` `>>=` `>>>=` `&=` `^=` `|=` `**=`
-  Assignment,
+  Assignment: 4,
 
   // NOTE: `Conditional` is considered higher than `Assignment` here, but in reality they have
   //       the same precedence.
@@ -46,39 +46,39 @@ export enum OperatorPrecedence {
   // ShortCircuitExpression:
   //     LogicalORExpression
   //     CoalesceExpression
-  Conditional,
+  Conditional: 5,
 
   // CoalesceExpression:
   //     CoalesceExpressionHead `??` BitwiseORExpression
   // CoalesceExpressionHead:
   //     CoalesceExpression
   //     BitwiseORExpression
-  Coalesce = Conditional, // NOTE: This is wrong
+  Coalesce: 5, // NOTE: This is wrong
 
   // LogicalORExpression:
   //     LogicalANDExpression
   //     LogicalORExpression `||` LogicalANDExpression
-  LogicalOR,
+  LogicalOR: 6,
 
   // LogicalANDExpression:
   //     BitwiseORExpression
   //     LogicalANDExpression `&&` BitwiseORExpression
-  LogicalAND,
+  LogicalAND: 7,
 
   // BitwiseORExpression:
   //     BitwiseXORExpression
   //     BitwiseORExpression `^` BitwiseXORExpression
-  BitwiseOR,
+  BitwiseOR: 8,
 
   // BitwiseXORExpression:
   //     BitwiseANDExpression
   //     BitwiseXORExpression `^` BitwiseANDExpression
-  BitwiseXOR,
+  BitwiseXOR: 9,
 
   // BitwiseANDExpression:
   //     EqualityExpression
   //     BitwiseANDExpression `^` EqualityExpression
-  BitwiseAND,
+  BitwiseAND: 10,
 
   // EqualityExpression:
   //     RelationalExpression
@@ -86,7 +86,7 @@ export enum OperatorPrecedence {
   //     EqualityExpression `!=` RelationalExpression
   //     EqualityExpression `===` RelationalExpression
   //     EqualityExpression `!==` RelationalExpression
-  Equality,
+  Equality: 11,
 
   // RelationalExpression:
   //     ShiftExpression
@@ -97,31 +97,31 @@ export enum OperatorPrecedence {
   //     RelationalExpression `instanceof` ShiftExpression
   //     RelationalExpression `in` ShiftExpression
   //     [+TypeScript] RelationalExpression `as` Type
-  Relational,
+  Relational: 12,
 
   // ShiftExpression:
   //     AdditiveExpression
   //     ShiftExpression `<<` AdditiveExpression
   //     ShiftExpression `>>` AdditiveExpression
   //     ShiftExpression `>>>` AdditiveExpression
-  Shift,
+  Shift: 13,
 
   // AdditiveExpression:
   //     MultiplicativeExpression
   //     AdditiveExpression `+` MultiplicativeExpression
   //     AdditiveExpression `-` MultiplicativeExpression
-  Additive,
+  Additive: 14,
 
   // MultiplicativeExpression:
   //     ExponentiationExpression
   //     MultiplicativeExpression MultiplicativeOperator ExponentiationExpression
   // MultiplicativeOperator: one of `*`, `/`, `%`
-  Multiplicative,
+  Multiplicative: 15,
 
   // ExponentiationExpression:
   //     UnaryExpression
   //     UpdateExpression `**` ExponentiationExpression
-  Exponentiation,
+  Exponentiation: 16,
 
   // UnaryExpression:
   //     UpdateExpression
@@ -136,13 +136,13 @@ export enum OperatorPrecedence {
   // UpdateExpression:            // TODO: Do we need to investigate the precedence here?
   //     `++` UnaryExpression
   //     `--` UnaryExpression
-  Unary,
+  Unary: 17,
 
   // UpdateExpression:
   //     LeftHandSideExpression
   //     LeftHandSideExpression `++`
   //     LeftHandSideExpression `--`
-  Update,
+  Update: 18,
 
   // LeftHandSideExpression:
   //     NewExpression
@@ -150,7 +150,7 @@ export enum OperatorPrecedence {
   // NewExpression:
   //     MemberExpression
   //     `new` NewExpression
-  LeftHandSide,
+  LeftHandSide: 19,
 
   // CallExpression:
   //     CoverCallExpressionAndAsyncArrowHead
@@ -168,7 +168,7 @@ export enum OperatorPrecedence {
   //     SuperProperty
   //     MetaProperty
   //     `new` MemberExpression Arguments
-  Member,
+  Member: 20,
 
   // TODO: JSXElement?
   // PrimaryExpression:
@@ -185,18 +185,16 @@ export enum OperatorPrecedence {
   //     RegularExpressionLiteral
   //     TemplateLiteral
   //     CoverParenthesizedExpressionAndArrowParameterList
-  Primary,
+  Primary: 21,
 
-  Highest = Primary,
-  Lowest = Comma,
+  Highest: 21,
+  Lowest: 1,
   // -1 is lower than all other precedences. Returning it will cause binary expression
   // parsing to stop.
-  Invalid = -1,
-}
+  Invalid: -1,
+};
 
-export function getOperatorPrecedenceForNode(
-  node: AST.AnyNode,
-): OperatorPrecedence {
+export function getOperatorPrecedenceForNode(node: AST.AnyNode): number {
   switch (node.kind) {
     case SyntaxKind.SpreadElement:
       return OperatorPrecedence.Spread;
@@ -292,7 +290,7 @@ export function getOperatorPrecedence(
   nodeKind: SyntaxKind,
   operatorKind: SyntaxKind,
   hasArguments?: boolean,
-): OperatorPrecedence {
+): number {
   switch (nodeKind) {
     // A list of comma-separated expressions. This node is only created by transformations.
     case SyntaxKind.CommaListExpression:
@@ -395,9 +393,7 @@ export function getOperatorPrecedence(
   }
 }
 
-export function getBinaryOperatorPrecedence(
-  kind: SyntaxKind,
-): OperatorPrecedence {
+export function getBinaryOperatorPrecedence(kind: SyntaxKind): number {
   switch (kind) {
     case SyntaxKind.MinusToken:
     case SyntaxKind.PlusToken:

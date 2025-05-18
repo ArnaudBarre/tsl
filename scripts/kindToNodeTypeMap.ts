@@ -123,6 +123,7 @@ export const kindToNodeTypeMap: Record<string, string | undefined> = {
   NoSubstitutionTemplateLiteral: "NoSubstitutionTemplateLiteral",
   NonNullExpression: "NonNullExpression",
   NotEmittedStatement: "NotEmittedStatement",
+  NotEmittedTypeElement: "NotEmittedTypeElement",
   NullKeyword: "NullLiteral",
   NumberKeyword: "NumberKeyword",
   NumericLiteral: "NumericLiteral",

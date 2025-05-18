@@ -8,11 +8,6 @@ const messages = {
     `'${params.name}' ${params.certainty} evaluate to '[object Object]' when stringified.`,
 };
 
-enum Usefulness {
-  Always = "always",
-  Never = "will",
-  Sometimes = "may",
-}
 export const noBaseToString = createRule(() => ({
   name: "core/noBaseToString",
   visitor: {
@@ -27,7 +22,7 @@ export const noBaseToString = createRule(() => ({
           context.checker.getTypeAtLocation(exp),
           context,
         );
-        if (certainty === Usefulness.Always) {
+        if (certainty === "Always") {
           return;
         }
         context.report({
@@ -39,18 +34,18 @@ export const noBaseToString = createRule(() => ({
   },
 }));
 
-function collectToStringCertainty(type: ts.Type, context: Context): Usefulness {
+function collectToStringCertainty(type: ts.Type, context: Context) {
   const toString = context.checker.getPropertyOfType(type, "toString");
   const declarations = toString?.getDeclarations();
   if (!toString || !declarations || declarations.length === 0) {
-    return Usefulness.Always;
+    return "Always";
   }
 
   if (
     type.flags & ts.TypeFlags.Literal ||
     context.checker.typeToString(type) === "RegExp"
   ) {
-    return Usefulness.Always;
+    return "Always";
   }
 
   if (
@@ -59,23 +54,23 @@ function collectToStringCertainty(type: ts.Type, context: Context): Usefulness {
         !ts.isInterfaceDeclaration(parent) || parent.name.text !== "Object",
     )
   ) {
-    return Usefulness.Always;
+    return "Always";
   }
 
   if (type.isIntersection()) {
     for (const subType of type.types) {
       const subtypeUsefulness = collectToStringCertainty(subType, context);
 
-      if (subtypeUsefulness === Usefulness.Always) {
-        return Usefulness.Always;
+      if (subtypeUsefulness === "Always") {
+        return "Always";
       }
     }
 
-    return Usefulness.Never;
+    return "Never";
   }
 
   if (!type.isUnion()) {
-    return Usefulness.Never;
+    return "Never";
   }
 
   let allSubtypesUseful = true;
@@ -84,24 +79,24 @@ function collectToStringCertainty(type: ts.Type, context: Context): Usefulness {
   for (const subType of type.types) {
     const subtypeUsefulness = collectToStringCertainty(subType, context);
 
-    if (subtypeUsefulness !== Usefulness.Always && allSubtypesUseful) {
+    if (subtypeUsefulness !== "Always" && allSubtypesUseful) {
       allSubtypesUseful = false;
     }
 
-    if (subtypeUsefulness !== Usefulness.Never && !someSubtypeUseful) {
+    if (subtypeUsefulness !== "Never" && !someSubtypeUseful) {
       someSubtypeUseful = true;
     }
   }
 
   if (allSubtypesUseful && someSubtypeUseful) {
-    return Usefulness.Always;
+    return "Always";
   }
 
   if (someSubtypeUseful) {
-    return Usefulness.Sometimes;
+    return "Sometimes";
   }
 
-  return Usefulness.Never;
+  return "Never";
 }
 
 /** Tests */

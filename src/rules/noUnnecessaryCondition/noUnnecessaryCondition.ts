@@ -832,8 +832,8 @@ function isOptionableExpression(
     node.kind === SyntaxKind.ElementAccessExpression
       ? !isMemberExpressionNullableOriginFromObject(node, context)
       : node.kind === SyntaxKind.CallExpression
-      ? !isCallExpressionNullableOriginFromCallee(node, context)
-      : true;
+        ? !isCallExpressionNullableOriginFromCallee(node, context)
+        : true;
 
   return (
     isConditionalAlwaysNecessary(type) ||

@@ -79,8 +79,8 @@ export const noUnnecessaryTemplateExpression = createRule(() => ({
                 span.expression.kind === SyntaxKind.StringLiteral
                   ? span.expression.getText().slice(1, -1)
                   : span.expression.kind === SyntaxKind.BigIntLiteral
-                  ? parseInt(span.expression.getText()).toString()
-                  : span.expression.getText();
+                    ? parseInt(span.expression.getText()).toString()
+                    : span.expression.getText();
               const isLastSpan = span === node.templateSpans.at(-1);
               return [
                 {
@@ -156,10 +156,10 @@ export const noUnnecessaryTemplateExpression = createRule(() => ({
                 type.kind === SyntaxKind.UndefinedKeyword
                   ? "undefined"
                   : type.literal.kind === SyntaxKind.StringLiteral
-                  ? type.literal.getText().slice(1, -1)
-                  : type.literal.kind === SyntaxKind.BigIntLiteral
-                  ? parseInt(type.literal.getText()).toString()
-                  : type.literal.getText();
+                    ? type.literal.getText().slice(1, -1)
+                    : type.literal.kind === SyntaxKind.BigIntLiteral
+                      ? parseInt(type.literal.getText()).toString()
+                      : type.literal.getText();
               const isLastSpan = span === node.templateSpans.at(-1);
               return [
                 {

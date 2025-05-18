@@ -174,14 +174,14 @@ export const getPlugin = async (
                         newText: it.newText,
                       }
                     : "length" in it
-                    ? {
-                        span: { start: it.start, length: it.length },
-                        newText: it.newText,
-                      }
-                    : {
-                        span: { start: it.start, length: it.end - it.start },
-                        newText: it.newText,
-                      },
+                      ? {
+                          span: { start: it.start, length: it.length },
+                          newText: it.newText,
+                        }
+                      : {
+                          span: { start: it.start, length: it.end - it.start },
+                          newText: it.newText,
+                        },
                 ),
               },
             ],

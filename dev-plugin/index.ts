@@ -83,7 +83,7 @@ const init: ts.server.PluginModuleFactory = ({ typescript: ts }) => {
       };
       info.languageService.getCodeFixesAtPosition = (...args) => {
         return args[3][0] === 61333
-          ? plugin?.getCodeFixesAtPosition(...args) ?? []
+          ? (plugin?.getCodeFixesAtPosition(...args) ?? [])
           : getCodeFixesAtPosition(...args);
       };
       return info.languageService;

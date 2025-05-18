@@ -862,7 +862,7 @@ function getReportDescriptor(
   type FlattenedChain = {
     nonNull: boolean;
     optional: boolean;
-    precedence: OperatorPrecedence;
+    precedence: number;
     requiresDot: boolean;
     text: string;
   };

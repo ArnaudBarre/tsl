@@ -295,11 +295,10 @@ const visitType = (name: string): void => {
 
 const visitEnum = (name: string) => {
   const values = interfaces
-    .filter(
-      (i) =>
-        i.heritageClauses?.some((h) =>
-          h.types.some((t) => t.expression.getText() === name),
-        ),
+    .filter((i) =>
+      i.heritageClauses?.some((h) =>
+        h.types.some((t) => t.expression.getText() === name),
+      ),
     )
     .map((i) => i.name.text)
     .flatMap((n) => (n === "KeywordTypeNode" ? typeKeywordNames : [n]));

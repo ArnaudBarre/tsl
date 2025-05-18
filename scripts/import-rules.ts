@@ -588,8 +588,8 @@ for (const rule of rulesToImport) {
       ) {
         path.node.left.name = path.node.right.name === "Node" ? "ts" : "AST";
         path.node.right.name = estreeToTSTree[path.node.right.name]
-          ? kindToNodeTypeMap[estreeToTSTree[path.node.right.name]!] ??
-            estreeToTSTree[path.node.right.name]!
+          ? (kindToNodeTypeMap[estreeToTSTree[path.node.right.name]!] ??
+            estreeToTSTree[path.node.right.name]!)
           : path.node.right.name;
         return;
       }
@@ -1097,8 +1097,8 @@ for (const rule of rulesToImport) {
         value.type === "StringLiteral"
           ? value.value
           : value.type === "TemplateLiteral"
-          ? value.quasis[0].value.raw
-          : null;
+            ? value.quasis[0].value.raw
+            : null;
       if (!text) return [key, value] as const;
       if (!text.includes("{{")) {
         return [key, JSON.stringify(text)] as const;

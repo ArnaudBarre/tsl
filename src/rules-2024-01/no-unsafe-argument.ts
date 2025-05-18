@@ -143,6 +143,8 @@ type RestType =
 
 class FunctionSignature {
   private parameterTypeIndex = 0;
+  private paramTypes: ts.Type[];
+  private restType: RestType | null;
 
   public static create(
     checker: Checker,
@@ -190,10 +192,10 @@ class FunctionSignature {
 
   private hasConsumedArguments = false;
 
-  private constructor(
-    private paramTypes: ts.Type[],
-    private restType: RestType | null,
-  ) {}
+  private constructor(paramTypes: ts.Type[], restType: RestType | null) {
+    this.paramTypes = paramTypes;
+    this.restType = restType;
+  }
 
   public getNextParameterType(): ts.Type | null {
     const index = this.parameterTypeIndex;

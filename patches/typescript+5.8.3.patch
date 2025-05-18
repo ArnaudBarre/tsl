@@ -1,8 +1,8 @@
 diff --git a/node_modules/typescript/lib/typescript.js b/node_modules/typescript/lib/typescript.js
-index 90f3266..c63ec52 100644
+index dc0fe9a..21ba50d 100644
 --- a/node_modules/typescript/lib/typescript.js
 +++ b/node_modules/typescript/lib/typescript.js
-@@ -152171,6 +152171,7 @@ function registerCodeFix(reg) {
+@@ -154238,6 +154238,7 @@ function registerCodeFix(reg) {
      }
    }
  }
