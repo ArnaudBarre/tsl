@@ -287,11 +287,11 @@ export function isUnsafeAssignment(
     }
 
     if (
-      senderNode?.kind === SyntaxKind.NewExpression &&
-      senderNode.expression.kind === SyntaxKind.Identifier &&
-      senderNode.expression.text === "Map" &&
-      (senderNode.arguments ?? []).length === 0 &&
-      senderNode.typeArguments == null
+      senderNode?.kind === SyntaxKind.NewExpression
+      && senderNode.expression.kind === SyntaxKind.Identifier
+      && senderNode.expression.text === "Map"
+      && (senderNode.arguments ?? []).length === 0
+      && senderNode.typeArguments == null
     ) {
       // special case to handle `new Map()`
       // unfortunately Map's default empty constructor is typed to return `Map<any, any>` :(

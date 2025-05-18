@@ -107,16 +107,16 @@ function parseArrayFilterExpressions(
 
   // Check if it looks like <<stuff>>(...), but not <<stuff>>?.(...)
   if (
-    expression.kind === SyntaxKind.CallExpression &&
-    !expression.questionDotToken
+    expression.kind === SyntaxKind.CallExpression
+    && !expression.questionDotToken
   ) {
     const callee = expression.expression;
     // Check if it looks like <<stuff>>.filter(...)
     // or the optional chaining variants.
     if (
-      callee.kind === SyntaxKind.PropertyAccessExpression &&
-      callee.name.kind === SyntaxKind.Identifier &&
-      callee.name.text === "filter"
+      callee.kind === SyntaxKind.PropertyAccessExpression
+      && callee.name.kind === SyntaxKind.Identifier
+      && callee.name.text === "filter"
     ) {
       const filteredObjectType = context.utils.getConstrainedTypeAtLocation(
         callee.expression,
@@ -148,8 +148,8 @@ function isArrayish(type: Type, context: Context): boolean {
     // so we need to check the intersection parts individually.
     const isArrayOrIntersectionThereof = intersectionTypeParts(unionPart).every(
       (intersectionPart) =>
-        context.checker.isArrayType(intersectionPart) ||
-        context.checker.isTupleType(intersectionPart),
+        context.checker.isArrayType(intersectionPart)
+        || context.checker.isTupleType(intersectionPart),
     );
 
     if (!isArrayOrIntersectionThereof) {

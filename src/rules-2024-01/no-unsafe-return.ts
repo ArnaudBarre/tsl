@@ -54,8 +54,8 @@ function checkReturn(
   // const foo1: () => Set<string> = () => new Set<any>();
   // the return type of the arrow function is Set<any> even though the variable is typed as Set<string>
   let functionType =
-    functionTSNode.kind === SyntaxKind.FunctionExpression ||
-    functionTSNode.kind === SyntaxKind.ArrowFunction
+    functionTSNode.kind === SyntaxKind.FunctionExpression
+    || functionTSNode.kind === SyntaxKind.ArrowFunction
       ? getContextualType(context.checker, functionTSNode)
       : context.checker.getTypeAtLocation(functionNode);
   if (!functionType) {
@@ -67,8 +67,8 @@ function checkReturn(
   if (functionTSNode.type) {
     for (const signature of functionType.getCallSignatures()) {
       if (
-        returnNodeType === signature.getReturnType() ||
-        typeHasFlag(
+        returnNodeType === signature.getReturnType()
+        || typeHasFlag(
           signature.getReturnType(),
           ts.TypeFlags.Any | ts.TypeFlags.Unknown,
         )
@@ -84,14 +84,14 @@ function checkReturn(
     for (const signature of functionType.getCallSignatures()) {
       const functionReturnType = signature.getReturnType();
       if (
-        anyType === "Any" &&
-        typeHasFlag(functionReturnType, TypeFlags.Unknown)
+        anyType === "Any"
+        && typeHasFlag(functionReturnType, TypeFlags.Unknown)
       ) {
         return;
       }
       if (
-        anyType === "AnyArray" &&
-        isTypeUnknownArrayType(functionReturnType, context.checker)
+        anyType === "AnyArray"
+        && isTypeUnknownArrayType(functionReturnType, context.checker)
       ) {
         return;
       }

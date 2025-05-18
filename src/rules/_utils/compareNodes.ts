@@ -69,11 +69,11 @@ function compareNodesUncached(
     // import.meta && import.meta.b
     //                ^^^^^^^^^^^ compare this
     if (
-      nodeA.kind === SyntaxKind.CallExpression ||
-      nodeA.kind === SyntaxKind.Identifier ||
-      nodeA.kind === SyntaxKind.PropertyAccessExpression ||
-      nodeA.kind === SyntaxKind.ElementAccessExpression ||
-      nodeA.kind === SyntaxKind.MetaProperty
+      nodeA.kind === SyntaxKind.CallExpression
+      || nodeA.kind === SyntaxKind.Identifier
+      || nodeA.kind === SyntaxKind.PropertyAccessExpression
+      || nodeA.kind === SyntaxKind.ElementAccessExpression
+      || nodeA.kind === SyntaxKind.MetaProperty
     ) {
       switch (nodeB.kind) {
         case SyntaxKind.PropertyAccessExpression:
@@ -268,8 +268,8 @@ function compareNodesUncached(
       const areHeadsEqual = nodeA.head.text === nodeBTemplate.head.text;
       if (!areHeadsEqual) return "Invalid";
       const areQuasisEqual =
-        nodeA.templateSpans.length === nodeBTemplate.templateSpans.length &&
-        nodeA.templateSpans.every((elA, idx) => {
+        nodeA.templateSpans.length === nodeBTemplate.templateSpans.length
+        && nodeA.templateSpans.every((elA, idx) => {
           const elB = nodeBTemplate.templateSpans[idx];
           return elA.literal.text === elB.literal.text;
         });
@@ -332,10 +332,10 @@ function compareUnknownValues(
 
 function isValidNode(x: unknown): x is AST.AnyNode {
   return (
-    typeof x === "object" &&
-    x != null &&
-    "kind" in x &&
-    typeof x.kind === "number"
+    typeof x === "object"
+    && x != null
+    && "kind" in x
+    && typeof x.kind === "number"
   );
 }
 

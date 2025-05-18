@@ -22,10 +22,10 @@ export const noUnnecessaryTemplateExpression = createRule(() => ({
       }
 
       const hasSingleStringVariable =
-        node.head.text === "" &&
-        node.templateSpans.length === 1 &&
-        node.templateSpans[0].literal.text === "" &&
-        isUnderlyingTypeString(node.templateSpans[0].expression, context);
+        node.head.text === ""
+        && node.templateSpans.length === 1
+        && node.templateSpans[0].literal.text === ""
+        && isUnderlyingTypeString(node.templateSpans[0].expression, context);
 
       if (hasSingleStringVariable) {
         context.report({
@@ -48,22 +48,22 @@ export const noUnnecessaryTemplateExpression = createRule(() => ({
 
       for (const span of node.templateSpans) {
         if (
-          span.expression.kind === SyntaxKind.StringLiteral ||
-          span.expression.kind === SyntaxKind.BigIntLiteral ||
-          span.expression.kind === SyntaxKind.NumericLiteral ||
-          span.expression.kind === SyntaxKind.TrueKeyword ||
-          span.expression.kind === SyntaxKind.FalseKeyword ||
-          span.expression.kind === SyntaxKind.NullKeyword ||
-          (span.expression.kind === SyntaxKind.Identifier &&
-            span.expression.text === "undefined")
+          span.expression.kind === SyntaxKind.StringLiteral
+          || span.expression.kind === SyntaxKind.BigIntLiteral
+          || span.expression.kind === SyntaxKind.NumericLiteral
+          || span.expression.kind === SyntaxKind.TrueKeyword
+          || span.expression.kind === SyntaxKind.FalseKeyword
+          || span.expression.kind === SyntaxKind.NullKeyword
+          || (span.expression.kind === SyntaxKind.Identifier
+            && span.expression.text === "undefined")
         ) {
           // Skip if contains a comment
           if (span.literal.getLeadingTriviaWidth()) continue;
 
           if (
-            span.expression.kind === SyntaxKind.StringLiteral &&
-            isWhitespace(span.expression.text) &&
-            startsWithNewLine(span.literal.text)
+            span.expression.kind === SyntaxKind.StringLiteral
+            && isWhitespace(span.expression.text)
+            && startsWithNewLine(span.literal.text)
           ) {
             // Allow making trailing whitespace visible
             // `Head:${'    '}
@@ -101,11 +101,11 @@ export const noUnnecessaryTemplateExpression = createRule(() => ({
     },
     TemplateLiteralType(node, context) {
       const hasSingleType =
-        node.head.text === "" &&
-        node.templateSpans.length === 1 &&
-        node.templateSpans[0].literal.text === "" &&
-        node.templateSpans[0].type.kind !== SyntaxKind.LiteralType &&
-        node.templateSpans[0].type.kind !== SyntaxKind.UndefinedKeyword;
+        node.head.text === ""
+        && node.templateSpans.length === 1
+        && node.templateSpans[0].literal.text === ""
+        && node.templateSpans[0].type.kind !== SyntaxKind.LiteralType
+        && node.templateSpans[0].type.kind !== SyntaxKind.UndefinedKeyword;
 
       if (hasSingleType) {
         const type = context.checker.getTypeAtLocation(
@@ -130,17 +130,17 @@ export const noUnnecessaryTemplateExpression = createRule(() => ({
       for (const span of node.templateSpans) {
         const type = span.type;
         if (
-          type.kind === SyntaxKind.LiteralType ||
-          type.kind === SyntaxKind.UndefinedKeyword
+          type.kind === SyntaxKind.LiteralType
+          || type.kind === SyntaxKind.UndefinedKeyword
         ) {
           // Skip if contains a comment
           if (span.type.getLeadingTriviaWidth()) continue;
 
           if (
-            type.kind === SyntaxKind.LiteralType &&
-            type.literal.kind === SyntaxKind.StringLiteral &&
-            isWhitespace(type.literal.text) &&
-            startsWithNewLine(span.literal.text)
+            type.kind === SyntaxKind.LiteralType
+            && type.literal.kind === SyntaxKind.StringLiteral
+            && isWhitespace(type.literal.text)
+            && startsWithNewLine(span.literal.text)
           ) {
             // Allow making trailing whitespace visible
             // `Head:${'    '}

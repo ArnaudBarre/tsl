@@ -86,10 +86,10 @@ export function getParentFunctionNode(
   // type-lint-ignore core/noUnnecessaryCondition
   while (current) {
     if (
-      current.kind === SyntaxKind.ArrowFunction ||
-      current.kind === SyntaxKind.FunctionDeclaration ||
-      current.kind === SyntaxKind.MethodDeclaration ||
-      current.kind === SyntaxKind.FunctionExpression
+      current.kind === SyntaxKind.ArrowFunction
+      || current.kind === SyntaxKind.FunctionDeclaration
+      || current.kind === SyntaxKind.MethodDeclaration
+      || current.kind === SyntaxKind.FunctionExpression
     ) {
       return current;
     }
@@ -167,9 +167,9 @@ export function getTypeName(
     const decls = symbol?.getDeclarations();
     const typeParamDecl = decls?.[0];
     if (
-      typeParamDecl != null &&
-      ts.isTypeParameterDeclaration(typeParamDecl) &&
-      typeParamDecl.constraint != null
+      typeParamDecl != null
+      && ts.isTypeParameterDeclaration(typeParamDecl)
+      && typeParamDecl.constraint != null
     ) {
       return getTypeName(
         typeChecker,
@@ -183,8 +183,8 @@ export function getTypeName(
   // - `"a" | "b"` is string.
   // - `string | string[]` is not string.
   if (
-    type.isUnion() &&
-    type.types
+    type.isUnion()
+    && type.types
       .map((value) => getTypeName(typeChecker, value))
       .every((t) => t === "string")
   ) {
@@ -194,8 +194,8 @@ export function getTypeName(
   // If the type is an intersection and a type in the intersection is string
   // like, return `string`. For example: `string & {__htmlEscaped: void}`
   if (
-    type.isIntersection() &&
-    type.types
+    type.isIntersection()
+    && type.types
       .map((value) => getTypeName(typeChecker, value))
       .some((t) => t === "string")
   ) {
@@ -207,9 +207,9 @@ export function getTypeName(
 
 export function isConstAssertion(node: AST.TypeNode): boolean {
   return (
-    node.kind === SyntaxKind.TypeReference &&
-    node.typeName.kind === SyntaxKind.Identifier &&
-    node.typeName.text === "const"
+    node.kind === SyntaxKind.TypeReference
+    && node.typeName.kind === SyntaxKind.Identifier
+    && node.typeName.text === "const"
   );
 }
 
@@ -225,30 +225,30 @@ export function getContextualType(
   const parent = node.parent;
 
   if (
-    parent.kind === SyntaxKind.CallExpression ||
-    parent.kind === SyntaxKind.NewExpression
+    parent.kind === SyntaxKind.CallExpression
+    || parent.kind === SyntaxKind.NewExpression
   ) {
     if (node === parent.expression) {
       // is the callee, so has no contextual type
       return;
     }
   } else if (
-    parent.kind === SyntaxKind.VariableDeclaration ||
-    parent.kind === SyntaxKind.PropertyDeclaration ||
-    parent.kind === SyntaxKind.Parameter
+    parent.kind === SyntaxKind.VariableDeclaration
+    || parent.kind === SyntaxKind.PropertyDeclaration
+    || parent.kind === SyntaxKind.Parameter
   ) {
     return parent.type ? checker.getTypeFromTypeNode(parent.type) : undefined;
   } else if (parent.kind === SyntaxKind.JsxExpression) {
     return checker.getContextualType(parent);
   } else if (
-    parent.kind === SyntaxKind.PropertyAssignment &&
-    node.kind === SyntaxKind.Identifier
+    parent.kind === SyntaxKind.PropertyAssignment
+    && node.kind === SyntaxKind.Identifier
   ) {
     return checker.getContextualType(node);
   } else if (
-    parent.kind === SyntaxKind.BinaryExpression &&
-    parent.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
-    parent.right === node
+    parent.kind === SyntaxKind.BinaryExpression
+    && parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+    && parent.right === node
   ) {
     // is RHS of assignment
     return checker.getTypeAtLocation(parent.left);
@@ -320,8 +320,8 @@ export function typeHasFlag(type: ts.Type, flag: ts.TypeFlags): boolean {
 
 export function isTypeAnyArrayType(type: ts.Type, checker: Checker): boolean {
   return (
-    checker.isArrayType(type) &&
-    typeHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Any)
+    checker.isArrayType(type)
+    && typeHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Any)
   );
 }
 
@@ -330,8 +330,8 @@ export function isTypeUnknownArrayType(
   checker: Checker,
 ): boolean {
   return (
-    checker.isArrayType(type) &&
-    typeHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Unknown)
+    checker.isArrayType(type)
+    && typeHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Unknown)
   );
 }
 

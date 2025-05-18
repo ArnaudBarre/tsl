@@ -11,15 +11,15 @@ import type { AST, Checker, Context, Suggestion } from "../../types.ts";
 const messageBase =
   "Promises must be awaited, end with a call to .catch, or end with a call to .then with a rejection handler.";
 const messageBaseVoid =
-  "Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler" +
-  " or be explicitly marked as ignored with the `void` operator.";
+  "Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler"
+  + " or be explicitly marked as ignored with the `void` operator.";
 const messageRejectionHandler =
   "A rejection handler that is not a function will be ignored.";
 const messagePromiseArray =
   "An array of Promises may be unintentional. Consider handling the promises' fulfillment or rejection with Promise.all or similar.";
 const messagePromiseArrayVoid =
-  "An array of Promises may be unintentional. Consider handling the promises' fulfillment or rejection with Promise.all or similar," +
-  " or explicitly marking the expression as ignored with the `void` operator.";
+  "An array of Promises may be unintentional. Consider handling the promises' fulfillment or rejection with Promise.all or similar,"
+  + " or explicitly marking the expression as ignored with the `void` operator.";
 export const messages = {
   floating: messageBase,
   floatingFixAwait: "Add await operator.",
@@ -73,9 +73,9 @@ export const noFloatingPromises = createRule(
           }
 
           if (
-            node.expression.kind === SyntaxKind.CallExpression &&
-            node.expression.expression.kind === SyntaxKind.Identifier &&
-            options.allowList.includes(node.expression.expression.text)
+            node.expression.kind === SyntaxKind.CallExpression
+            && node.expression.expression.kind === SyntaxKind.Identifier
+            && options.allowList.includes(node.expression.expression.text)
           ) {
             return;
           }
@@ -177,8 +177,9 @@ function isAsyncIife(node: AST.ExpressionStatement): boolean {
     return false;
   }
   return (
-    node.expression.expression.expression.kind === SyntaxKind.ArrowFunction ||
-    node.expression.expression.expression.kind === SyntaxKind.FunctionExpression
+    node.expression.expression.expression.kind === SyntaxKind.ArrowFunction
+    || node.expression.expression.expression.kind
+      === SyntaxKind.FunctionExpression
   );
 }
 
@@ -203,16 +204,16 @@ function isUnhandledPromise(
   promiseArray?: boolean;
 } {
   if (
-    node.kind === SyntaxKind.BinaryExpression &&
-    node.operatorToken.kind === SyntaxKind.FirstAssignment
+    node.kind === SyntaxKind.BinaryExpression
+    && node.operatorToken.kind === SyntaxKind.FirstAssignment
   ) {
     return { isUnhandled: false };
   }
 
   // First, check expressions whose resulting types may not be promise-like
   if (
-    node.kind === SyntaxKind.BinaryExpression &&
-    node.operatorToken.kind === SyntaxKind.CommaToken
+    node.kind === SyntaxKind.BinaryExpression
+    && node.operatorToken.kind === SyntaxKind.CommaToken
   ) {
     // Any child in a comma expression could return a potentially unhandled
     // promise, so we check them all regardless of whether the final returned
@@ -255,8 +256,8 @@ function isUnhandledPromise(
     // rejection handler handles the promise.
 
     if (
-      node.expression.kind === SyntaxKind.PropertyAccessExpression &&
-      node.expression.name.kind === SyntaxKind.Identifier
+      node.expression.kind === SyntaxKind.PropertyAccessExpression
+      && node.expression.name.kind === SyntaxKind.Identifier
     ) {
       const methodName = node.expression.name.text;
       const catchRejectionHandler =
@@ -311,8 +312,8 @@ function isUnhandledPromise(
     }
     return isUnhandledPromise(checker, node.whenTrue, context, options);
   } else if (
-    node.kind === SyntaxKind.BinaryExpression &&
-    isLogicalExpression(node.operatorToken)
+    node.kind === SyntaxKind.BinaryExpression
+    && isLogicalExpression(node.operatorToken)
   ) {
     const leftResult = isUnhandledPromise(checker, node.left, context, options);
     if (leftResult.isUnhandled) {

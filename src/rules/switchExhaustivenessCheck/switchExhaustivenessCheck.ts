@@ -86,8 +86,8 @@ export const switchExhaustivenessCheck = createRule(
       for (const unionPart of unionTypeParts(discriminantType)) {
         for (const intersectionPart of intersectionTypeParts(unionPart)) {
           if (
-            caseTypes.has(intersectionPart) ||
-            !isTypeLiteralLikeType(intersectionPart)
+            caseTypes.has(intersectionPart)
+            || !isTypeLiteralLikeType(intersectionPart)
           ) {
             continue;
           }
@@ -95,8 +95,8 @@ export const switchExhaustivenessCheck = createRule(
           // "missing", "optional" and "undefined" types are different runtime objects,
           // but all of them have TypeFlags.Undefined type flag
           if (
-            [...caseTypes].some(isIntrinsicUndefinedType) &&
-            isIntrinsicUndefinedType(intersectionPart)
+            [...caseTypes].some(isIntrinsicUndefinedType)
+            && isIntrinsicUndefinedType(intersectionPart)
           ) {
             continue;
           }
@@ -184,9 +184,9 @@ export const switchExhaustivenessCheck = createRule(
           : context.checker.typeToString(missingBranchType);
 
         if (
-          symbolName &&
-          (missingBranchName || missingBranchName === "") &&
-          requiresQuoting(
+          symbolName
+          && (missingBranchName || missingBranchName === "")
+          && requiresQuoting(
             missingBranchName.toString(),
             context.compilerOptions.target,
           )
@@ -251,9 +251,9 @@ export const switchExhaustivenessCheck = createRule(
         switchMetadata;
 
       if (
-        missingLiteralCasesTypes.length === 0 &&
-        defaultCase !== undefined &&
-        !containsNonLiteralType
+        missingLiteralCasesTypes.length === 0
+        && defaultCase !== undefined
+        && !containsNonLiteralType
       ) {
         context.report({
           node: defaultCase,
@@ -304,10 +304,10 @@ export const switchExhaustivenessCheck = createRule(
 function isTypeLiteralLikeType(type: ts.Type): boolean {
   return isTypeFlagSet(
     type,
-    ts.TypeFlags.Literal |
-      ts.TypeFlags.Undefined |
-      ts.TypeFlags.Null |
-      ts.TypeFlags.UniqueESSymbol,
+    ts.TypeFlags.Literal
+      | ts.TypeFlags.Undefined
+      | ts.TypeFlags.Null
+      | ts.TypeFlags.UniqueESSymbol,
   );
 }
 

@@ -57,11 +57,11 @@ function getTypeParametersFromNode(
   }
 
   if (
-    node.kind === SyntaxKind.CallExpression ||
-    node.kind === SyntaxKind.JsxOpeningElement ||
-    node.kind === SyntaxKind.JsxSelfClosingElement ||
-    node.kind === SyntaxKind.NewExpression ||
-    node.kind === SyntaxKind.TaggedTemplateExpression
+    node.kind === SyntaxKind.CallExpression
+    || node.kind === SyntaxKind.JsxOpeningElement
+    || node.kind === SyntaxKind.JsxSelfClosingElement
+    || node.kind === SyntaxKind.NewExpression
+    || node.kind === SyntaxKind.TaggedTemplateExpression
   ) {
     return getTypeParametersFromCall(node, context);
   }
@@ -89,8 +89,8 @@ function checkTSArgsAndParameters(
     return;
   }
   if (
-    context.checker.isTypeAssignableTo(argType, defaultType) &&
-    context.checker.isTypeAssignableTo(defaultType, argType)
+    context.checker.isTypeAssignableTo(argType, defaultType)
+    && context.checker.isTypeAssignableTo(defaultType, argType)
   ) {
     context.report({
       node: arg,
@@ -126,12 +126,12 @@ function getTypeParametersFromType(
   if (!declarations) return;
 
   const isInTypeContent =
-    type.parent.kind === SyntaxKind.HeritageClause ||
-    type.parent.kind === SyntaxKind.TypeReference;
+    type.parent.kind === SyntaxKind.HeritageClause
+    || type.parent.kind === SyntaxKind.TypeReference;
 
   const isTypeContextDeclaration = (decl: AnyNode) =>
-    decl.kind === SyntaxKind.TypeAliasDeclaration ||
-    decl.kind === SyntaxKind.InterfaceDeclaration
+    decl.kind === SyntaxKind.TypeAliasDeclaration
+    || decl.kind === SyntaxKind.InterfaceDeclaration
       ? 1
       : 0;
 
@@ -143,10 +143,10 @@ function getTypeParametersFromType(
       : isTypeContextDeclaration(b) - isTypeContextDeclaration(a),
   )) {
     if (
-      decl.kind === SyntaxKind.TypeAliasDeclaration ||
-      decl.kind === SyntaxKind.InterfaceDeclaration ||
-      decl.kind === SyntaxKind.ClassDeclaration ||
-      decl.kind === SyntaxKind.ClassExpression
+      decl.kind === SyntaxKind.TypeAliasDeclaration
+      || decl.kind === SyntaxKind.InterfaceDeclaration
+      || decl.kind === SyntaxKind.ClassDeclaration
+      || decl.kind === SyntaxKind.ClassExpression
     ) {
       typeParameters = decl.typeParameters;
     }

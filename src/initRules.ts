@@ -174,8 +174,8 @@ export const initRules = async (
         if (comment.startsWith("type-lint-ignore")) {
           const ruleName = comment.split(" ", 2).at(1);
           const line =
-            lineStarts.findLastIndex((lineStart) => commentStart >= lineStart) +
-            1;
+            lineStarts.findLastIndex((lineStart) => commentStart >= lineStart)
+            + 1;
           ignoreComments.push({
             line,
             start: commentStart,
@@ -188,8 +188,8 @@ export const initRules = async (
       });
 
       if (
-        node.kind === ts.SyntaxKind.SourceFile &&
-        ignoreComments.some((it) => it.ruleName === undefined && !it.local)
+        node.kind === ts.SyntaxKind.SourceFile
+        && ignoreComments.some((it) => it.ruleName === undefined && !it.local)
       ) {
         // File is ignored
         ignoreComments = [];

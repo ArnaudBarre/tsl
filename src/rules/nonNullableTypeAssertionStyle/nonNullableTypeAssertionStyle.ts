@@ -40,8 +40,8 @@ const checkAssertion = (
     context.checker.isTypeAssignableTo(
       originalType.getNonNullableType(),
       assertedType,
-    ) &&
-    context.checker.isTypeAssignableTo(
+    )
+    && context.checker.isTypeAssignableTo(
       assertedType,
       originalType.getNonNullableType(),
     )

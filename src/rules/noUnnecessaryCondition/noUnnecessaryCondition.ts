@@ -155,11 +155,12 @@ export const noUnnecessaryCondition = createRule(
         },
         WhileStatement(node, context) {
           if (
-            options.allowConstantLoopConditions === "only-allowed-literals" &&
-            (node.expression.kind === SyntaxKind.TrueKeyword ||
-              node.expression.kind === SyntaxKind.FalseKeyword ||
-              (node.expression.kind === SyntaxKind.NumericLiteral &&
-                (node.expression.text === "0" || node.expression.text === "1")))
+            options.allowConstantLoopConditions === "only-allowed-literals"
+            && (node.expression.kind === SyntaxKind.TrueKeyword
+              || node.expression.kind === SyntaxKind.FalseKeyword
+              || (node.expression.kind === SyntaxKind.NumericLiteral
+                && (node.expression.text === "0"
+                  || node.expression.text === "1")))
           ) {
             return;
           }
@@ -191,13 +192,13 @@ function isArrayIndexExpression(
 ): boolean {
   return (
     // Is an index signature
-    node.kind === SyntaxKind.ElementAccessExpression &&
+    node.kind === SyntaxKind.ElementAccessExpression
     // ...into an array type
-    (nodeIsArrayType(node.expression, context) ||
+    && (nodeIsArrayType(node.expression, context)
       // ... or a tuple type
-      (nodeIsTupleType(node.expression, context) &&
+      || (nodeIsTupleType(node.expression, context)
         // Exception: literal index into a tuple - will have a sound type
-        !isLiteralKind(node.argumentExpression.kind)))
+        && !isLiteralKind(node.argumentExpression.kind)))
   );
 }
 
@@ -267,9 +268,9 @@ function checkNode(
   //  boolean checks if we inspect the right here, it'll usually be a constant condition on purpose.
   // In this case it's better to inspect the type of the expression as a whole.
   if (
-    expression.kind === SyntaxKind.BinaryExpression &&
-    isLogicalExpression(expression.operatorToken) &&
-    expression.operatorToken.kind !== SyntaxKind.QuestionQuestionToken
+    expression.kind === SyntaxKind.BinaryExpression
+    && isLogicalExpression(expression.operatorToken)
+    && expression.operatorToken.kind !== SyntaxKind.QuestionQuestionToken
   ) {
     checkNode(expression.right, context);
     return;
@@ -306,10 +307,10 @@ function checkNodeForNullish(node: AST.Expression, context: Context): void {
   if (
     typeHasFlag(
       type,
-      ts.TypeFlags.Any |
-        ts.TypeFlags.Unknown |
-        ts.TypeFlags.TypeParameter |
-        ts.TypeFlags.TypeVariable,
+      ts.TypeFlags.Any
+        | ts.TypeFlags.Unknown
+        | ts.TypeFlags.TypeParameter
+        | ts.TypeFlags.TypeVariable,
     )
   ) {
     return;
@@ -319,21 +320,21 @@ function checkNodeForNullish(node: AST.Expression, context: Context): void {
   if (typeHasFlag(type, ts.TypeFlags.Never)) {
     message = messages.never;
   } else if (
-    !isPossiblyNullish(type) &&
-    !(
-      (node.kind === SyntaxKind.PropertyAccessExpression ||
-        node.kind === SyntaxKind.ElementAccessExpression) &&
-      isNullableMemberExpression(node, context)
+    !isPossiblyNullish(type)
+    && !(
+      (node.kind === SyntaxKind.PropertyAccessExpression
+        || node.kind === SyntaxKind.ElementAccessExpression)
+      && isNullableMemberExpression(node, context)
     )
   ) {
     // Since typescript array index signature types don't represent the
     //  possibility of out-of-bounds access, if we're indexing into an array
     //  just skip the check, to avoid false positives
     if (
-      !isArrayIndexExpression(node, context) &&
-      !(
-        node.kind === SyntaxKind.PropertyAccessExpression &&
-        optionChainContainsOptionArrayIndex(node, context)
+      !isArrayIndexExpression(node, context)
+      && !(
+        node.kind === SyntaxKind.PropertyAccessExpression
+        && optionChainContainsOptionArrayIndex(node, context)
       )
     ) {
       message = messages.neverNullish;
@@ -396,15 +397,15 @@ function checkIfBoolExpressionIsNecessaryConditional(
   const isComparable = (type: ts.Type, flag: ts.TypeFlags): boolean => {
     // Allow comparison to `any`, `unknown` or a naked type parameter.
     flag |=
-      ts.TypeFlags.Any |
-      ts.TypeFlags.Unknown |
-      ts.TypeFlags.TypeParameter |
-      ts.TypeFlags.TypeVariable;
+      ts.TypeFlags.Any
+      | ts.TypeFlags.Unknown
+      | ts.TypeFlags.TypeParameter
+      | ts.TypeFlags.TypeVariable;
 
     // Allow loose comparison to nullish values.
     if (
-      operator === SyntaxKind.EqualsEqualsToken ||
-      operator === SyntaxKind.ExclamationEqualsToken
+      operator === SyntaxKind.EqualsEqualsToken
+      || operator === SyntaxKind.ExclamationEqualsToken
     ) {
       flag |= NULL | UNDEFINED | VOID;
     }
@@ -413,12 +414,11 @@ function checkIfBoolExpressionIsNecessaryConditional(
   };
 
   if (
-    (leftType.flags === UNDEFINED &&
-      !isComparable(rightType, UNDEFINED | VOID)) ||
-    (rightType.flags === UNDEFINED &&
-      !isComparable(leftType, UNDEFINED | VOID)) ||
-    (leftType.flags === NULL && !isComparable(rightType, NULL)) ||
-    (rightType.flags === NULL && !isComparable(leftType, NULL))
+    (leftType.flags === UNDEFINED && !isComparable(rightType, UNDEFINED | VOID))
+    || (rightType.flags === UNDEFINED
+      && !isComparable(leftType, UNDEFINED | VOID))
+    || (leftType.flags === NULL && !isComparable(rightType, NULL))
+    || (rightType.flags === NULL && !isComparable(leftType, NULL))
   ) {
     context.report({
       node,
@@ -437,8 +437,8 @@ function checkIfLoopIsNecessaryConditional(
   options: ParsedOptions,
 ): void {
   if (
-    options.allowConstantLoopConditions === "always" &&
-    isTrueLiteralType(context.utils.getConstrainedTypeAtLocation(testNode))
+    options.allowConstantLoopConditions === "always"
+    && isTrueLiteralType(context.utils.getConstrainedTypeAtLocation(testNode))
   ) {
     return;
   }
@@ -490,8 +490,8 @@ function checkCallExpression(
     const callback = node.arguments[0];
     // Inline defined functions
     if (
-      callback.kind === SyntaxKind.ArrowFunction ||
-      callback.kind === SyntaxKind.FunctionExpression
+      callback.kind === SyntaxKind.ArrowFunction
+      || callback.kind === SyntaxKind.FunctionExpression
     ) {
       // Two special cases, where we can directly check the node that's returned:
       // () => something
@@ -502,9 +502,9 @@ function checkCallExpression(
       // () => { return something; }
       const callbackBody = callback.body.statements;
       if (
-        callbackBody.length === 1 &&
-        callbackBody[0].kind === SyntaxKind.ReturnStatement &&
-        callbackBody[0].expression
+        callbackBody.length === 1
+        && callbackBody[0].kind === SyntaxKind.ReturnStatement
+        && callbackBody[0].expression
       ) {
         checkNode(callbackBody[0].expression, context);
         return;
@@ -535,9 +535,9 @@ function checkCallExpression(
     for (const type of returnTypes) {
       // Predicate is always necessary if it involves `any` or `unknown`
       if (
-        !type ||
-        typeHasFlag(type, TypeFlags.Any) ||
-        typeHasFlag(type, TypeFlags.Unknown)
+        !type
+        || typeHasFlag(type, TypeFlags.Any)
+        || typeHasFlag(type, TypeFlags.Unknown)
       ) {
         return;
       }
@@ -659,9 +659,9 @@ export function findTypeGuardAssertedArgument(
   const { kind, parameterIndex, type } = typePredicateInfo;
   if (
     !(
-      (kind === ts.TypePredicateKind.AssertsIdentifier ||
-        kind === ts.TypePredicateKind.Identifier) &&
-      type != null
+      (kind === ts.TypePredicateKind.AssertsIdentifier
+        || kind === ts.TypePredicateKind.Identifier)
+      && type != null
     )
   ) {
     return undefined;
@@ -686,8 +686,8 @@ function optionChainContainsOptionArrayIndex(
   context: Context,
 ): boolean {
   return (
-    node.questionDotToken !== undefined &&
-    isArrayIndexExpression(node.expression, context)
+    node.questionDotToken !== undefined
+    && isArrayIndexExpression(node.expression, context)
   );
 }
 
@@ -720,11 +720,11 @@ function isNullablePropertyType(
 function isNullableType(type: ts.Type): boolean {
   return typeHasFlag(
     type,
-    TypeFlags.Any |
-      TypeFlags.Unknown |
-      TypeFlags.Null |
-      TypeFlags.Undefined |
-      TypeFlags.Void,
+    TypeFlags.Any
+      | TypeFlags.Unknown
+      | TypeFlags.Null
+      | TypeFlags.Undefined
+      | TypeFlags.Void,
   );
 }
 
@@ -736,8 +736,8 @@ function getTypeOfPropertyOfName(
 ): ts.Type | undefined {
   // Most names are directly usable in the checker and aren't different from escaped names
   if (
-    !escapedName ||
-    !(escapedName.startsWith("__@") || escapedName.startsWith("__#"))
+    !escapedName
+    || !(escapedName.startsWith("__@") || escapedName.startsWith("__#"))
   ) {
     return checker.getTypeOfPropertyOfType(type, name);
   }
@@ -795,8 +795,8 @@ function isMemberExpressionNullableOriginFromObject(
         const isStringTypeName =
           getTypeName(context.rawChecker, info.keyType) === "string";
         return (
-          isStringTypeName &&
-          (usingNoUncheckedIndexedAccess || isNullableType(info.type))
+          isStringTypeName
+          && (usingNoUncheckedIndexedAccess || isNullableType(info.type))
         );
       });
     });
@@ -828,16 +828,16 @@ function isOptionableExpression(
 ): boolean {
   const type = context.utils.getConstrainedTypeAtLocation(node);
   const isOwnNullable =
-    node.kind === SyntaxKind.PropertyAccessExpression ||
-    node.kind === SyntaxKind.ElementAccessExpression
+    node.kind === SyntaxKind.PropertyAccessExpression
+    || node.kind === SyntaxKind.ElementAccessExpression
       ? !isMemberExpressionNullableOriginFromObject(node, context)
       : node.kind === SyntaxKind.CallExpression
         ? !isCallExpressionNullableOriginFromCallee(node, context)
         : true;
 
   return (
-    isConditionalAlwaysNecessary(type) ||
-    (isOwnNullable && isNullableType(type))
+    isConditionalAlwaysNecessary(type)
+    || (isOwnNullable && isNullableType(type))
   );
 }
 
@@ -877,16 +877,16 @@ export function isPossiblyFalsy(type: ts.Type): boolean {
   return isTypeRecurser(type, (t) => {
     return t.isLiteral()
       ? !getValueOfLiteralType(t)
-      : t.flags === TypeFlags.Any ||
-          t.flags === TypeFlags.Unknown ||
-          t.flags === TypeFlags.Null ||
-          t.flags === TypeFlags.Undefined ||
-          t.flags === TypeFlags.Void ||
-          t.flags === TypeFlags.String ||
-          t.flags === TypeFlags.Number ||
-          t.flags === TypeFlags.BigInt ||
-          t.flags === TypeFlags.Boolean ||
-          isFalseLiteralType(t);
+      : t.flags === TypeFlags.Any
+          || t.flags === TypeFlags.Unknown
+          || t.flags === TypeFlags.Null
+          || t.flags === TypeFlags.Undefined
+          || t.flags === TypeFlags.Void
+          || t.flags === TypeFlags.String
+          || t.flags === TypeFlags.Number
+          || t.flags === TypeFlags.BigInt
+          || t.flags === TypeFlags.Boolean
+          || isFalseLiteralType(t);
   });
 }
 

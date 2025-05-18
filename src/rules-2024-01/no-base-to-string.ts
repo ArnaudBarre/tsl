@@ -13,9 +13,9 @@ export const noBaseToString = createRule(() => ({
   visitor: {
     CallExpression(node, context) {
       if (
-        node.expression.kind === SyntaxKind.PropertyAccessExpression &&
-        node.expression.name.kind === SyntaxKind.Identifier &&
-        node.expression.name.text === "toString"
+        node.expression.kind === SyntaxKind.PropertyAccessExpression
+        && node.expression.name.kind === SyntaxKind.Identifier
+        && node.expression.name.text === "toString"
       ) {
         const exp = node.expression.expression;
         const certainty = collectToStringCertainty(
@@ -42,8 +42,8 @@ function collectToStringCertainty(type: ts.Type, context: Context) {
   }
 
   if (
-    type.flags & ts.TypeFlags.Literal ||
-    context.checker.typeToString(type) === "RegExp"
+    type.flags & ts.TypeFlags.Literal
+    || context.checker.typeToString(type) === "RegExp"
   ) {
     return "Always";
   }

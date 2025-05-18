@@ -24,8 +24,8 @@ export function needsToBeAwaited(
 
   // `any` and `unknown` types may need to be awaited
   if (
-    isIntrinsicAnyType(constrainedType) ||
-    isIntrinsicUnknownType(constrainedType)
+    isIntrinsicAnyType(constrainedType)
+    || isIntrinsicUnknownType(constrainedType)
   ) {
     return "May";
   }

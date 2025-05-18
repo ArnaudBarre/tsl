@@ -31,9 +31,9 @@ export const preferIncludes = createRule(() => ({
           if (compareNode.operand.kind !== SyntaxKind.NumericLiteral) return;
           if (compareNode.operand.text !== "1") return;
           notIncludes =
-            operator === SyntaxKind.EqualsEqualsToken ||
-            operator === SyntaxKind.EqualsEqualsEqualsToken ||
-            operator === SyntaxKind.LessThanEqualsToken;
+            operator === SyntaxKind.EqualsEqualsToken
+            || operator === SyntaxKind.EqualsEqualsEqualsToken
+            || operator === SyntaxKind.LessThanEqualsToken;
           break;
         case SyntaxKind.GreaterThanEqualsToken:
         case SyntaxKind.LessThanToken:
@@ -49,8 +49,8 @@ export const preferIncludes = createRule(() => ({
         .getSymbolAtLocation(node.name)
         ?.getDeclarations();
       if (
-        indexOfMethodDeclarations == null ||
-        indexOfMethodDeclarations.length === 0
+        indexOfMethodDeclarations == null
+        || indexOfMethodDeclarations.length === 0
       ) {
         return;
       }

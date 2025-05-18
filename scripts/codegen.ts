@@ -26,11 +26,11 @@ const keywordTypeInterface = interfaces.find(
   (i) => i.name.text === "KeywordTypeNode",
 );
 assert(
-  keywordTypeInterface &&
-    keywordTypeInterface.typeParameters?.length === 1 &&
-    keywordTypeInterface.typeParameters[0].default &&
-    ts.isTypeReferenceNode(keywordTypeInterface.typeParameters[0].default) &&
-    ts.isIdentifier(keywordTypeInterface.typeParameters[0].default.typeName),
+  keywordTypeInterface
+    && keywordTypeInterface.typeParameters?.length === 1
+    && keywordTypeInterface.typeParameters[0].default
+    && ts.isTypeReferenceNode(keywordTypeInterface.typeParameters[0].default)
+    && ts.isIdentifier(keywordTypeInterface.typeParameters[0].default.typeName),
   "Unexpected params for KeywordTypeNode",
 );
 const keywordTypeName =
@@ -39,11 +39,11 @@ const keywordType = types.find((t) => t.name.text === keywordTypeName);
 assert(keywordType && ts.isUnionTypeNode(keywordType.type));
 const typeKeywordNames = keywordType.type.types.map((t) => {
   assert(
-    ts.isTypeReferenceNode(t) &&
-      ts.isQualifiedName(t.typeName) &&
-      ts.isIdentifier(t.typeName.left) &&
-      ts.isIdentifier(t.typeName.right) &&
-      t.typeName.left.text === "SyntaxKind",
+    ts.isTypeReferenceNode(t)
+      && ts.isQualifiedName(t.typeName)
+      && ts.isIdentifier(t.typeName.left)
+      && ts.isIdentifier(t.typeName.right)
+      && t.typeName.left.text === "SyntaxKind",
   );
   return t.typeName.right.text;
 });
@@ -161,9 +161,9 @@ const visitType = (name: string): void => {
       }
       assert(m.type);
       if (
-        ts.isTypeReferenceNode(m.type) &&
-        ts.isIdentifier(m.type.typeName) &&
-        m.type.typeName.escapedText === "Token"
+        ts.isTypeReferenceNode(m.type)
+        && ts.isIdentifier(m.type.typeName)
+        && m.type.typeName.escapedText === "Token"
       ) {
         assert(m.type.typeArguments?.length === 1);
         const arg = m.type.typeArguments[0];
@@ -184,9 +184,9 @@ const visitType = (name: string): void => {
         allLinks.push([name, argName]);
       } else {
         if (
-          ts.isTypeReferenceNode(m.type) &&
-          m.type.typeArguments?.length === 1 &&
-          m.type.typeArguments[0].getText() === "T"
+          ts.isTypeReferenceNode(m.type)
+          && m.type.typeArguments?.length === 1
+          && m.type.typeArguments[0].getText() === "T"
         ) {
           // ObjectLiteralExpressionBase.properties
           const resolvedType = typeChecker.getTypeOfSymbolAtLocation(p, int);
@@ -243,8 +243,8 @@ const visitType = (name: string): void => {
             if (ts.isTypeReferenceNode(typeNode.type)) {
               handleRef(typeNode.type);
             } else if (
-              ts.isArrayTypeNode(typeNode.type) &&
-              ts.isTypeReferenceNode(typeNode.type.elementType)
+              ts.isArrayTypeNode(typeNode.type)
+              && ts.isTypeReferenceNode(typeNode.type.elementType)
             ) {
               handleRef(typeNode.type.elementType);
             } else {
@@ -255,10 +255,10 @@ const visitType = (name: string): void => {
               );
             }
           } else if (
-            typeNode.kind === ts.SyntaxKind.UndefinedKeyword ||
-            typeNode.kind === ts.SyntaxKind.NeverKeyword ||
-            typeNode.kind === ts.SyntaxKind.StringKeyword ||
-            typeNode.kind === ts.SyntaxKind.BooleanKeyword
+            typeNode.kind === ts.SyntaxKind.UndefinedKeyword
+            || typeNode.kind === ts.SyntaxKind.NeverKeyword
+            || typeNode.kind === ts.SyntaxKind.StringKeyword
+            || typeNode.kind === ts.SyntaxKind.BooleanKeyword
           ) {
             // no-op
           } else {
@@ -423,8 +423,8 @@ for (const part of outputParts) {
   readonly kind: ${part.kind};
   ${
     part.name === "SourceFile"
-      ? "// parent is actually undefined, see comment for NullNode\n" +
-        "readonly parent: NullNode;"
+      ? "// parent is actually undefined, see comment for NullNode\n"
+        + "readonly parent: NullNode;"
       : `readonly parent: ${getParentsWithEnums(part.name).join(" | ")}`
   }
   ${

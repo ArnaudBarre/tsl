@@ -46,8 +46,8 @@ export const noMisusedSpread = createRule(() => ({
     },
     SpreadElement(node, context) {
       if (
-        node.parent.kind === SyntaxKind.CallExpression ||
-        node.parent.kind === SyntaxKind.ArrayLiteralExpression
+        node.parent.kind === SyntaxKind.CallExpression
+        || node.parent.kind === SyntaxKind.ArrayLiteralExpression
       ) {
         const type = context.utils.getConstrainedTypeAtLocation(
           node.expression,
@@ -87,9 +87,9 @@ function checkObjectSpread(
   }
 
   if (
-    isIterable(type, context) &&
+    isIterable(type, context)
     // Don't report when the type is string, since TS will flag it already
-    !isString(type)
+    && !isString(type)
   ) {
     context.report({ node, message: messages.noIterableSpreadInObject });
     return;
@@ -165,8 +165,8 @@ function isClassInstance(context: Context, type: ts.Type): boolean {
 function isClassDeclaration(type: ts.Type): boolean {
   return isTypeRecurser(type, (t) => {
     if (
-      isObjectType(t) &&
-      isObjectFlagSet(t, ts.ObjectFlags.InstantiationExpressionType)
+      isObjectType(t)
+      && isObjectFlagSet(t, ts.ObjectFlags.InstantiationExpressionType)
     ) {
       return true;
     }
@@ -174,8 +174,8 @@ function isClassDeclaration(type: ts.Type): boolean {
     const kind = t.getSymbol()?.valueDeclaration?.kind;
 
     return (
-      kind === ts.SyntaxKind.ClassDeclaration ||
-      kind === ts.SyntaxKind.ClassExpression
+      kind === ts.SyntaxKind.ClassDeclaration
+      || kind === ts.SyntaxKind.ClassExpression
     );
   });
 }

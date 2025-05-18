@@ -23,8 +23,8 @@ export const returnAwait = createRule(() => ({
     "ArrowFunction:exit"(node, context) {
       context.data.pop();
       if (
-        hasModifier(node, SyntaxKind.AsyncKeyword) &&
-        node.body.kind !== SyntaxKind.Block
+        hasModifier(node, SyntaxKind.AsyncKeyword)
+        && node.body.kind !== SyntaxKind.Block
       ) {
         for (const expression of findPossiblyReturnedNodes(node.body)) {
           checkExpression(expression, context);

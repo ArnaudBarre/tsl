@@ -46,13 +46,13 @@ export const preferReturnThisType = createRule(() => ({
     },
     PropertyDeclaration(node, context) {
       if (
-        node.initializer?.kind === SyntaxKind.FunctionExpression ||
-        node.initializer?.kind === SyntaxKind.ArrowFunction
+        node.initializer?.kind === SyntaxKind.FunctionExpression
+        || node.initializer?.kind === SyntaxKind.ArrowFunction
       ) {
         functionEnter(context, node.initializer);
         if (
-          node.initializer.kind === SyntaxKind.ArrowFunction &&
-          node.initializer.body.kind !== SyntaxKind.Block
+          node.initializer.kind === SyntaxKind.ArrowFunction
+          && node.initializer.body.kind !== SyntaxKind.Block
         ) {
           checkReturnExpression(context, node.initializer.body);
         }
@@ -86,8 +86,8 @@ function functionEnter(
 
   const firstArg = func.parameters.at(0);
   if (
-    firstArg?.name.kind === SyntaxKind.Identifier &&
-    firstArg.name.text === "this"
+    firstArg?.name.kind === SyntaxKind.Identifier
+    && firstArg.name.text === "this"
   ) {
     return;
   }
@@ -143,9 +143,9 @@ function tryGetNameInType(
   context: Context<Data | undefined>,
 ): AST.TypeReferenceNode | undefined {
   if (
-    typeNode.kind === SyntaxKind.TypeReference &&
-    typeNode.typeName.kind === SyntaxKind.Identifier &&
-    typeNode.typeName.text === name
+    typeNode.kind === SyntaxKind.TypeReference
+    && typeNode.typeName.kind === SyntaxKind.Identifier
+    && typeNode.typeName.text === name
   ) {
     return typeNode;
   }

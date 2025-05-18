@@ -69,9 +69,9 @@ export const preferOptionalChain = createRule((_options?: OptionsInput) => {
 
         const operator = node.operatorToken.kind;
         if (
-          operator !== SyntaxKind.QuestionQuestionToken &&
-          operator !== SyntaxKind.BarBarToken &&
-          operator !== SyntaxKind.AmpersandAmpersandToken
+          operator !== SyntaxKind.QuestionQuestionToken
+          && operator !== SyntaxKind.BarBarToken
+          && operator !== SyntaxKind.AmpersandAmpersandToken
         ) {
           return;
         }
@@ -101,8 +101,8 @@ export const preferOptionalChain = createRule((_options?: OptionsInput) => {
           }
         }
         if (
-          operator === SyntaxKind.BarBarToken ||
-          operator === SyntaxKind.QuestionQuestionToken
+          operator === SyntaxKind.BarBarToken
+          || operator === SyntaxKind.QuestionQuestionToken
         ) {
           const leftNode = node.left;
           let rightNode = node.right;
@@ -114,13 +114,13 @@ export const preferOptionalChain = createRule((_options?: OptionsInput) => {
             parentNode = parentNode.parent;
           }
           const isRightNodeAnEmptyObjectLiteral =
-            rightNode.kind === SyntaxKind.ObjectLiteralExpression &&
-            rightNode.properties.length === 0;
+            rightNode.kind === SyntaxKind.ObjectLiteralExpression
+            && rightNode.properties.length === 0;
           if (
-            !isRightNodeAnEmptyObjectLiteral ||
-            (parentNode.kind !== SyntaxKind.ElementAccessExpression &&
-              parentNode.kind !== SyntaxKind.PropertyAccessExpression) ||
-            parentNode.questionDotToken
+            !isRightNodeAnEmptyObjectLiteral
+            || (parentNode.kind !== SyntaxKind.ElementAccessExpression
+              && parentNode.kind !== SyntaxKind.PropertyAccessExpression)
+            || parentNode.questionDotToken
           ) {
             return;
           }
@@ -130,8 +130,8 @@ export const preferOptionalChain = createRule((_options?: OptionsInput) => {
             message: messages.preferOptionalChain,
             suggestions: () => {
               const maybeWrappedLeftNode =
-                getOperatorPrecedence(leftNode.kind, node.operatorToken.kind) <
-                OperatorPrecedence.LeftHandSide
+                getOperatorPrecedence(leftNode.kind, node.operatorToken.kind)
+                < OperatorPrecedence.LeftHandSide
                   ? `(${leftNode.getText()})`
                   : leftNode.getText();
               return [
@@ -213,9 +213,9 @@ function gatherLogicalOperands(
           if (comparedExpression.kind === SyntaxKind.TypeOfExpression) {
             const argument = comparedExpression.expression;
             if (
-              argument.kind === SyntaxKind.Identifier &&
+              argument.kind === SyntaxKind.Identifier
               // typeof window === 'undefined'
-              isReferenceToGlobalFunction(argument, context)
+              && isReferenceToGlobalFunction(argument, context)
             ) {
               result.push({ type: "Invalid" });
               continue;
@@ -225,9 +225,10 @@ function gatherLogicalOperands(
             result.push({
               comparedName: argument,
               comparisonType:
-                operand.operatorToken.kind ===
-                  SyntaxKind.ExclamationEqualsEqualsToken ||
-                operand.operatorToken.kind === SyntaxKind.ExclamationEqualsToken
+                operand.operatorToken.kind
+                  === SyntaxKind.ExclamationEqualsEqualsToken
+                || operand.operatorToken.kind
+                  === SyntaxKind.ExclamationEqualsToken
                   ? "NotStrictEqualUndefined"
                   : "StrictEqualUndefined",
               isYoda,
@@ -250,8 +251,8 @@ function gatherLogicalOperands(
               result.push({
                 comparedName: comparedExpression,
                 comparisonType:
-                  operand.operatorToken.kind ===
-                  SyntaxKind.ExclamationEqualsToken
+                  operand.operatorToken.kind
+                  === SyntaxKind.ExclamationEqualsToken
                     ? "NotEqualNullOrUndefined"
                     : "EqualNullOrUndefined",
                 isYoda,
@@ -272,8 +273,8 @@ function gatherLogicalOperands(
                 result.push({
                   comparedName,
                   comparisonType:
-                    operand.operatorToken.kind ===
-                    SyntaxKind.ExclamationEqualsEqualsToken
+                    operand.operatorToken.kind
+                    === SyntaxKind.ExclamationEqualsEqualsToken
                       ? "NotStrictEqualNull"
                       : "StrictEqualNull",
                   isYoda,
@@ -286,8 +287,8 @@ function gatherLogicalOperands(
                 result.push({
                   comparedName,
                   comparisonType:
-                    operand.operatorToken.kind ===
-                    SyntaxKind.ExclamationEqualsEqualsToken
+                    operand.operatorToken.kind
+                    === SyntaxKind.ExclamationEqualsEqualsToken
                       ? "NotStrictEqualUndefined"
                       : "StrictEqualUndefined",
                   isYoda,
@@ -313,11 +314,11 @@ function gatherLogicalOperands(
 
       case SyntaxKind.PrefixUnaryExpression:
         if (
-          operand.operator === SyntaxKind.ExclamationToken &&
-          isValidFalseBooleanCheckType(
+          operand.operator === SyntaxKind.ExclamationToken
+          && isValidFalseBooleanCheckType(
             operand.operand,
-            areMoreOperands &&
-              node.operatorToken.kind === SyntaxKind.BarBarToken,
+            areMoreOperands
+              && node.operatorToken.kind === SyntaxKind.BarBarToken,
             context,
             options,
           )
@@ -338,8 +339,8 @@ function gatherLogicalOperands(
         if (
           isValidFalseBooleanCheckType(
             operand,
-            areMoreOperands &&
-              node.operatorToken.kind === SyntaxKind.AmpersandAmpersandToken,
+            areMoreOperands
+              && node.operatorToken.kind === SyntaxKind.AmpersandAmpersandToken,
             context,
             options,
           )
@@ -388,9 +389,9 @@ function gatherLogicalOperands(
     let current: AST.Expression | undefined;
     while ((current = stack.pop())) {
       if (
-        current.kind === SyntaxKind.BinaryExpression &&
-        isLogicalExpression(current.operatorToken) &&
-        current.operatorToken.kind === node.operatorToken.kind
+        current.kind === SyntaxKind.BinaryExpression
+        && isLogicalExpression(current.operatorToken)
+        && current.operatorToken.kind === node.operatorToken.kind
       ) {
         newlySeenLogicals.add(current);
         stack.push(current.right);
@@ -433,7 +434,7 @@ function isValidFalseBooleanCheckType(
   const types = unionTypeParts(type);
 
   if (
-    disallowFalseyLiteral &&
+    disallowFalseyLiteral
     /*
   ```
   declare const x: false | {a: string};
@@ -444,12 +445,14 @@ function isValidFalseBooleanCheckType(
   narrows out the non-nullish falsy cases - so converting the chain to `x?.a`
   would introduce a build error
   */
-    (types.some(
+    && (types.some(
       (t) => isBooleanLiteralType(t) && t.intrinsicName === "false",
-    ) ||
-      types.some((t) => isStringLiteralType(t) && t.value === "") ||
-      types.some((t) => isNumberLiteralType(t) && t.value === 0) ||
-      types.some((t) => isBigIntLiteralType(t) && t.value.base10Value === "0"))
+    )
+      || types.some((t) => isStringLiteralType(t) && t.value === "")
+      || types.some((t) => isNumberLiteralType(t) && t.value === 0)
+      || types.some(
+        (t) => isBigIntLiteralType(t) && t.value.base10Value === "0",
+      ))
   ) {
     return false;
   }
@@ -471,8 +474,8 @@ function checkNullishAndReport(
   descriptor: ReportDescriptor,
 ): void {
   if (
-    !options.requireNullish ||
-    maybeNullishNodes.some((node) =>
+    !options.requireNullish
+    || maybeNullishNodes.some((node) =>
       unionTypeParts(context.checker.getTypeAtLocation(node)).some((t) =>
         typeHasFlag(t, TypeFlags.Null | TypeFlags.Undefined),
       ),
@@ -601,8 +604,8 @@ const analyzeAndChainOperand: OperandAnalyzer = (
     case "Boolean": {
       const nextOperand = chain.at(index + 1);
       if (
-        nextOperand?.comparisonType === "NotStrictEqualNull" &&
-        operand.comparedName.kind === SyntaxKind.Identifier
+        nextOperand?.comparisonType === "NotStrictEqualNull"
+        && operand.comparedName.kind === SyntaxKind.Identifier
       ) {
         return null;
       }
@@ -616,8 +619,9 @@ const analyzeAndChainOperand: OperandAnalyzer = (
       // handle `x !== null && x !== undefined`
       const nextOperand = chain.at(index + 1);
       if (
-        nextOperand?.comparisonType === "NotStrictEqualUndefined" &&
-        compareNodes(operand.comparedName, nextOperand.comparedName) === "Equal"
+        nextOperand?.comparisonType === "NotStrictEqualUndefined"
+        && compareNodes(operand.comparedName, nextOperand.comparedName)
+          === "Equal"
       ) {
         return [operand, nextOperand];
       }
@@ -635,8 +639,9 @@ const analyzeAndChainOperand: OperandAnalyzer = (
       // handle `x !== undefined && x !== null`
       const nextOperand = chain.at(index + 1);
       if (
-        nextOperand?.comparisonType === "NotStrictEqualNull" &&
-        compareNodes(operand.comparedName, nextOperand.comparedName) === "Equal"
+        nextOperand?.comparisonType === "NotStrictEqualNull"
+        && compareNodes(operand.comparedName, nextOperand.comparedName)
+          === "Equal"
       ) {
         return [operand, nextOperand];
       }
@@ -669,8 +674,9 @@ const analyzeOrChainOperand: OperandAnalyzer = (
       // handle `x === null || x === undefined`
       const nextOperand = chain.at(index + 1);
       if (
-        nextOperand?.comparisonType === "StrictEqualUndefined" &&
-        compareNodes(operand.comparedName, nextOperand.comparedName) === "Equal"
+        nextOperand?.comparisonType === "StrictEqualUndefined"
+        && compareNodes(operand.comparedName, nextOperand.comparedName)
+          === "Equal"
       ) {
         return [operand, nextOperand];
       }
@@ -688,8 +694,9 @@ const analyzeOrChainOperand: OperandAnalyzer = (
       // handle `x === undefined || x === null`
       const nextOperand = chain.at(index + 1);
       if (
-        nextOperand?.comparisonType === "StrictEqualNull" &&
-        compareNodes(operand.comparedName, nextOperand.comparedName) === "Equal"
+        nextOperand?.comparisonType === "StrictEqualNull"
+        && compareNodes(operand.comparedName, nextOperand.comparedName)
+          === "Equal"
       ) {
         return [operand, nextOperand];
       }
@@ -781,8 +788,8 @@ function getReportDescriptor(
         }
       }
       if (
-        part.precedence !== OperatorPrecedence.Invalid &&
-        part.precedence < OperatorPrecedence.Member
+        part.precedence !== OperatorPrecedence.Invalid
+        && part.precedence < OperatorPrecedence.Member
       ) {
         str += `(${part.text})`;
       } else {

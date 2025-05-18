@@ -18,8 +18,8 @@ export const noForInArray = createRule(() => ({
         isTypeRecurser(
           type,
           (t) =>
-            t.getNumberIndexType() != null &&
-            hasArrayishLength(context.checker, t),
+            t.getNumberIndexType() != null
+            && hasArrayishLength(context.checker, t),
         )
       ) {
         context.report({

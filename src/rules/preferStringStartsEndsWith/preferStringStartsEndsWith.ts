@@ -31,27 +31,28 @@ export const preferStringStartsEndsWith = createRule(
       visitor: {
         BinaryExpression(node, context) {
           const isEqualityComparison =
-            node.operatorToken.kind === SyntaxKind.EqualsEqualsToken ||
-            node.operatorToken.kind === SyntaxKind.EqualsEqualsEqualsToken;
+            node.operatorToken.kind === SyntaxKind.EqualsEqualsToken
+            || node.operatorToken.kind === SyntaxKind.EqualsEqualsEqualsToken;
           const isInequalityComparison =
-            node.operatorToken.kind === SyntaxKind.ExclamationEqualsToken ||
-            node.operatorToken.kind === SyntaxKind.ExclamationEqualsEqualsToken;
+            node.operatorToken.kind === SyntaxKind.ExclamationEqualsToken
+            || node.operatorToken.kind
+              === SyntaxKind.ExclamationEqualsEqualsToken;
 
           if (!isEqualityComparison && !isInequalityComparison) return;
 
           const leftIsPropertyCallExpression =
-            node.left.kind === SyntaxKind.CallExpression &&
-            node.left.expression.kind === SyntaxKind.PropertyAccessExpression &&
-            node.left.expression.name.kind === SyntaxKind.Identifier;
+            node.left.kind === SyntaxKind.CallExpression
+            && node.left.expression.kind === SyntaxKind.PropertyAccessExpression
+            && node.left.expression.name.kind === SyntaxKind.Identifier;
 
           // foo[0] === 'b'
           if (
-            options.allowSingleElementEquality === "never" &&
-            node.left.kind === SyntaxKind.ElementAccessExpression &&
-            node.left.argumentExpression.kind === SyntaxKind.NumericLiteral &&
-            node.left.argumentExpression.text === "0" &&
-            node.right.kind === SyntaxKind.StringLiteral &&
-            isTypeString(context, node.left.expression)
+            options.allowSingleElementEquality === "never"
+            && node.left.kind === SyntaxKind.ElementAccessExpression
+            && node.left.argumentExpression.kind === SyntaxKind.NumericLiteral
+            && node.left.argumentExpression.text === "0"
+            && node.right.kind === SyntaxKind.StringLiteral
+            && isTypeString(context, node.left.expression)
           ) {
             if (node.left.questionDotToken) {
               reportStartsWith(context, node, isInequalityComparison, [
@@ -74,15 +75,15 @@ export const preferStringStartsEndsWith = createRule(
 
           // foo[foo.length - 1] === 'b'
           if (
-            options.allowSingleElementEquality === "never" &&
-            node.right.kind === SyntaxKind.StringLiteral &&
-            node.left.kind === SyntaxKind.ElementAccessExpression &&
-            isLengthMinusNumberExpression(
+            options.allowSingleElementEquality === "never"
+            && node.right.kind === SyntaxKind.StringLiteral
+            && node.left.kind === SyntaxKind.ElementAccessExpression
+            && isLengthMinusNumberExpression(
               node.left.argumentExpression,
               node.left.expression,
               1,
-            ) &&
-            isTypeString(context, node.left.expression)
+            )
+            && isTypeString(context, node.left.expression)
           ) {
             if (node.left.questionDotToken) {
               reportEndsWith(context, node, isInequalityComparison, [
@@ -105,13 +106,13 @@ export const preferStringStartsEndsWith = createRule(
 
           // foo.charAt(0) === 'b'
           if (
-            node.right.kind === SyntaxKind.StringLiteral &&
-            leftIsPropertyCallExpression &&
-            node.left.expression.name.text === "charAt" &&
-            node.left.arguments.length === 1 &&
-            node.left.arguments[0].kind === SyntaxKind.NumericLiteral &&
-            node.left.arguments[0].text === "0" &&
-            isTypeString(context, node.left.expression.expression)
+            node.right.kind === SyntaxKind.StringLiteral
+            && leftIsPropertyCallExpression
+            && node.left.expression.name.text === "charAt"
+            && node.left.arguments.length === 1
+            && node.left.arguments[0].kind === SyntaxKind.NumericLiteral
+            && node.left.arguments[0].text === "0"
+            && isTypeString(context, node.left.expression.expression)
           ) {
             reportStartsWith(context, node, isInequalityComparison, [
               {
@@ -124,16 +125,16 @@ export const preferStringStartsEndsWith = createRule(
 
           // foo.charAt(foo.length - 1) === 'b'
           if (
-            node.right.kind === SyntaxKind.StringLiteral &&
-            leftIsPropertyCallExpression &&
-            node.left.expression.name.text === "charAt" &&
-            node.left.arguments.length === 1 &&
-            isLengthMinusNumberExpression(
+            node.right.kind === SyntaxKind.StringLiteral
+            && leftIsPropertyCallExpression
+            && node.left.expression.name.text === "charAt"
+            && node.left.arguments.length === 1
+            && isLengthMinusNumberExpression(
               node.left.arguments[0],
               node.left.expression.expression,
               1,
-            ) &&
-            isTypeString(context, node.left.expression.expression)
+            )
+            && isTypeString(context, node.left.expression.expression)
           ) {
             reportEndsWith(context, node, isInequalityComparison, [
               {
@@ -146,12 +147,12 @@ export const preferStringStartsEndsWith = createRule(
 
           // foo.indexOf('bar') === 0
           if (
-            leftIsPropertyCallExpression &&
-            node.left.expression.name.text === "indexOf" &&
-            node.left.arguments.length === 1 &&
-            node.right.kind === SyntaxKind.NumericLiteral &&
-            node.right.text === "0" &&
-            isTypeString(context, node.left.expression.expression)
+            leftIsPropertyCallExpression
+            && node.left.expression.name.text === "indexOf"
+            && node.left.arguments.length === 1
+            && node.right.kind === SyntaxKind.NumericLiteral
+            && node.right.text === "0"
+            && isTypeString(context, node.left.expression.expression)
           ) {
             reportStartsWith(context, node, isInequalityComparison, [
               {
@@ -165,29 +166,29 @@ export const preferStringStartsEndsWith = createRule(
           // foo.lastIndexOf('bar') === foo.length - 3
           // foo.lastIndexOf(needle) === foo.length - needle.length
           if (
-            leftIsPropertyCallExpression &&
-            node.left.expression.name.text === "lastIndexOf" &&
-            node.left.arguments.length === 1 &&
-            isTypeString(context, node.left.expression.expression)
+            leftIsPropertyCallExpression
+            && node.left.expression.name.text === "lastIndexOf"
+            && node.left.arguments.length === 1
+            && isTypeString(context, node.left.expression.expression)
           ) {
             const argument = node.left.arguments[0];
             if (
               // foo.length - 3
-              (argument.kind === SyntaxKind.StringLiteral &&
-                isLengthMinusNumberExpression(
+              (argument.kind === SyntaxKind.StringLiteral
+                && isLengthMinusNumberExpression(
                   node.right,
                   node.left.expression.expression,
                   argument.text.length,
-                )) ||
+                ))
               // foo.length - needle.length;
-              isLengthMinusXExpression(
+              || isLengthMinusXExpression(
                 node.right,
                 node.left.expression.expression,
                 (right) =>
-                  right.kind === SyntaxKind.PropertyAccessExpression &&
-                  right.name.kind === SyntaxKind.Identifier &&
-                  right.name.text === "length" &&
-                  compareNodes(right.expression, argument) === "Equal",
+                  right.kind === SyntaxKind.PropertyAccessExpression
+                  && right.name.kind === SyntaxKind.Identifier
+                  && right.name.text === "length"
+                  && compareNodes(right.expression, argument) === "Equal",
               )
             ) {
               reportEndsWith(context, node, isInequalityComparison, [
@@ -205,23 +206,24 @@ export const preferStringStartsEndsWith = createRule(
           // foo.slice(0, needle.length) === needle
           // foo.substring(0, needle.length) === needle
           if (
-            leftIsPropertyCallExpression &&
-            (node.left.expression.name.text === "slice" ||
-              node.left.expression.name.text === "substring") &&
-            node.left.arguments.length === 2 &&
-            node.left.arguments[0].kind === SyntaxKind.NumericLiteral &&
-            node.left.arguments[0].text === "0" &&
-            isTypeString(context, node.left.expression.expression)
+            leftIsPropertyCallExpression
+            && (node.left.expression.name.text === "slice"
+              || node.left.expression.name.text === "substring")
+            && node.left.arguments.length === 2
+            && node.left.arguments[0].kind === SyntaxKind.NumericLiteral
+            && node.left.arguments[0].text === "0"
+            && isTypeString(context, node.left.expression.expression)
           ) {
             const secondArgument = node.left.arguments[1];
             if (
-              (node.right.kind === SyntaxKind.StringLiteral &&
-                secondArgument.kind === SyntaxKind.NumericLiteral &&
-                node.right.text.length === Number(secondArgument.text)) ||
-              (secondArgument.kind === SyntaxKind.PropertyAccessExpression &&
-                secondArgument.name.kind === SyntaxKind.Identifier &&
-                secondArgument.name.text === "length" &&
-                compareNodes(secondArgument.expression, node.right) === "Equal")
+              (node.right.kind === SyntaxKind.StringLiteral
+                && secondArgument.kind === SyntaxKind.NumericLiteral
+                && node.right.text.length === Number(secondArgument.text))
+              || (secondArgument.kind === SyntaxKind.PropertyAccessExpression
+                && secondArgument.name.kind === SyntaxKind.Identifier
+                && secondArgument.name.text === "length"
+                && compareNodes(secondArgument.expression, node.right)
+                  === "Equal")
             ) {
               reportStartsWith(context, node, isInequalityComparison, [
                 {
@@ -237,23 +239,23 @@ export const preferStringStartsEndsWith = createRule(
           // foo.substring(-3) === 'bar'
           // foo.slice(-needle.length) === needle
           if (
-            leftIsPropertyCallExpression &&
-            (node.left.expression.name.text === "slice" ||
-              node.left.expression.name.text === "substring") &&
-            node.left.arguments.length === 1 &&
-            node.left.arguments[0].kind === SyntaxKind.PrefixUnaryExpression &&
-            node.left.arguments[0].operator === SyntaxKind.MinusToken &&
-            isTypeString(context, node.left.expression.expression)
+            leftIsPropertyCallExpression
+            && (node.left.expression.name.text === "slice"
+              || node.left.expression.name.text === "substring")
+            && node.left.arguments.length === 1
+            && node.left.arguments[0].kind === SyntaxKind.PrefixUnaryExpression
+            && node.left.arguments[0].operator === SyntaxKind.MinusToken
+            && isTypeString(context, node.left.expression.expression)
           ) {
             const operand = node.left.arguments[0].operand;
             if (
-              (node.right.kind === SyntaxKind.StringLiteral &&
-                operand.kind === SyntaxKind.NumericLiteral &&
-                node.right.text.length === Number(operand.text)) ||
-              (operand.kind === SyntaxKind.PropertyAccessExpression &&
-                operand.name.kind === SyntaxKind.Identifier &&
-                operand.name.text === "length" &&
-                compareNodes(operand.expression, node.right) === "Equal")
+              (node.right.kind === SyntaxKind.StringLiteral
+                && operand.kind === SyntaxKind.NumericLiteral
+                && node.right.text.length === Number(operand.text))
+              || (operand.kind === SyntaxKind.PropertyAccessExpression
+                && operand.name.kind === SyntaxKind.Identifier
+                && operand.name.text === "length"
+                && compareNodes(operand.expression, node.right) === "Equal")
             ) {
               reportEndsWith(context, node, isInequalityComparison, [
                 {
@@ -267,19 +269,19 @@ export const preferStringStartsEndsWith = createRule(
 
           // foo.slice(foo.length - needle.length) === needle
           if (
-            leftIsPropertyCallExpression &&
-            node.left.expression.name.text === "slice" &&
-            node.left.arguments.length === 1 &&
-            isLengthMinusXExpression(
+            leftIsPropertyCallExpression
+            && node.left.expression.name.text === "slice"
+            && node.left.arguments.length === 1
+            && isLengthMinusXExpression(
               node.left.arguments[0],
               node.left.expression.expression,
               (right) =>
-                right.kind === SyntaxKind.PropertyAccessExpression &&
-                right.name.kind === SyntaxKind.Identifier &&
-                right.name.text === "length" &&
-                compareNodes(right.expression, node.right) === "Equal",
-            ) &&
-            isTypeString(context, node.left.expression.expression)
+                right.kind === SyntaxKind.PropertyAccessExpression
+                && right.name.kind === SyntaxKind.Identifier
+                && right.name.text === "length"
+                && compareNodes(right.expression, node.right) === "Equal",
+            )
+            && isTypeString(context, node.left.expression.expression)
           ) {
             reportEndsWith(context, node, isInequalityComparison, [
               {
@@ -293,25 +295,25 @@ export const preferStringStartsEndsWith = createRule(
           // foo.substring(foo.length - 3) === 'bar';
           // foo.substring(foo.length - 3, s.length) === 'bar';
           if (
-            node.right.kind === SyntaxKind.StringLiteral &&
-            leftIsPropertyCallExpression &&
-            node.left.expression.name.text === "substring" &&
-            (node.left.arguments.length === 1 ||
-              (node.left.arguments.length === 2 &&
-                node.left.arguments[1].kind ===
-                  SyntaxKind.PropertyAccessExpression &&
-                node.left.arguments[1].name.kind === SyntaxKind.Identifier &&
-                node.left.arguments[1].name.text === "length" &&
-                compareNodes(
+            node.right.kind === SyntaxKind.StringLiteral
+            && leftIsPropertyCallExpression
+            && node.left.expression.name.text === "substring"
+            && (node.left.arguments.length === 1
+              || (node.left.arguments.length === 2
+                && node.left.arguments[1].kind
+                  === SyntaxKind.PropertyAccessExpression
+                && node.left.arguments[1].name.kind === SyntaxKind.Identifier
+                && node.left.arguments[1].name.text === "length"
+                && compareNodes(
                   node.left.arguments[1].expression,
                   node.left.expression.expression,
-                ) === "Equal")) &&
-            isLengthMinusNumberExpression(
+                ) === "Equal"))
+            && isLengthMinusNumberExpression(
               node.left.arguments[0],
               node.left.expression.expression,
               node.right.text.length,
-            ) &&
-            isTypeString(context, node.left.expression.expression)
+            )
+            && isTypeString(context, node.left.expression.expression)
           ) {
             reportEndsWith(context, node, isInequalityComparison, [
               {
@@ -325,13 +327,13 @@ export const preferStringStartsEndsWith = createRule(
           // foo.match(/^bar/) != null;
           // foo.match(/bar$/) != null;
           if (
-            leftIsPropertyCallExpression &&
-            node.left.expression.name.text === "match" &&
-            node.left.arguments.length === 1 &&
-            node.left.arguments[0].kind ===
-              SyntaxKind.RegularExpressionLiteral &&
-            node.right.kind === SyntaxKind.NullKeyword &&
-            isTypeString(context, node.left.expression.expression)
+            leftIsPropertyCallExpression
+            && node.left.expression.name.text === "match"
+            && node.left.arguments.length === 1
+            && node.left.arguments[0].kind
+              === SyntaxKind.RegularExpressionLiteral
+            && node.right.kind === SyntaxKind.NullKeyword
+            && isTypeString(context, node.left.expression.expression)
           ) {
             const regex = node.left.arguments[0].text.slice(1, -1);
             if (/^\^[\w]+$/.test(regex)) {
@@ -357,11 +359,11 @@ export const preferStringStartsEndsWith = createRule(
           // /^bar/.test(foo)
           // /bar$/.test(foo)
           if (
-            node.expression.kind === SyntaxKind.PropertyAccessExpression &&
-            node.expression.name.text === "test" &&
-            node.arguments.length === 1 &&
-            node.expression.expression.kind ===
-              SyntaxKind.RegularExpressionLiteral
+            node.expression.kind === SyntaxKind.PropertyAccessExpression
+            && node.expression.name.text === "test"
+            && node.arguments.length === 1
+            && node.expression.expression.kind
+              === SyntaxKind.RegularExpressionLiteral
           ) {
             const argument = node.arguments[0];
             const regex = node.expression.expression.text.slice(1, -1);
@@ -371,11 +373,11 @@ export const preferStringStartsEndsWith = createRule(
             if (!isStartsWith && !isEndsWith) return;
 
             const needsParen =
-              !isLiteralKind(argument.kind) &&
-              argument.kind !== SyntaxKind.TemplateExpression &&
-              argument.kind !== SyntaxKind.Identifier &&
-              argument.kind !== SyntaxKind.PropertyAccessExpression &&
-              argument.kind !== SyntaxKind.CallExpression;
+              !isLiteralKind(argument.kind)
+              && argument.kind !== SyntaxKind.TemplateExpression
+              && argument.kind !== SyntaxKind.Identifier
+              && argument.kind !== SyntaxKind.PropertyAccessExpression
+              && argument.kind !== SyntaxKind.CallExpression;
 
             const maybeStartParen = needsParen ? "(" : "";
             const maybeEndParen = needsParen ? ")" : "";
@@ -432,8 +434,8 @@ function isLengthMinusNumberExpression(
     node,
     expectedObjectNode,
     (right) =>
-      right.kind === SyntaxKind.NumericLiteral &&
-      right.text === value.toString(),
+      right.kind === SyntaxKind.NumericLiteral
+      && right.text === value.toString(),
   );
 }
 
@@ -443,13 +445,13 @@ function isLengthMinusXExpression(
   matchRight: (node: AST.Expression) => boolean,
 ): boolean {
   return (
-    node.kind === SyntaxKind.BinaryExpression &&
-    node.operatorToken.kind === SyntaxKind.MinusToken &&
-    matchRight(node.right) &&
-    node.left.kind === SyntaxKind.PropertyAccessExpression &&
-    node.left.name.kind === SyntaxKind.Identifier &&
-    node.left.name.text === "length" &&
-    compareNodes(node.left.expression, expectedObjectNode) === "Equal"
+    node.kind === SyntaxKind.BinaryExpression
+    && node.operatorToken.kind === SyntaxKind.MinusToken
+    && matchRight(node.right)
+    && node.left.kind === SyntaxKind.PropertyAccessExpression
+    && node.left.name.kind === SyntaxKind.Identifier
+    && node.left.name.text === "length"
+    && compareNodes(node.left.expression, expectedObjectNode) === "Equal"
   );
 }
 

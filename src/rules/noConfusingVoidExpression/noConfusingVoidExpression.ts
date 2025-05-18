@@ -12,27 +12,27 @@ import type { AST, Context, Suggestion } from "../../types.ts";
 
 export const messages = {
   invalidVoidExpr:
-    "Placing a void expression inside another expression is forbidden. " +
-    "Move it to its own statement instead.",
+    "Placing a void expression inside another expression is forbidden. "
+    + "Move it to its own statement instead.",
   invalidVoidExprArrow:
-    "Returning a void expression from an arrow function shorthand is forbidden. " +
-    "Please add braces to the arrow function.",
+    "Returning a void expression from an arrow function shorthand is forbidden. "
+    + "Please add braces to the arrow function.",
   invalidVoidExprArrowWrapVoid:
-    "Void expressions returned from an arrow function shorthand " +
-    "must be marked explicitly with the `void` operator.",
+    "Void expressions returned from an arrow function shorthand "
+    + "must be marked explicitly with the `void` operator.",
   invalidVoidExprReturn:
-    "Returning a void expression from a function is forbidden. " +
-    "Please move it before the `return` statement.",
+    "Returning a void expression from a function is forbidden. "
+    + "Please move it before the `return` statement.",
   invalidVoidExprReturnLast:
-    "Returning a void expression from a function is forbidden. " +
-    "Please remove the `return` statement.",
+    "Returning a void expression from a function is forbidden. "
+    + "Please remove the `return` statement.",
   invalidVoidExprReturnWrapVoid:
-    "Void expressions returned from a function " +
-    "must be marked explicitly with the `void` operator.",
+    "Void expressions returned from a function "
+    + "must be marked explicitly with the `void` operator.",
   invalidVoidExprWrapVoid:
-    "Void expressions used inside another expression " +
-    "must be moved to its own statement " +
-    "or marked explicitly with the `void` operator.",
+    "Void expressions used inside another expression "
+    + "must be moved to its own statement "
+    + "or marked explicitly with the `void` operator.",
   voidExprWrapVoid: "Mark with an explicit `void` operator.",
   addBraces: "Add braces.",
   removeReturn: "Remove the `return` keyword.",
@@ -273,8 +273,8 @@ export const noConfusingVoidExpression = createRule(
     ): AST.AnyNode | null {
       const parent = node.parent as AnyNode;
       if (
-        parent.kind === SyntaxKind.BinaryExpression &&
-        parent.operatorToken.kind === SyntaxKind.CommaToken
+        parent.kind === SyntaxKind.BinaryExpression
+        && parent.operatorToken.kind === SyntaxKind.CommaToken
       ) {
         if (node === parent.left) {
           return null;
@@ -291,8 +291,8 @@ export const noConfusingVoidExpression = createRule(
       }
 
       if (
-        parent.kind === SyntaxKind.BinaryExpression &&
-        isLogicalExpression(parent.operatorToken)
+        parent.kind === SyntaxKind.BinaryExpression
+        && isLogicalExpression(parent.operatorToken)
       ) {
         if (parent.right === node) {
           // e.g. `x && console.log(x)`
@@ -302,8 +302,8 @@ export const noConfusingVoidExpression = createRule(
       }
 
       if (
-        parent.kind === SyntaxKind.ConditionalExpression &&
-        (parent.whenTrue === node || parent.whenFalse === node)
+        parent.kind === SyntaxKind.ConditionalExpression
+        && (parent.whenTrue === node || parent.whenFalse === node)
       ) {
         // e.g. `cond ? console.log(true) : console.log(false)`
         // this is valid only if the next ancestor is valid
@@ -311,27 +311,27 @@ export const noConfusingVoidExpression = createRule(
       }
 
       if (
-        parent.kind === SyntaxKind.ArrowFunction &&
+        parent.kind === SyntaxKind.ArrowFunction
         // e.g. `() => console.log("foo")`
         // this is valid with an appropriate option
-        options.ignoreArrowShorthand
+        && options.ignoreArrowShorthand
       ) {
         return null;
       }
 
       if (
-        parent.kind === SyntaxKind.VoidExpression &&
+        parent.kind === SyntaxKind.VoidExpression
         // e.g. `void console.log("foo")`
         // this is valid with an appropriate option
-        options.ignoreVoidOperator
+        && options.ignoreVoidOperator
       ) {
         return null;
       }
 
       if (
-        (parent.kind === SyntaxKind.PropertyAccessExpression &&
-          parent.questionDotToken) ||
-        parent.kind === SyntaxKind.ParenthesizedExpression
+        (parent.kind === SyntaxKind.PropertyAccessExpression
+          && parent.questionDotToken)
+        || parent.kind === SyntaxKind.ParenthesizedExpression
       ) {
         // e.g. console?.log('foo'), (foo ? a() : b())
         return findInvalidAncestor(parent, context);
@@ -423,8 +423,8 @@ export const noConfusingVoidExpression = createRule(
       }
 
       if (
-        functionNode.kind === SyntaxKind.FunctionExpression ||
-        functionNode.kind === SyntaxKind.ArrowFunction
+        functionNode.kind === SyntaxKind.FunctionExpression
+        || functionNode.kind === SyntaxKind.ArrowFunction
       ) {
         const functionType = context.checker.getContextualType(functionNode);
 

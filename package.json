@@ -21,6 +21,7 @@
     "publish": "bun ci && cd dist && bun publish"
   },
   "prettier": {
+    "experimentalOperatorPosition": "start",
     "plugins": [
       "@arnaud-barre/prettier-plugin-sort-imports"
     ]

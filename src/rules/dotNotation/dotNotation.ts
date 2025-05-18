@@ -8,17 +8,17 @@ export const dotNotation = createRule(() => ({
   visitor: {
     ElementAccessExpression(node, context) {
       if (
-        node.argumentExpression.kind === SyntaxKind.StringLiteral ||
-        node.argumentExpression.kind ===
-          SyntaxKind.NoSubstitutionTemplateLiteral
+        node.argumentExpression.kind === SyntaxKind.StringLiteral
+        || node.argumentExpression.kind
+          === SyntaxKind.NoSubstitutionTemplateLiteral
       ) {
         if (!validIdentifier.test(node.argumentExpression.text)) {
           return;
         }
         const property = node.argumentExpression.text;
         if (
-          context.compilerOptions.noPropertyAccessFromIndexSignature &&
-          !context.checker
+          context.compilerOptions.noPropertyAccessFromIndexSignature
+          && !context.checker
             .getTypeAtLocation(node.expression)
             .getNonNullableType()
             .getApparentProperties()

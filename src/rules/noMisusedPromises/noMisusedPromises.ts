@@ -133,33 +133,33 @@ export const noMisusedPromises = createRule(
 
     const voidReturnChecks: AST.Visitor<Data> = options.checksVoidReturn
       ? {
-          ...(options.checksVoidReturn.arguments &&
-            ({
+          ...(options.checksVoidReturn.arguments
+            && ({
               CallExpression: checkArguments,
               NewExpression: checkArguments,
             } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.attributes &&
-            ({
+          ...(options.checksVoidReturn.attributes
+            && ({
               JsxAttribute: checkJSXAttribute,
             } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.inheritedMethods &&
-            ({
+          ...(options.checksVoidReturn.inheritedMethods
+            && ({
               ClassDeclaration: checkClassLikeOrInterfaceNode,
               ClassExpression: checkClassLikeOrInterfaceNode,
               InterfaceDeclaration: checkClassLikeOrInterfaceNode,
             } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.properties &&
-            ({
+          ...(options.checksVoidReturn.properties
+            && ({
               PropertyAssignment: checkPropertyAssignment,
               ShorthandPropertyAssignment: checkShorthandPropertyAssignment,
               MethodDeclaration: checkMethodDeclaration,
             } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.returns &&
-            ({
+          ...(options.checksVoidReturn.returns
+            && ({
               ReturnStatement: checkReturnStatement,
             } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.variables &&
-            ({
+          ...(options.checksVoidReturn.variables
+            && ({
               BinaryExpression: checkAssignment,
               VariableDeclaration: checkVariableDeclaration,
             } satisfies AST.Visitor<Data>)),
@@ -203,13 +203,13 @@ function checkConditional(
   context: Context<Data>,
 ): void {
   if (
-    node.kind === SyntaxKind.BinaryExpression &&
-    isLogicalExpression(node.operatorToken)
+    node.kind === SyntaxKind.BinaryExpression
+    && isLogicalExpression(node.operatorToken)
   ) {
     // ignore the left operand for nullish coalescing expressions not in a context of a test expression
     if (
-      node.operatorToken.kind !== SyntaxKind.QuestionQuestionToken ||
-      isTestExpr
+      node.operatorToken.kind !== SyntaxKind.QuestionQuestionToken
+      || isTestExpr
     ) {
       checkConditional(node.left, isTestExpr, context);
     }
@@ -303,9 +303,9 @@ export function checkPropertyAssignment(
 ) {
   const contextualType = context.checker.getContextualType(node.initializer);
   if (
-    contextualType !== undefined &&
-    isVoidReturningFunctionType(context, node.initializer, contextualType) &&
-    returnsThenable(context, node.initializer)
+    contextualType !== undefined
+    && isVoidReturningFunctionType(context, node.initializer, contextualType)
+    && returnsThenable(context, node.initializer)
   ) {
     const reportNode = run(() => {
       if (!isFunction(node.initializer)) return node.initializer;
@@ -326,9 +326,9 @@ export function checkShorthandPropertyAssignment(
 ) {
   const contextualType = context.checker.getContextualType(node.name);
   if (
-    contextualType !== undefined &&
-    isVoidReturningFunctionType(context, node.name, contextualType) &&
-    returnsThenable(context, node.name)
+    contextualType !== undefined
+    && isVoidReturningFunctionType(context, node.name, contextualType)
+    && returnsThenable(context, node.name)
   ) {
     context.report({ node, message: messages.voidReturnProperty });
   }
@@ -376,9 +376,9 @@ export function checkMethodDeclaration(
   if (isVoidReturningFunctionType(context, node.name, contextualType)) {
     context.report({
       node:
-        node.type ??
-        node.modifiers?.find((m) => m.kind === SyntaxKind.AsyncKeyword) ??
-        node,
+        node.type
+        ?? node.modifiers?.find((m) => m.kind === SyntaxKind.AsyncKeyword)
+        ?? node,
       message: messages.voidReturnProperty,
     });
   }
@@ -392,9 +392,9 @@ function checkReturnStatement(
   if (!node.expression) return;
   const contextualType = context.checker.getContextualType(node.expression);
   if (
-    contextualType !== undefined &&
-    isVoidReturningFunctionType(context, node.expression, contextualType) &&
-    returnsThenable(context, node.expression)
+    contextualType !== undefined
+    && isVoidReturningFunctionType(context, node.expression, contextualType)
+    && returnsThenable(context, node.expression)
   ) {
     context.report({
       node: node.expression,
@@ -478,8 +478,8 @@ function checkJSXAttribute(
   context: Context<Data>,
 ): void {
   if (
-    node.initializer == null ||
-    node.initializer.kind !== SyntaxKind.JsxExpression
+    node.initializer == null
+    || node.initializer.kind !== SyntaxKind.JsxExpression
   ) {
     return;
   }
@@ -487,9 +487,9 @@ function checkJSXAttribute(
   const expression = node.initializer.expression;
   const contextualType = context.checker.getContextualType(expressionContainer);
   if (
-    contextualType !== undefined &&
-    isVoidReturningFunctionType(context, expressionContainer, contextualType) &&
-    returnsThenable(context, expression!)
+    contextualType !== undefined
+    && isVoidReturningFunctionType(context, expressionContainer, contextualType)
+    && returnsThenable(context, expression!)
   ) {
     context.report({
       node: node.initializer,
@@ -546,8 +546,8 @@ function isAlwaysThenable(context: Context<Data>, node: AST.AnyNode): boolean {
     for (const subType of unionTypeParts(thenType)) {
       for (const signature of subType.getCallSignatures()) {
         if (
-          signature.parameters.length !== 0 &&
-          isFunctionParam(context, signature.parameters[0], node)
+          signature.parameters.length !== 0
+          && isFunctionParam(context, signature.parameters[0], node)
         ) {
           hasThenableSignature = true;
           break;
@@ -600,10 +600,10 @@ function checkThenableOrVoidArgument(
   if (isThenableReturningFunctionType(context, node.expression, type)) {
     thenableReturnIndices.add(index);
   } else if (
-    isVoidReturningFunctionType(context, node.expression, type) &&
+    isVoidReturningFunctionType(context, node.expression, type)
     // If a certain argument accepts both thenable and void returns,
     // a promise-returning function is valid
-    !thenableReturnIndices.has(index)
+    && !thenableReturnIndices.has(index)
   ) {
     voidReturnIndices.add(index);
   }
@@ -813,8 +813,8 @@ function getMemberIfExists(
 
 function isStaticMember(node: AST.AnyNode): boolean {
   return (
-    (node.kind === SyntaxKind.MethodDeclaration ||
-      node.kind === SyntaxKind.PropertyDeclaration) &&
-    hasModifier(node, SyntaxKind.StaticKeyword)
+    (node.kind === SyntaxKind.MethodDeclaration
+      || node.kind === SyntaxKind.PropertyDeclaration)
+    && hasModifier(node, SyntaxKind.StaticKeyword)
   );
 }

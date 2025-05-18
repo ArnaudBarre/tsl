@@ -125,8 +125,8 @@ export const preferNullishCoalescing = createRule(
             );
           }
           if (
-            node.operatorToken.kind === SyntaxKind.BarBarToken &&
-            !(
+            node.operatorToken.kind === SyntaxKind.BarBarToken
+            && !(
               options.ignoreBooleanCoercion && isBooleanConstructorContext(node)
             )
           ) {
@@ -144,11 +144,11 @@ export const preferNullishCoalescing = createRule(
 
           // !x ? y : x
           if (
-            node.condition.kind === SyntaxKind.PrefixUnaryExpression &&
-            node.condition.operator === SyntaxKind.ExclamationToken &&
-            node.condition.operand.kind === SyntaxKind.Identifier &&
-            node.whenFalse.kind === SyntaxKind.Identifier &&
-            node.condition.operand.text === node.whenFalse.text
+            node.condition.kind === SyntaxKind.PrefixUnaryExpression
+            && node.condition.operator === SyntaxKind.ExclamationToken
+            && node.condition.operand.kind === SyntaxKind.Identifier
+            && node.whenFalse.kind === SyntaxKind.Identifier
+            && node.condition.operand.text === node.whenFalse.text
           ) {
             const type = context.checker.getTypeAtLocation(
               node.condition.operand,
@@ -178,9 +178,9 @@ export const preferNullishCoalescing = createRule(
           }
           // x ? x : y
           if (
-            node.condition.kind === SyntaxKind.Identifier &&
-            node.whenTrue.kind === SyntaxKind.Identifier &&
-            node.condition.text === node.whenTrue.text
+            node.condition.kind === SyntaxKind.Identifier
+            && node.whenTrue.kind === SyntaxKind.Identifier
+            && node.condition.text === node.whenTrue.text
           ) {
             const type = context.checker.getTypeAtLocation(node.condition);
             if (!typeHasFlag(type, TypeFlags.Null | TypeFlags.Undefined)) {
@@ -238,54 +238,54 @@ export const preferNullishCoalescing = createRule(
               ];
 
               if (
-                node.condition.operatorToken.kind === SyntaxKind.BarBarToken ||
-                node.condition.operatorToken.kind ===
-                  SyntaxKind.BarBarEqualsToken
+                node.condition.operatorToken.kind === SyntaxKind.BarBarToken
+                || node.condition.operatorToken.kind
+                  === SyntaxKind.BarBarEqualsToken
               ) {
                 if (
-                  node.condition.left.operatorToken.kind ===
-                    SyntaxKind.EqualsEqualsEqualsToken &&
-                  node.condition.right.operatorToken.kind ===
-                    SyntaxKind.EqualsEqualsEqualsToken
+                  node.condition.left.operatorToken.kind
+                    === SyntaxKind.EqualsEqualsEqualsToken
+                  && node.condition.right.operatorToken.kind
+                    === SyntaxKind.EqualsEqualsEqualsToken
                 ) {
                   operator = SyntaxKind.EqualsEqualsEqualsToken;
                 } else if (
-                  ((node.condition.left.operatorToken.kind ===
-                    SyntaxKind.EqualsEqualsEqualsToken ||
-                    node.condition.right.operatorToken.kind ===
-                      SyntaxKind.EqualsEqualsEqualsToken) &&
-                    (node.condition.left.operatorToken.kind ===
-                      SyntaxKind.EqualsEqualsToken ||
-                      node.condition.right.operatorToken.kind ===
-                        SyntaxKind.EqualsEqualsToken)) ||
-                  (node.condition.left.operatorToken.kind ===
-                    SyntaxKind.EqualsEqualsToken &&
-                    node.condition.right.operatorToken.kind ===
-                      SyntaxKind.EqualsEqualsToken)
+                  ((node.condition.left.operatorToken.kind
+                    === SyntaxKind.EqualsEqualsEqualsToken
+                    || node.condition.right.operatorToken.kind
+                      === SyntaxKind.EqualsEqualsEqualsToken)
+                    && (node.condition.left.operatorToken.kind
+                      === SyntaxKind.EqualsEqualsToken
+                      || node.condition.right.operatorToken.kind
+                        === SyntaxKind.EqualsEqualsToken))
+                  || (node.condition.left.operatorToken.kind
+                    === SyntaxKind.EqualsEqualsToken
+                    && node.condition.right.operatorToken.kind
+                      === SyntaxKind.EqualsEqualsToken)
                 ) {
                   operator = SyntaxKind.EqualsEqualsToken;
                 }
               } else {
                 if (
-                  node.condition.left.operatorToken.kind ===
-                    SyntaxKind.ExclamationEqualsEqualsToken &&
-                  node.condition.right.operatorToken.kind ===
-                    SyntaxKind.ExclamationEqualsEqualsToken
+                  node.condition.left.operatorToken.kind
+                    === SyntaxKind.ExclamationEqualsEqualsToken
+                  && node.condition.right.operatorToken.kind
+                    === SyntaxKind.ExclamationEqualsEqualsToken
                 ) {
                   operator = SyntaxKind.ExclamationEqualsEqualsToken;
                 } else if (
-                  ((node.condition.left.operatorToken.kind ===
-                    SyntaxKind.ExclamationEqualsEqualsToken ||
-                    node.condition.right.operatorToken.kind ===
-                      SyntaxKind.ExclamationEqualsEqualsToken) &&
-                    (node.condition.left.operatorToken.kind ===
-                      SyntaxKind.ExclamationEqualsToken ||
-                      node.condition.right.operatorToken.kind ===
-                        SyntaxKind.ExclamationEqualsToken)) ||
-                  (node.condition.left.operatorToken.kind ===
-                    SyntaxKind.ExclamationEqualsToken &&
-                    node.condition.right.operatorToken.kind ===
-                      SyntaxKind.ExclamationEqualsToken)
+                  ((node.condition.left.operatorToken.kind
+                    === SyntaxKind.ExclamationEqualsEqualsToken
+                    || node.condition.right.operatorToken.kind
+                      === SyntaxKind.ExclamationEqualsEqualsToken)
+                    && (node.condition.left.operatorToken.kind
+                      === SyntaxKind.ExclamationEqualsToken
+                      || node.condition.right.operatorToken.kind
+                        === SyntaxKind.ExclamationEqualsToken))
+                  || (node.condition.left.operatorToken.kind
+                    === SyntaxKind.ExclamationEqualsToken
+                    && node.condition.right.operatorToken.kind
+                      === SyntaxKind.ExclamationEqualsToken)
                 ) {
                   operator = SyntaxKind.ExclamationEqualsToken;
                 }
@@ -306,20 +306,20 @@ export const preferNullishCoalescing = createRule(
             if (testNode.kind === SyntaxKind.NullKeyword) {
               hasNullCheck = true;
             } else if (
-              testNode.kind === SyntaxKind.Identifier &&
-              testNode.text === "undefined"
+              testNode.kind === SyntaxKind.Identifier
+              && testNode.text === "undefined"
             ) {
               hasUndefinedCheck = true;
             } else if (
-              (operator === SyntaxKind.ExclamationEqualsEqualsToken ||
-                operator === SyntaxKind.ExclamationEqualsToken) &&
-              isNodeEqual(testNode, node.whenTrue)
+              (operator === SyntaxKind.ExclamationEqualsEqualsToken
+                || operator === SyntaxKind.ExclamationEqualsToken)
+              && isNodeEqual(testNode, node.whenTrue)
             ) {
               identifier = testNode;
             } else if (
-              (operator === SyntaxKind.EqualsEqualsEqualsToken ||
-                operator === SyntaxKind.EqualsEqualsToken) &&
-              isNodeEqual(testNode, node.whenFalse)
+              (operator === SyntaxKind.EqualsEqualsEqualsToken
+                || operator === SyntaxKind.EqualsEqualsToken)
+              && isNodeEqual(testNode, node.whenFalse)
             ) {
               identifier = testNode;
             } else {
@@ -337,8 +337,8 @@ export const preferNullishCoalescing = createRule(
 
             // it is fixable if we loosely check for either null or undefined
             if (
-              operator === SyntaxKind.EqualsEqualsToken ||
-              operator === SyntaxKind.ExclamationEqualsToken
+              operator === SyntaxKind.EqualsEqualsToken
+              || operator === SyntaxKind.ExclamationEqualsToken
             ) {
               return true;
             }
@@ -368,8 +368,8 @@ export const preferNullishCoalescing = createRule(
               message: messages.preferNullishOverTernary,
               suggestions: () => {
                 const [left, right] =
-                  operator === SyntaxKind.EqualsEqualsEqualsToken ||
-                  operator === SyntaxKind.EqualsEqualsToken
+                  operator === SyntaxKind.EqualsEqualsEqualsToken
+                  || operator === SyntaxKind.EqualsEqualsToken
                     ? [node.whenFalse, node.whenTrue]
                     : [node.whenTrue, node.whenFalse];
                 return [
@@ -420,9 +420,9 @@ function checkAssignmentOrLogicalExpression(
   if (ignorePrimitives.string) ignorableFlags |= TypeFlags.StringLike;
 
   if (
-    type.flags !== TypeFlags.Null &&
-    type.flags !== TypeFlags.Undefined &&
-    (type as ts.UnionOrIntersectionType).types.some((t) =>
+    type.flags !== TypeFlags.Null
+    && type.flags !== TypeFlags.Undefined
+    && (type as ts.UnionOrIntersectionType).types.some((t) =>
       intersectionTypeParts(t).some((t) => isTypeFlagSet(t, ignorableFlags)),
     )
   ) {
@@ -438,15 +438,15 @@ function checkAssignmentOrLogicalExpression(
       ];
 
       if (
-        node.parent.kind === SyntaxKind.BinaryExpression &&
-        node.parent.operatorToken.kind === SyntaxKind.BarBarToken
+        node.parent.kind === SyntaxKind.BinaryExpression
+        && node.parent.operatorToken.kind === SyntaxKind.BarBarToken
       ) {
         if (
-          node.left.kind === SyntaxKind.BinaryExpression &&
-          isLogicalExpression(node.left.operatorToken) &&
-          !(
-            node.left.left.kind === SyntaxKind.BinaryExpression &&
-            node.left.left.operatorToken.kind === SyntaxKind.BarBarToken
+          node.left.kind === SyntaxKind.BinaryExpression
+          && isLogicalExpression(node.left.operatorToken)
+          && !(
+            node.left.left.kind === SyntaxKind.BinaryExpression
+            && node.left.left.operatorToken.kind === SyntaxKind.BarBarToken
           )
         ) {
           changes.push({
@@ -476,13 +476,13 @@ function isUnsafeConditional(type: ts.Type): boolean {
   return isTypeRecurser(type, (t) => {
     return t.isLiteral()
       ? !getValueOfLiteralType(t)
-      : t.flags === TypeFlags.Any ||
-          t.flags === TypeFlags.Unknown ||
-          t.flags === TypeFlags.String ||
-          t.flags === TypeFlags.Number ||
-          t.flags === TypeFlags.BigInt ||
-          t.flags === TypeFlags.Boolean ||
-          isFalseLiteralType(t);
+      : t.flags === TypeFlags.Any
+          || t.flags === TypeFlags.Unknown
+          || t.flags === TypeFlags.String
+          || t.flags === TypeFlags.Number
+          || t.flags === TypeFlags.BigInt
+          || t.flags === TypeFlags.Boolean
+          || isFalseLiteralType(t);
   });
 }
 
@@ -495,47 +495,47 @@ function isConditionalTest(node: AST.AnyNode): boolean {
   }
 
   if (
-    parent.kind === SyntaxKind.BinaryExpression &&
-    isLogicalExpression(parent.operatorToken)
+    parent.kind === SyntaxKind.BinaryExpression
+    && isLogicalExpression(parent.operatorToken)
   ) {
     return isConditionalTest(parent);
   }
 
   if (
-    parent.kind === SyntaxKind.ConditionalExpression &&
-    (parent.whenTrue === node || parent.whenFalse === node)
+    parent.kind === SyntaxKind.ConditionalExpression
+    && (parent.whenTrue === node || parent.whenFalse === node)
   ) {
     return isConditionalTest(parent);
   }
 
   if (
-    parent.kind === SyntaxKind.BinaryExpression &&
-    parent.operatorToken.kind === SyntaxKind.CommaToken &&
-    parent.right === node
+    parent.kind === SyntaxKind.BinaryExpression
+    && parent.operatorToken.kind === SyntaxKind.CommaToken
+    && parent.right === node
   ) {
     return isConditionalTest(parent);
   }
 
   if (
-    parent.kind === SyntaxKind.PrefixUnaryExpression &&
-    parent.operator === SyntaxKind.ExclamationToken
+    parent.kind === SyntaxKind.PrefixUnaryExpression
+    && parent.operator === SyntaxKind.ExclamationToken
   ) {
     return isConditionalTest(parent);
   }
 
   if (
-    (parent.kind === SyntaxKind.ConditionalExpression ||
-      parent.kind === SyntaxKind.ForStatement) &&
-    parent.condition === node
+    (parent.kind === SyntaxKind.ConditionalExpression
+      || parent.kind === SyntaxKind.ForStatement)
+    && parent.condition === node
   ) {
     return true;
   }
 
   if (
-    (parent.kind === SyntaxKind.DoStatement ||
-      parent.kind === SyntaxKind.IfStatement ||
-      parent.kind === SyntaxKind.WhileStatement) &&
-    parent.expression === node
+    (parent.kind === SyntaxKind.DoStatement
+      || parent.kind === SyntaxKind.IfStatement
+      || parent.kind === SyntaxKind.WhileStatement)
+    && parent.expression === node
   ) {
     return true;
   }
@@ -552,31 +552,31 @@ function isBooleanConstructorContext(node: AST.AnyNode): boolean {
   }
 
   if (
-    parent.kind === SyntaxKind.BinaryExpression &&
-    isLogicalExpression(parent.operatorToken)
+    parent.kind === SyntaxKind.BinaryExpression
+    && isLogicalExpression(parent.operatorToken)
   ) {
     return isBooleanConstructorContext(parent);
   }
 
   if (
-    parent.kind === SyntaxKind.ConditionalExpression &&
-    (parent.whenTrue === node || parent.whenFalse === node)
+    parent.kind === SyntaxKind.ConditionalExpression
+    && (parent.whenTrue === node || parent.whenFalse === node)
   ) {
     return isBooleanConstructorContext(parent);
   }
 
   if (
-    parent.kind === SyntaxKind.BinaryExpression &&
-    parent.operatorToken.kind === SyntaxKind.CommaToken &&
-    parent.right === node
+    parent.kind === SyntaxKind.BinaryExpression
+    && parent.operatorToken.kind === SyntaxKind.CommaToken
+    && parent.right === node
   ) {
     return isBooleanConstructorContext(parent);
   }
 
   return (
-    parent.kind === SyntaxKind.CallExpression &&
-    parent.expression.kind === SyntaxKind.Identifier &&
-    parent.expression.text === "Boolean"
+    parent.kind === SyntaxKind.CallExpression
+    && parent.expression.kind === SyntaxKind.Identifier
+    && parent.expression.text === "Boolean"
   );
 }
 
@@ -593,8 +593,8 @@ function isMixedLogicalExpression(node: AST.BinaryExpression): boolean {
       if (current.operatorToken.kind === SyntaxKind.AmpersandAmpersandToken) {
         return true;
       } else if (
-        current.operatorToken.kind === SyntaxKind.BarBarToken ||
-        current.operatorToken.kind === SyntaxKind.BarBarEqualsToken
+        current.operatorToken.kind === SyntaxKind.BarBarToken
+        || current.operatorToken.kind === SyntaxKind.BarBarEqualsToken
       ) {
         // check the pieces of the node to catch cases like `a || b || c && d`
         queue.push(current.parent, current.left, current.right);
@@ -610,22 +610,22 @@ function isNodeEqual(a: AST.AnyNode, b: AST.AnyNode): boolean {
     return false;
   }
   if (
-    a.kind === SyntaxKind.TrueKeyword ||
-    a.kind === SyntaxKind.FalseKeyword ||
-    a.kind === SyntaxKind.ThisKeyword ||
-    a.kind === SyntaxKind.NullKeyword
+    a.kind === SyntaxKind.TrueKeyword
+    || a.kind === SyntaxKind.FalseKeyword
+    || a.kind === SyntaxKind.ThisKeyword
+    || a.kind === SyntaxKind.NullKeyword
   ) {
     return true;
   }
   if (
-    a.kind === SyntaxKind.StringLiteral &&
-    b.kind === SyntaxKind.StringLiteral
+    a.kind === SyntaxKind.StringLiteral
+    && b.kind === SyntaxKind.StringLiteral
   ) {
     return a.text === b.text;
   }
   if (
-    a.kind === SyntaxKind.NumericLiteral &&
-    b.kind === SyntaxKind.NumericLiteral
+    a.kind === SyntaxKind.NumericLiteral
+    && b.kind === SyntaxKind.NumericLiteral
   ) {
     return a.text === b.text;
   }
@@ -634,25 +634,25 @@ function isNodeEqual(a: AST.AnyNode, b: AST.AnyNode): boolean {
     return a.text === b.text;
   }
   if (
-    a.kind === SyntaxKind.PropertyAccessExpression &&
-    b.kind === SyntaxKind.PropertyAccessExpression
+    a.kind === SyntaxKind.PropertyAccessExpression
+    && b.kind === SyntaxKind.PropertyAccessExpression
   ) {
     return (
-      isNodeEqual(a.name, b.name) &&
-      isNodeEqual(a.expression, b.expression) &&
-      !a.questionDotToken &&
-      !b.questionDotToken
+      isNodeEqual(a.name, b.name)
+      && isNodeEqual(a.expression, b.expression)
+      && !a.questionDotToken
+      && !b.questionDotToken
     );
   }
   if (
-    a.kind === SyntaxKind.ElementAccessExpression &&
-    b.kind === SyntaxKind.ElementAccessExpression
+    a.kind === SyntaxKind.ElementAccessExpression
+    && b.kind === SyntaxKind.ElementAccessExpression
   ) {
     return (
-      isNodeEqual(a.argumentExpression, b.argumentExpression) &&
-      isNodeEqual(a.expression, b.expression) &&
-      !a.questionDotToken &&
-      !b.questionDotToken
+      isNodeEqual(a.argumentExpression, b.argumentExpression)
+      && isNodeEqual(a.expression, b.expression)
+      && !a.questionDotToken
+      && !b.questionDotToken
     );
   }
   return false;

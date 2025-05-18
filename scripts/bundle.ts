@@ -63,17 +63,19 @@ writeFileSync(
 );
 writeFileSync(
   "dist/rules.d.ts",
-  'import type { Rule } from "./types.d.ts";\n\n' +
-    rules
+  'import type { Rule } from "./types.d.ts";\n\n'
+    + rules
       .map((r) => {
         const prefix = `export declare const ${r}:`;
         const args =
           r in optionsTypes ? `(options: ${getOptionsName(r)})` : "()";
         return prefix + args + ` => Rule<"core/${r}", unknown>;`;
       })
-      .join("\n") +
-    "\n" +
-    rules.map((r) => (optionsTypes[r] ? `\n${optionsTypes[r]}` : "")).join(""),
+      .join("\n")
+    + "\n"
+    + rules
+      .map((r) => (optionsTypes[r] ? `\n${optionsTypes[r]}` : ""))
+      .join(""),
 );
 
 writeFileSync(

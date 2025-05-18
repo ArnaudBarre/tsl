@@ -153,10 +153,10 @@ export const getPlugin = async (
       const result: CodeFixAction[] = [];
       for (const suggestion of fileSuggestions) {
         if (
-          (suggestion.start >= start && suggestion.start <= end) ||
-          (suggestion.end >= start && suggestion.end <= end) ||
-          (start >= suggestion.start && start <= suggestion.end) ||
-          (end >= suggestion.start && end <= suggestion.end)
+          (suggestion.start >= start && suggestion.start <= end)
+          || (suggestion.end >= start && suggestion.end <= end)
+          || (start >= suggestion.start && start <= suggestion.end)
+          || (end >= suggestion.start && end <= suggestion.end)
         ) {
           result.push({
             fixName: `type-lint:${suggestion.rule}`,

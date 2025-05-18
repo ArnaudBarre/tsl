@@ -41,8 +41,8 @@ export const noUnnecessaryTypeAssertion = createRule(
           ],
         };
         if (
-          node.parent.kind === SyntaxKind.BinaryExpression &&
-          node.parent.operatorToken.kind === SyntaxKind.EqualsToken
+          node.parent.kind === SyntaxKind.BinaryExpression
+          && node.parent.operatorToken.kind === SyntaxKind.EqualsToken
         ) {
           if (node.parent.left === node) {
             context.report({
@@ -65,15 +65,15 @@ export const noUnnecessaryTypeAssertion = createRule(
         if (
           !typeHasFlag(
             type,
-            TypeFlags.Null |
-              TypeFlags.Undefined |
-              TypeFlags.Void |
-              TypeFlags.Unknown,
+            TypeFlags.Null
+              | TypeFlags.Undefined
+              | TypeFlags.Void
+              | TypeFlags.Unknown,
           )
         ) {
           if (
-            node.expression.kind === SyntaxKind.Identifier &&
-            isPossiblyUsedBeforeAssigned(node.expression, context)
+            node.expression.kind === SyntaxKind.Identifier
+            && isPossiblyUsedBeforeAssigned(node.expression, context)
           ) {
             return;
           }
@@ -209,8 +209,8 @@ function isPossiblyUsedBeforeAssigned(
   if (!declaration) return false;
 
   if (
-    declaration.parent.kind === SyntaxKind.VariableDeclarationList &&
-    declaration.parent.getText().startsWith("var ")
+    declaration.parent.kind === SyntaxKind.VariableDeclarationList
+    && declaration.parent.getText().startsWith("var ")
   ) {
     // var can be declared in a different scope to the assignment, just assume the worst
     // for default library files, we know it's always assigned
@@ -219,9 +219,9 @@ function isPossiblyUsedBeforeAssigned(
 
   if (
     // is it `const x!: number`
-    declaration.initializer === undefined &&
-    declaration.exclamationToken === undefined &&
-    declaration.type !== undefined
+    declaration.initializer === undefined
+    && declaration.exclamationToken === undefined
+    && declaration.type !== undefined
   ) {
     // check if the defined variable type has changed since assignment
     const declarationType = context.checker.getTypeFromTypeNode(
@@ -229,12 +229,12 @@ function isPossiblyUsedBeforeAssigned(
     );
     const type = context.utils.getConstrainedTypeAtLocation(node);
     if (
-      declarationType === type &&
+      declarationType === type
       // `declare`s are never narrowed, so never skip them
-      !(
-        declaration.parent.kind === SyntaxKind.VariableDeclarationList &&
-        declaration.parent.parent.kind === SyntaxKind.VariableStatement &&
-        hasModifier(declaration.parent.parent, SyntaxKind.DeclareKeyword)
+      && !(
+        declaration.parent.kind === SyntaxKind.VariableDeclarationList
+        && declaration.parent.parent.kind === SyntaxKind.VariableStatement
+        && hasModifier(declaration.parent.parent, SyntaxKind.DeclareKeyword)
       )
     ) {
       // possibly used before assigned, so just skip it
@@ -257,10 +257,10 @@ function isImplicitlyNarrowedLiteralDeclaration(
     return false;
   }
   return (
-    (node.parent.parent.kind === SyntaxKind.VariableDeclarationList &&
-      node.parent.parent.getText().startsWith("const ")) ||
-    (node.parent.kind === SyntaxKind.PropertyDeclaration &&
-      hasModifier(node.parent, SyntaxKind.ReadonlyKeyword))
+    (node.parent.parent.kind === SyntaxKind.VariableDeclarationList
+      && node.parent.parent.getText().startsWith("const "))
+    || (node.parent.kind === SyntaxKind.PropertyDeclaration
+      && hasModifier(node.parent, SyntaxKind.ReadonlyKeyword))
   );
 }
 
@@ -274,9 +274,9 @@ function isTypeUnchanged(
   }
 
   if (
-    typeHasFlag(uncast, TypeFlags.Undefined) &&
-    typeHasFlag(cast, TypeFlags.Undefined) &&
-    context.compilerOptions.exactOptionalPropertyTypes
+    typeHasFlag(uncast, TypeFlags.Undefined)
+    && typeHasFlag(cast, TypeFlags.Undefined)
+    && context.compilerOptions.exactOptionalPropertyTypes
   ) {
     const uncastParts = unionTypeParts(uncast).filter(
       (part) => !typeHasFlag(part, TypeFlags.Undefined),

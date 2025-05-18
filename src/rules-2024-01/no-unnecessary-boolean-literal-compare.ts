@@ -47,14 +47,14 @@ export const noUnnecessaryBooleanLiteralCompare = createRule(
 
           if (comparison.expressionIsNullableBoolean) {
             if (
-              comparison.literalBooleanInComparison &&
-              options.allowComparingNullableBooleansToTrue
+              comparison.literalBooleanInComparison
+              && options.allowComparingNullableBooleansToTrue
             ) {
               return;
             }
             if (
-              !comparison.literalBooleanInComparison &&
-              options.allowComparingNullableBooleansToFalse
+              !comparison.literalBooleanInComparison
+              && options.allowComparingNullableBooleansToFalse
             ) {
               return;
             }
@@ -163,8 +163,8 @@ function deconstructComparison(
     [node.left, node.right],
   ]) {
     if (
-      against.kind === SyntaxKind.TrueKeyword ||
-      against.kind === SyntaxKind.FalseKeyword
+      against.kind === SyntaxKind.TrueKeyword
+      || against.kind === SyntaxKind.FalseKeyword
     ) {
       return {
         literalBooleanInComparison: against.kind === SyntaxKind.TrueKeyword,

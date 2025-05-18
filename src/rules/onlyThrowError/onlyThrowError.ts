@@ -38,8 +38,8 @@ export const onlyThrowError = createRule((_options?: OnlyThrowErrorOptions) => {
     visitor: {
       ThrowStatement({ expression: node }, context) {
         if (
-          node.kind === SyntaxKind.AwaitExpression ||
-          node.kind === SyntaxKind.YieldExpression
+          node.kind === SyntaxKind.AwaitExpression
+          || node.kind === SyntaxKind.YieldExpression
         ) {
           return;
         }
@@ -48,8 +48,8 @@ export const onlyThrowError = createRule((_options?: OnlyThrowErrorOptions) => {
 
         if (options.allow) {
           const identifier =
-            node.kind === SyntaxKind.NewExpression ||
-            node.kind === SyntaxKind.CallExpression
+            node.kind === SyntaxKind.NewExpression
+            || node.kind === SyntaxKind.CallExpression
               ? node.expression
               : node;
           if (options.allow.includes(identifier.getText())) {

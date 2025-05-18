@@ -107,8 +107,8 @@ export const noUnsafeAssignment = createRule(() => ({
       if (node.parent.kind !== SyntaxKind.ArrayLiteralExpression) return;
       const restType = context.checker.getTypeAtLocation(node.expression);
       if (
-        typeHasFlag(restType, TypeFlags.Any) ||
-        isTypeAnyArrayType(restType, context.checker)
+        typeHasFlag(restType, TypeFlags.Any)
+        || isTypeAnyArrayType(restType, context.checker)
       ) {
         context.report({
           node: node,
@@ -119,9 +119,9 @@ export const noUnsafeAssignment = createRule(() => ({
     JsxAttribute(node, context) {
       if (!node.initializer) return;
       if (
-        node.initializer.kind !== SyntaxKind.JsxExpression ||
-        !node.initializer.expression ||
-        node.initializer.expression.kind === SyntaxKind.JsxExpression
+        node.initializer.kind !== SyntaxKind.JsxExpression
+        || !node.initializer.expression
+        || node.initializer.expression.kind === SyntaxKind.JsxExpression
       ) {
         return;
       }
@@ -144,8 +144,8 @@ function checkArrayDestructureHelper(
   context: Context,
 ): boolean {
   if (
-    receiverNode.kind !== SyntaxKind.ArrayBindingPattern &&
-    receiverNode.kind !== SyntaxKind.ArrayLiteralExpression
+    receiverNode.kind !== SyntaxKind.ArrayBindingPattern
+    && receiverNode.kind !== SyntaxKind.ArrayLiteralExpression
   ) {
     return false;
   }
@@ -192,9 +192,9 @@ function checkArrayDestructure(
     }
 
     if (
-      receiverElement.kind === SyntaxKind.SpreadElement ||
-      (receiverElement.kind === SyntaxKind.BindingElement &&
-        receiverElement.dotDotDotToken)
+      receiverElement.kind === SyntaxKind.SpreadElement
+      || (receiverElement.kind === SyntaxKind.BindingElement
+        && receiverElement.dotDotDotToken)
     ) {
       // don't handle rests as they're not a 1:1 assignment
       continue;
@@ -214,8 +214,8 @@ function checkArrayDestructure(
       // we want to report on every invalid element in the tuple
       didReport = true;
     } else if (
-      receiverElement.kind === SyntaxKind.BindingElement &&
-      receiverElement.name.kind === SyntaxKind.ArrayBindingPattern
+      receiverElement.kind === SyntaxKind.BindingElement
+      && receiverElement.name.kind === SyntaxKind.ArrayBindingPattern
     ) {
       didReport = checkArrayDestructure(
         receiverElement.name,
@@ -231,8 +231,8 @@ function checkArrayDestructure(
         context,
       );
     } else if (
-      receiverElement.kind === SyntaxKind.BindingElement &&
-      receiverElement.name.kind === SyntaxKind.ObjectBindingPattern
+      receiverElement.kind === SyntaxKind.BindingElement
+      && receiverElement.name.kind === SyntaxKind.ObjectBindingPattern
     ) {
       didReport = checkObjectDestructure(
         receiverElement.name,
@@ -321,8 +321,8 @@ function checkObjectDestructure(
       });
       didReport = true;
     } else if (
-      receiverProperty.kind === SyntaxKind.BindingElement &&
-      receiverProperty.name.kind === SyntaxKind.ArrayBindingPattern
+      receiverProperty.kind === SyntaxKind.BindingElement
+      && receiverProperty.name.kind === SyntaxKind.ArrayBindingPattern
     ) {
       didReport = checkArrayDestructure(
         receiverProperty.name,
@@ -331,8 +331,8 @@ function checkObjectDestructure(
         context,
       );
     } else if (
-      receiverProperty.kind === SyntaxKind.BindingElement &&
-      receiverProperty.name.kind === SyntaxKind.ObjectBindingPattern
+      receiverProperty.kind === SyntaxKind.BindingElement
+      && receiverProperty.name.kind === SyntaxKind.ObjectBindingPattern
     ) {
       didReport = checkObjectDestructure(
         receiverProperty.name,
@@ -356,8 +356,8 @@ function checkAssignment(
 ): boolean {
   const receiverType =
     comparisonType === "Contextual"
-      ? (getContextualType(context.checker, receiverNode as AST.Expression) ??
-        context.checker.getTypeAtLocation(receiverNode))
+      ? (getContextualType(context.checker, receiverNode as AST.Expression)
+        ?? context.checker.getTypeAtLocation(receiverNode))
       : context.checker.getTypeAtLocation(receiverNode);
   const senderType = context.checker.getTypeAtLocation(senderNode);
 

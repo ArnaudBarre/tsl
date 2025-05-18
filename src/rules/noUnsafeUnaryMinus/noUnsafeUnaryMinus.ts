@@ -20,10 +20,10 @@ export const noUnsafeUnaryMinus = createRule(() => ({
           (type) =>
             !isTypeFlagSet(
               type,
-              ts.TypeFlags.Any |
-                ts.TypeFlags.Never |
-                ts.TypeFlags.BigIntLike |
-                ts.TypeFlags.NumberLike,
+              ts.TypeFlags.Any
+                | ts.TypeFlags.Never
+                | ts.TypeFlags.BigIntLike
+                | ts.TypeFlags.NumberLike,
             ),
         )
       ) {

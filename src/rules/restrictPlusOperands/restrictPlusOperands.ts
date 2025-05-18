@@ -58,8 +58,8 @@ export const restrictPlusOperands = createRule(
       visitor: {
         BinaryExpression(node, context) {
           if (
-            node.operatorToken.kind !== SyntaxKind.PlusToken &&
-            node.operatorToken.kind !== SyntaxKind.PlusEqualsToken
+            node.operatorToken.kind !== SyntaxKind.PlusToken
+            && node.operatorToken.kind !== SyntaxKind.PlusEqualsToken
           ) {
             return;
           }
@@ -72,12 +72,12 @@ export const restrictPlusOperands = createRule(
           );
 
           if (
-            leftType === rightType &&
-            isTypeFlagSet(
+            leftType === rightType
+            && isTypeFlagSet(
               leftType,
-              ts.TypeFlags.BigIntLike |
-                ts.TypeFlags.NumberLike |
-                ts.TypeFlags.StringLike,
+              ts.TypeFlags.BigIntLike
+                | ts.TypeFlags.NumberLike
+                | ts.TypeFlags.StringLike,
             )
           ) {
             return;
@@ -92,16 +92,16 @@ export const restrictPlusOperands = createRule(
             if (
               isTypeFlagSetInUnion(
                 baseType,
-                ts.TypeFlags.ESSymbolLike |
-                  ts.TypeFlags.Never |
-                  ts.TypeFlags.Unknown,
-              ) ||
-              (!options.allowAny &&
-                isTypeFlagSetInUnion(baseType, ts.TypeFlags.Any)) ||
-              (!options.allowBoolean &&
-                isTypeFlagSetInUnion(baseType, ts.TypeFlags.BooleanLike)) ||
-              (!options.allowNullish &&
-                typeHasFlag(
+                ts.TypeFlags.ESSymbolLike
+                  | ts.TypeFlags.Never
+                  | ts.TypeFlags.Unknown,
+              )
+              || (!options.allowAny
+                && isTypeFlagSetInUnion(baseType, ts.TypeFlags.Any))
+              || (!options.allowBoolean
+                && isTypeFlagSetInUnion(baseType, ts.TypeFlags.BooleanLike))
+              || (!options.allowNullish
+                && typeHasFlag(
                   baseType,
                   ts.TypeFlags.Null | ts.TypeFlags.Undefined,
                 ))
@@ -122,10 +122,10 @@ export const restrictPlusOperands = createRule(
               const typeName = getTypeName(context.rawChecker, subBaseType);
               if (
                 typeName === "RegExp"
-                  ? !options.allowRegExp ||
-                    isTypeFlagSet(otherType, ts.TypeFlags.NumberLike)
-                  : (!options.allowAny && isIntrinsicAnyType(subBaseType)) ||
-                    isDeeplyObjectType(subBaseType)
+                  ? !options.allowRegExp
+                    || isTypeFlagSet(otherType, ts.TypeFlags.NumberLike)
+                  : (!options.allowAny && isIntrinsicAnyType(subBaseType))
+                    || isDeeplyObjectType(subBaseType)
               ) {
                 context.report({
                   node: baseNode,
@@ -148,9 +148,9 @@ export const restrictPlusOperands = createRule(
             [rightType, leftType],
           ] as const) {
             if (
-              !options.allowNumberAndString &&
-              isTypeFlagSetInUnion(baseType, ts.TypeFlags.StringLike) &&
-              isTypeFlagSetInUnion(
+              !options.allowNumberAndString
+              && isTypeFlagSetInUnion(baseType, ts.TypeFlags.StringLike)
+              && isTypeFlagSetInUnion(
                 otherType,
                 ts.TypeFlags.NumberLike | ts.TypeFlags.BigIntLike,
               )
@@ -167,8 +167,8 @@ export const restrictPlusOperands = createRule(
             }
 
             if (
-              isTypeFlagSetInUnion(baseType, ts.TypeFlags.NumberLike) &&
-              isTypeFlagSetInUnion(otherType, ts.TypeFlags.BigIntLike)
+              isTypeFlagSetInUnion(baseType, ts.TypeFlags.NumberLike)
+              && isTypeFlagSetInUnion(otherType, ts.TypeFlags.BigIntLike)
             ) {
               context.report({
                 node,

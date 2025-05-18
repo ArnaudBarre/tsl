@@ -105,8 +105,8 @@ if (!arg) throw new Error("No rule provided");
 const stillToImport = Object.entries(allTypedRules)
   .filter(
     ([key, value]) =>
-      value === true &&
-      !alreadyImportedRules.includes(kebabCaseToCamelCase(key)),
+      value === true
+      && !alreadyImportedRules.includes(kebabCaseToCamelCase(key)),
   )
   .map(([key]) => key);
 const rulesToImport = arg === "next" ? stillToImport.slice(0, 1) : [arg];
@@ -114,9 +114,9 @@ const rulesToImport = arg === "next" ? stillToImport.slice(0, 1) : [arg];
 const getObjectValue = (node: ObjectExpression, name: string) =>
   node.properties.find(
     (p): p is ObjectProperty =>
-      p.type === "ObjectProperty" &&
-      p.key.type === "Identifier" &&
-      p.key.name === name,
+      p.type === "ObjectProperty"
+      && p.key.type === "Identifier"
+      && p.key.name === name,
   );
 
 const estreeToTSTree: Record<
@@ -241,9 +241,9 @@ for (const rule of rulesToImport) {
     VariableDeclaration(path) {
       const init = path.node.declarations[0].init;
       if (
-        init?.type === "CallExpression" &&
-        init.callee.type === "Identifier" &&
-        ["getESLintCoreRule", "getParserServices"].includes(init.callee.name)
+        init?.type === "CallExpression"
+        && init.callee.type === "Identifier"
+        && ["getESLintCoreRule", "getParserServices"].includes(init.callee.name)
       ) {
         if (init.callee.name) {
           const id = path.node.declarations[0].id;
@@ -253,10 +253,10 @@ for (const rule of rulesToImport) {
         path.remove();
       }
       if (
-        init?.type === "CallExpression" &&
-        init.callee.type === "MemberExpression" &&
-        init.callee.property.type === "Identifier" &&
-        init.callee.property.name === "getTypeChecker"
+        init?.type === "CallExpression"
+        && init.callee.type === "MemberExpression"
+        && init.callee.property.type === "Identifier"
+        && init.callee.property.name === "getTypeChecker"
       ) {
         path.remove();
       }
@@ -286,9 +286,9 @@ for (const rule of rulesToImport) {
       nameProp.value.value = `core/${exportName}`;
       const createProp = params.properties.find(
         (p): p is ObjectMethod =>
-          p.type === "ObjectMethod" &&
-          p.key.type === "Identifier" &&
-          p.key.name === "create",
+          p.type === "ObjectMethod"
+          && p.key.type === "Identifier"
+          && p.key.name === "create",
       )!;
       const returnStatements: ObjectExpression[] = [];
       for (const s of createProp.body.body) {
@@ -306,8 +306,8 @@ for (const rule of rulesToImport) {
                 { type: "Identifier", name: "context" },
               ];
               if (
-                p.key.type === "StringLiteral" &&
-                p.key.value.endsWith(":exit")
+                p.key.type === "StringLiteral"
+                && p.key.value.endsWith(":exit")
               ) {
                 const nodeName = p.key.value.slice(0, -5);
                 if (nodeName in estreeToTSTree)
@@ -419,14 +419,14 @@ for (const rule of rulesToImport) {
     CallExpression(path) {
       // services.program.getTypeChecker() -> context.checker
       if (
-        path.node.callee.type === "MemberExpression" &&
-        path.node.callee.object.type === "MemberExpression" &&
-        path.node.callee.object.object.type === "Identifier" &&
-        path.node.callee.object.object.name === parserServicesName &&
-        path.node.callee.object.property.type === "Identifier" &&
-        path.node.callee.object.property.name === "program" &&
-        path.node.callee.property.type === "Identifier" &&
-        path.node.callee.property.name === "getTypeChecker"
+        path.node.callee.type === "MemberExpression"
+        && path.node.callee.object.type === "MemberExpression"
+        && path.node.callee.object.object.type === "Identifier"
+        && path.node.callee.object.object.name === parserServicesName
+        && path.node.callee.object.property.type === "Identifier"
+        && path.node.callee.object.property.name === "program"
+        && path.node.callee.property.type === "Identifier"
+        && path.node.callee.property.name === "getTypeChecker"
       ) {
         path.replaceWith({
           type: "MemberExpression",
@@ -438,11 +438,11 @@ for (const rule of rulesToImport) {
       }
       // services.getTypeAtLocation(...) -> context.checker.getTypeAtLocation(...)
       if (
-        path.node.callee.type === "MemberExpression" &&
-        path.node.callee.object.type === "Identifier" &&
-        path.node.callee.object.name === parserServicesName &&
-        path.node.callee.property.type === "Identifier" &&
-        ["getTypeAtLocation", "getSymbolAtLocation"].includes(
+        path.node.callee.type === "MemberExpression"
+        && path.node.callee.object.type === "Identifier"
+        && path.node.callee.object.name === parserServicesName
+        && path.node.callee.property.type === "Identifier"
+        && ["getTypeAtLocation", "getSymbolAtLocation"].includes(
           path.node.callee.property.name,
         )
       ) {
@@ -456,23 +456,23 @@ for (const rule of rulesToImport) {
       }
       // services.esTreeNodeToTSNodeMap.get(node) -> node
       if (
-        path.node.callee.type === "MemberExpression" &&
-        path.node.callee.object.type === "MemberExpression" &&
-        path.node.callee.object.object.type === "Identifier" &&
-        path.node.callee.object.object.name === parserServicesName &&
-        path.node.callee.object.property.type === "Identifier" &&
-        path.node.callee.object.property.name === "esTreeNodeToTSNodeMap" &&
-        path.node.callee.property.type === "Identifier" &&
-        path.node.callee.property.name === "get"
+        path.node.callee.type === "MemberExpression"
+        && path.node.callee.object.type === "MemberExpression"
+        && path.node.callee.object.object.type === "Identifier"
+        && path.node.callee.object.object.name === parserServicesName
+        && path.node.callee.object.property.type === "Identifier"
+        && path.node.callee.object.property.name === "esTreeNodeToTSNodeMap"
+        && path.node.callee.property.type === "Identifier"
+        && path.node.callee.property.name === "get"
       ) {
         path.replaceWith(path.node.arguments[0]);
         return;
       }
       // tsutils.x() -> x() / context.utils.x()
       if (
-        path.node.callee.type === "MemberExpression" &&
-        path.node.callee.object.type === "Identifier" &&
-        path.node.callee.object.name === "tsutils"
+        path.node.callee.type === "MemberExpression"
+        && path.node.callee.object.type === "Identifier"
+        && path.node.callee.object.name === "tsutils"
       ) {
         if (
           path.node.arguments.some(
@@ -502,10 +502,10 @@ for (const rule of rulesToImport) {
       }
       // getConstrainedTypeAtLocation(services, node) -> context.utils.getConstrainedTypeAtLocation(node)
       if (
-        path.node.callee.type === "Identifier" &&
-        path.node.callee.name === "getConstrainedTypeAtLocation" &&
-        path.node.arguments[0].type === "Identifier" &&
-        path.node.arguments[0].name === parserServicesName
+        path.node.callee.type === "Identifier"
+        && path.node.callee.name === "getConstrainedTypeAtLocation"
+        && path.node.arguments[0].type === "Identifier"
+        && path.node.arguments[0].name === parserServicesName
       ) {
         path.node.callee = {
           type: "MemberExpression",
@@ -526,16 +526,16 @@ for (const rule of rulesToImport) {
       }
       // context.sourceCode.getText(returnValue) -> returnValue.getText()
       if (
-        path.node.callee.type === "MemberExpression" &&
-        path.node.callee.object.type === "MemberExpression" &&
-        path.node.callee.object.object.type === "Identifier" &&
-        path.node.callee.object.object.name === "context" &&
-        path.node.callee.object.property.type === "Identifier" &&
-        path.node.callee.object.property.name === "sourceCode" &&
-        path.node.callee.property.type === "Identifier" &&
-        path.node.callee.property.name === "getText" &&
-        path.node.arguments.length === 1 &&
-        path.node.arguments[0].type === "Identifier"
+        path.node.callee.type === "MemberExpression"
+        && path.node.callee.object.type === "MemberExpression"
+        && path.node.callee.object.object.type === "Identifier"
+        && path.node.callee.object.object.name === "context"
+        && path.node.callee.object.property.type === "Identifier"
+        && path.node.callee.object.property.name === "sourceCode"
+        && path.node.callee.property.type === "Identifier"
+        && path.node.callee.property.name === "getText"
+        && path.node.arguments.length === 1
+        && path.node.arguments[0].type === "Identifier"
       ) {
         path.replaceWith({
           type: "CallExpression",
@@ -556,8 +556,8 @@ for (const rule of rulesToImport) {
     TSTypeAliasDeclaration(path) {
       // get Options type
       if (
-        path.node.id.name === "Options" &&
-        path.node.typeAnnotation.type === "TSTupleType"
+        path.node.id.name === "Options"
+        && path.node.typeAnnotation.type === "TSTupleType"
       ) {
         if (extensionsRules.includes(rule)) return;
         if (path.node.typeAnnotation.elementTypes.length === 0) {
@@ -565,16 +565,16 @@ for (const rule of rulesToImport) {
         }
         assert(path.node.typeAnnotation.elementTypes.length === 1);
         assert(
-          path.node.typeAnnotation.elementTypes[0].type !==
-            "TSNamedTupleMember",
+          path.node.typeAnnotation.elementTypes[0].type
+            !== "TSNamedTupleMember",
         );
         options = path.node.typeAnnotation.elementTypes[0];
         path.remove();
         return;
       }
       if (
-        path.node.id.name === "MessageIds" ||
-        path.node.id.name === "MessageId"
+        path.node.id.name === "MessageIds"
+        || path.node.id.name === "MessageId"
       ) {
         path.remove();
         return;
@@ -583,30 +583,30 @@ for (const rule of rulesToImport) {
     TSQualifiedName(path) {
       // TSESTree.x -> AST.x
       if (
-        path.node.left.type === "Identifier" &&
-        path.node.left.name === "TSESTree"
+        path.node.left.type === "Identifier"
+        && path.node.left.name === "TSESTree"
       ) {
         path.node.left.name = path.node.right.name === "Node" ? "ts" : "AST";
         path.node.right.name = estreeToTSTree[path.node.right.name]
-          ? (kindToNodeTypeMap[estreeToTSTree[path.node.right.name]!] ??
-            estreeToTSTree[path.node.right.name]!)
+          ? (kindToNodeTypeMap[estreeToTSTree[path.node.right.name]!]
+            ?? estreeToTSTree[path.node.right.name]!)
           : path.node.right.name;
         return;
       }
       // ts.TypeChecker -> Checker
       if (
-        path.node.left.type === "Identifier" &&
-        path.node.left.name === "ts" &&
-        path.node.right.name === "TypeChecker"
+        path.node.left.type === "Identifier"
+        && path.node.left.name === "ts"
+        && path.node.right.name === "TypeChecker"
       ) {
         path.replaceWith({ type: "Identifier", name: "Checker" });
         return;
       }
       // ts.<ASTNode> -> AST.<ASTNode>
       if (
-        path.node.left.type === "Identifier" &&
-        path.node.left.name === "ts" &&
-        astNodes.includes(path.node.right.name)
+        path.node.left.type === "Identifier"
+        && path.node.left.name === "ts"
+        && astNodes.includes(path.node.right.name)
       ) {
         path.node.left.name = "AST";
         return;
@@ -615,8 +615,8 @@ for (const rule of rulesToImport) {
     MemberExpression(path) {
       // AST_NODE_TYPES.Program -> SyntaxKind.SourceFile
       if (
-        path.node.object.type === "Identifier" &&
-        path.node.object.name === "AST_NODE_TYPES"
+        path.node.object.type === "Identifier"
+        && path.node.object.name === "AST_NODE_TYPES"
       ) {
         path.node.object.name = "SyntaxKind";
         if (path.node.property.type === "Identifier") {
@@ -627,11 +627,11 @@ for (const rule of rulesToImport) {
       }
       // TSESTree.AST_NODE_TYPES.Program -> SyntaxKind.SourceFile
       if (
-        path.node.object.type === "MemberExpression" &&
-        path.node.object.object.type === "Identifier" &&
-        path.node.object.object.name === "TSESTree" &&
-        path.node.object.property.type === "Identifier" &&
-        path.node.object.property.name === "AST_NODE_TYPES"
+        path.node.object.type === "MemberExpression"
+        && path.node.object.object.type === "Identifier"
+        && path.node.object.object.name === "TSESTree"
+        && path.node.object.property.type === "Identifier"
+        && path.node.object.property.name === "AST_NODE_TYPES"
       ) {
         path.node.object = { type: "Identifier", name: "SyntaxKind" };
         if (path.node.property.type === "Identifier") {
@@ -642,8 +642,8 @@ for (const rule of rulesToImport) {
       }
       // checker -> context.checker
       if (
-        path.node.object.type === "Identifier" &&
-        path.node.object.name === "checker"
+        path.node.object.type === "Identifier"
+        && path.node.object.name === "checker"
       ) {
         path.node.object = {
           type: "MemberExpression",
@@ -678,8 +678,8 @@ for (const rule of rulesToImport) {
             p.key.name = "suggestions";
           }
           if (
-            p.key.name === "fix" &&
-            p.value.type === "ArrowFunctionExpression"
+            p.key.name === "fix"
+            && p.value.type === "ArrowFunctionExpression"
           ) {
             fixProp = p;
             fixBody =
@@ -696,9 +696,9 @@ for (const rule of rulesToImport) {
           }
         }
         if (
-          p.type === "ObjectMethod" &&
-          p.key.type === "Identifier" &&
-          p.key.name === "fix"
+          p.type === "ObjectMethod"
+          && p.key.type === "Identifier"
+          && p.key.name === "fix"
         ) {
           fixProp = p;
           fixBody = p.body;
@@ -801,16 +801,16 @@ for (const rule of rulesToImport) {
       if (
         path.node.params.some(
           (p) =>
-            p.type === "Identifier" &&
-            (p.name === "node" ||
-              (p.typeAnnotation?.type === "TSTypeAnnotation" &&
-                p.typeAnnotation.typeAnnotation.type === "TSTypeReference" &&
-                p.typeAnnotation.typeAnnotation.typeName.type ===
-                  "TSQualifiedName" &&
-                p.typeAnnotation.typeAnnotation.typeName.left.type ===
-                  "Identifier" &&
-                p.typeAnnotation.typeAnnotation.typeName.left.name ===
-                  "TSESTree")),
+            p.type === "Identifier"
+            && (p.name === "node"
+              || (p.typeAnnotation?.type === "TSTypeAnnotation"
+                && p.typeAnnotation.typeAnnotation.type === "TSTypeReference"
+                && p.typeAnnotation.typeAnnotation.typeName.type
+                  === "TSQualifiedName"
+                && p.typeAnnotation.typeAnnotation.typeName.left.type
+                  === "Identifier"
+                && p.typeAnnotation.typeAnnotation.typeName.left.name
+                  === "TSESTree")),
         )
       ) {
         path.node.params.push({
@@ -833,8 +833,8 @@ for (const rule of rulesToImport) {
   traverse(srcAST, {
     CallExpression(path) {
       if (
-        path.node.callee.type === "Identifier" &&
-        fnWithInjectedContext.includes(path.node.callee.name)
+        path.node.callee.type === "Identifier"
+        && fnWithInjectedContext.includes(path.node.callee.name)
       ) {
         path.node.arguments.push({ type: "Identifier", name: "context" });
       }
@@ -854,19 +854,19 @@ for (const rule of rulesToImport) {
     VariableDeclaration(path) {
       const firstDeclaration = path.node.declarations.at(0);
       if (
-        firstDeclaration?.id.type === "Identifier" &&
-        (firstDeclaration.id.name === "ruleTester" ||
-          firstDeclaration.id.name === "rootPath" ||
-          firstDeclaration.id.name === "rootDir")
+        firstDeclaration?.id.type === "Identifier"
+        && (firstDeclaration.id.name === "ruleTester"
+          || firstDeclaration.id.name === "rootPath"
+          || firstDeclaration.id.name === "rootDir")
       ) {
         path.remove();
       }
     },
     CallExpression(path) {
       if (
-        path.node.callee.type === "MemberExpression" &&
-        path.node.callee.object.type === "Identifier" &&
-        path.node.callee.object.name === "ruleTester"
+        path.node.callee.type === "MemberExpression"
+        && path.node.callee.object.type === "Identifier"
+        && path.node.callee.object.name === "ruleTester"
       ) {
         path.node.callee = path.node.callee.object;
         assert(path.node.arguments[2].type === "ObjectExpression");
@@ -920,32 +920,32 @@ for (const rule of rulesToImport) {
         const prevProperties = path.node.properties;
         path.node.properties = [];
         if (
-          languageOptionsProp &&
-          languageOptionsProp.value.type === "ObjectExpression" &&
-          languageOptionsProp.value.properties.length === 1 &&
-          languageOptionsProp.value.properties[0].type === "ObjectProperty" &&
-          languageOptionsProp.value.properties[0].key.type === "Identifier" &&
-          languageOptionsProp.value.properties[0].key.name ===
-            "parserOptions" &&
-          languageOptionsProp.value.properties[0].value.type ===
-            "ObjectExpression"
+          languageOptionsProp
+          && languageOptionsProp.value.type === "ObjectExpression"
+          && languageOptionsProp.value.properties.length === 1
+          && languageOptionsProp.value.properties[0].type === "ObjectProperty"
+          && languageOptionsProp.value.properties[0].key.type === "Identifier"
+          && languageOptionsProp.value.properties[0].key.name
+            === "parserOptions"
+          && languageOptionsProp.value.properties[0].value.type
+            === "ObjectExpression"
         ) {
           const parserOptions = languageOptionsProp.value.properties[0].value;
           if (
-            parserOptions.properties.length === 1 &&
-            parserOptions.properties[0].type === "ObjectProperty" &&
-            parserOptions.properties[0].key.type === "Identifier" &&
-            parserOptions.properties[0].key.name === "ecmaFeatures" &&
-            parserOptions.properties[0].value.type === "ObjectExpression"
+            parserOptions.properties.length === 1
+            && parserOptions.properties[0].type === "ObjectProperty"
+            && parserOptions.properties[0].key.type === "Identifier"
+            && parserOptions.properties[0].key.name === "ecmaFeatures"
+            && parserOptions.properties[0].value.type === "ObjectExpression"
           ) {
             const ecmaFeatures = parserOptions.properties[0].value;
             if (
-              ecmaFeatures.properties.length === 1 &&
-              ecmaFeatures.properties[0].type === "ObjectProperty" &&
-              ecmaFeatures.properties[0].key.type === "Identifier" &&
-              ecmaFeatures.properties[0].key.name === "jsx" &&
-              ecmaFeatures.properties[0].value.type === "BooleanLiteral" &&
-              ecmaFeatures.properties[0].value.value
+              ecmaFeatures.properties.length === 1
+              && ecmaFeatures.properties[0].type === "ObjectProperty"
+              && ecmaFeatures.properties[0].key.type === "Identifier"
+              && ecmaFeatures.properties[0].key.name === "jsx"
+              && ecmaFeatures.properties[0].value.type === "BooleanLiteral"
+              && ecmaFeatures.properties[0].value.value
             ) {
               // tsx: true
               path.node.properties.push({
@@ -1003,11 +1003,11 @@ for (const rule of rulesToImport) {
         if (errorsProp) path.node.properties.push(errorsProp);
         for (const p of prevProperties) {
           if (
-            p !== optionsProp &&
-            p !== codeProp &&
-            p !== errorsProp &&
-            p !== outputProp &&
-            (languageOptionsHandled ? p !== languageOptionsProp : true)
+            p !== optionsProp
+            && p !== codeProp
+            && p !== errorsProp
+            && p !== outputProp
+            && (languageOptionsHandled ? p !== languageOptionsProp : true)
           ) {
             path.node.properties.push(p);
           }
@@ -1151,8 +1151,8 @@ for (const rule of rulesToImport) {
       `import { ruleTester } from "../../ruleTester.ts";
 import { messages, ${camelCaseRule} } from "./${camelCaseRule}.ts";
 
-` +
-        generate(testAST, { filename, compact: true }).code.replace(
+`
+        + generate(testAST, { filename, compact: true }).code.replace(
           "ruleTester(",
           "export const test = () => ruleTester(",
         ),

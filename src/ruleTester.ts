@@ -330,9 +330,9 @@ export const ruleTester = <
               introLogged = true;
             }
             const whiteSpaceDiff =
-              expected &&
-              got &&
-              expected.replaceAll(/ /g, "") === got.replaceAll(/ /g, "");
+              expected
+              && got
+              && expected.replaceAll(/ /g, "") === got.replaceAll(/ /g, "");
             /* type-lint-ignore core/restrictTemplateExpressions */
             console.log(
               `  #${i}${prefix}: Expected: ${
@@ -392,8 +392,8 @@ export const ruleTester = <
               : got.suggestions;
           for (
             let si = 0;
-            si <
-            Math.max(
+            si
+            < Math.max(
               expected.suggestions?.length ?? 0,
               gotSuggestions?.length ?? 0,
             );

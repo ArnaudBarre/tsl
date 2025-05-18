@@ -16,8 +16,8 @@ export const noRedundantTypeConstituents = createRule(() => ({
   visitor: {
     IntersectionType(node, context): void {
       if (
-        node.parent.kind === SyntaxKind.ParenthesizedType &&
-        node.parent.parent.kind === SyntaxKind.IntersectionType
+        node.parent.kind === SyntaxKind.ParenthesizedType
+        && node.parent.parent.kind === SyntaxKind.IntersectionType
       ) {
         return;
       }
@@ -43,13 +43,13 @@ export const noRedundantTypeConstituents = createRule(() => ({
           } else if (otherType.flags === TypeFlags.Unknown) {
             reportIntersection(context, otherTypeNode, typeNode);
           } else if (
-            typeNode.kind === SyntaxKind.LiteralType &&
-            literals.includes(typeNode.literal.kind)
+            typeNode.kind === SyntaxKind.LiteralType
+            && literals.includes(typeNode.literal.kind)
           ) {
             reportIntersection(context, otherTypeNode, typeNode);
           } else if (
-            otherTypeNode.kind === SyntaxKind.LiteralType &&
-            literals.includes(otherTypeNode.literal.kind)
+            otherTypeNode.kind === SyntaxKind.LiteralType
+            && literals.includes(otherTypeNode.literal.kind)
           ) {
             reportIntersection(context, typeNode, otherTypeNode);
           }
@@ -58,8 +58,8 @@ export const noRedundantTypeConstituents = createRule(() => ({
     },
     UnionType(node, context): void {
       if (
-        node.parent.kind === SyntaxKind.ParenthesizedType &&
-        node.parent.parent.kind === SyntaxKind.UnionType
+        node.parent.kind === SyntaxKind.ParenthesizedType
+        && node.parent.parent.kind === SyntaxKind.UnionType
       ) {
         return;
       }
@@ -108,15 +108,15 @@ export const noRedundantTypeConstituents = createRule(() => ({
 
 const flattenUnion = (node: AST.UnionTypeNode): TypeNode[] =>
   node.types.flatMap((n) =>
-    n.kind === SyntaxKind.ParenthesizedType &&
-    n.type.kind === SyntaxKind.UnionType
+    n.kind === SyntaxKind.ParenthesizedType
+    && n.type.kind === SyntaxKind.UnionType
       ? flattenUnion(n.type)
       : [n],
   );
 const flattenIntersection = (node: AST.IntersectionTypeNode): TypeNode[] =>
   node.types.flatMap((n) =>
-    n.kind === SyntaxKind.ParenthesizedType &&
-    n.type.kind === SyntaxKind.IntersectionType
+    n.kind === SyntaxKind.ParenthesizedType
+    && n.type.kind === SyntaxKind.IntersectionType
       ? flattenIntersection(n.type)
       : [n],
   );

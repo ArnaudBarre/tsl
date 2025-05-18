@@ -49,8 +49,8 @@ function checkMemberExpression(
   }
 
   if (
-    node.expression.kind === SyntaxKind.PropertyAccessExpression ||
-    node.expression.kind === SyntaxKind.ElementAccessExpression
+    node.expression.kind === SyntaxKind.PropertyAccessExpression
+    || node.expression.kind === SyntaxKind.ElementAccessExpression
   ) {
     const objectState = checkMemberExpression(node.expression, context);
     if (objectState === "Unsafe") {

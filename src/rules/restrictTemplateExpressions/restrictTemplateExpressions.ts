@@ -72,9 +72,8 @@ const optionTesters = (
     [
       "Array",
       (type, context, recursivelyCheckType): boolean =>
-        (context.checker.isArrayType(type) ||
-          context.checker.isTupleType(type)) &&
-        recursivelyCheckType(type.getNumberIndexType()!, context),
+        (context.checker.isArrayType(type) || context.checker.isTupleType(type))
+        && recursivelyCheckType(type.getNumberIndexType()!, context),
     ],
     ["Boolean", testTypeFlag(TypeFlags.BooleanLike)],
     ["Nullish", testTypeFlag(TypeFlags.Null | TypeFlags.Undefined)],
@@ -121,8 +120,8 @@ export const restrictTemplateExpressions = createRule(
       }
 
       return (
-        typeHasFlag(innerType, TypeFlags.StringLike) ||
-        enabledOptionTesters.some(({ tester }) =>
+        typeHasFlag(innerType, TypeFlags.StringLike)
+        || enabledOptionTesters.some(({ tester }) =>
           tester(innerType, context, recursivelyCheckType),
         )
       );
@@ -139,8 +138,8 @@ export const restrictTemplateExpressions = createRule(
 
           for (const span of node.templateSpans) {
             const identifier =
-              span.expression.kind === SyntaxKind.NewExpression ||
-              span.expression.kind === SyntaxKind.CallExpression
+              span.expression.kind === SyntaxKind.NewExpression
+              || span.expression.kind === SyntaxKind.CallExpression
                 ? span.expression.expression
                 : span.expression;
             if (options.allow.includes(identifier.getText())) {

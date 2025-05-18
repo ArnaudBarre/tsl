@@ -17,8 +17,8 @@ export function isBuiltinSymbolLike(
     if (
       (Array.isArray(symbolName)
         ? symbolName.some((name) => actualSymbolName === name)
-        : actualSymbolName === symbolName) &&
-      isSymbolFromDefaultLibrary(program, symbol)
+        : actualSymbolName === symbolName)
+      && isSymbolFromDefaultLibrary(program, symbol)
     ) {
       return true;
     }
@@ -59,8 +59,8 @@ function isBuiltinSymbolLikeRecurser(
 
   const symbol = type.getSymbol();
   if (
-    symbol &&
-    symbol.flags & (ts.SymbolFlags.Class | ts.SymbolFlags.Interface)
+    symbol
+    && symbol.flags & (ts.SymbolFlags.Class | ts.SymbolFlags.Interface)
   ) {
     const checker = program.getTypeChecker();
     for (const baseType of checker.getBaseTypes(type as ts.InterfaceType)) {

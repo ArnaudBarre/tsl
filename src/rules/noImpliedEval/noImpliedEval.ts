@@ -35,19 +35,19 @@ function getCalleeName(node: AST.Expression): string | null {
   }
 
   if (
-    node.kind === SyntaxKind.PropertyAccessExpression &&
-    node.expression.kind === SyntaxKind.Identifier &&
-    GLOBAL_CANDIDATES.has(node.expression.text) &&
-    node.name.kind === SyntaxKind.Identifier
+    node.kind === SyntaxKind.PropertyAccessExpression
+    && node.expression.kind === SyntaxKind.Identifier
+    && GLOBAL_CANDIDATES.has(node.expression.text)
+    && node.name.kind === SyntaxKind.Identifier
   ) {
     return node.name.text;
   }
 
   if (
-    node.kind === SyntaxKind.ElementAccessExpression &&
-    node.expression.kind === SyntaxKind.Identifier &&
-    GLOBAL_CANDIDATES.has(node.expression.text) &&
-    node.argumentExpression.kind === SyntaxKind.StringLiteral
+    node.kind === SyntaxKind.ElementAccessExpression
+    && node.expression.kind === SyntaxKind.Identifier
+    && GLOBAL_CANDIDATES.has(node.expression.text)
+    && node.argumentExpression.kind === SyntaxKind.StringLiteral
   ) {
     return node.argumentExpression.text;
   }
@@ -60,8 +60,8 @@ function isFunctionType(node: AnyNode, context: Context): boolean {
   const symbol = type.getSymbol();
 
   if (
-    symbol &&
-    isSymbolFlagSet(symbol, ts.SymbolFlags.Function | ts.SymbolFlags.Method)
+    symbol
+    && isSymbolFlagSet(symbol, ts.SymbolFlags.Function | ts.SymbolFlags.Method)
   ) {
     return true;
   }
@@ -135,9 +135,9 @@ function checkImpliedEval(
 
   const [handler] = node.arguments;
   if (
-    EVAL_LIKE_METHODS.has(calleeName) &&
-    !isFunction(handler, context) &&
-    isReferenceToGlobalFunction(node.expression, context)
+    EVAL_LIKE_METHODS.has(calleeName)
+    && !isFunction(handler, context)
+    && isReferenceToGlobalFunction(node.expression, context)
   ) {
     context.report({ node: handler, message: messages.noImpliedEvalError });
   }

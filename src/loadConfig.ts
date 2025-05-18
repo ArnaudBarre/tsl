@@ -22,8 +22,8 @@ export const loadConfig = async (
   );
   let files = cache.read()?.files;
   if (
-    !files ||
-    files.some(([path, hash]) => {
+    !files
+    || files.some(([path, hash]) => {
       const content = readMaybeFileSync(path);
       return !content || getHash(content) !== hash;
     })
