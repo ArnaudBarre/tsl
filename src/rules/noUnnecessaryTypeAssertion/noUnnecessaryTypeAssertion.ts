@@ -89,6 +89,13 @@ export const noUnnecessaryTypeAssertion = createRule(
 
           const contextualType = getContextualType(context.checker, node);
           if (contextualType) {
+            if (
+              typeHasFlag(type, TypeFlags.Unknown)
+              && !typeHasFlag(contextualType, TypeFlags.Unknown)
+            ) {
+              return;
+            }
+
             // in strict mode you can't assign null to undefined, so we have to make sure that
             // the two types share a nullable type
             const typeIncludesUndefined = typeHasFlag(

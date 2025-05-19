@@ -1,8 +1,8 @@
 import { SyntaxKind } from "typescript";
-import { hasModifier, isHigherPrecedenceThanUnary } from "../_utils/index.ts";
+import { addAwait, hasModifier } from "../_utils/index.ts";
 import { needsToBeAwaited } from "../_utils/needsToBeAwaited.ts";
 import { createRule } from "../../index.ts";
-import type { AST, Context, Suggestion } from "../../types.ts";
+import type { AST, Context } from "../../types.ts";
 
 export const messages = {
   requiredPromiseAwait: "Returned value must be awaited.",
@@ -73,15 +73,8 @@ function checkExpression(node: AST.Expression, context: Context): void {
   context.report({
     node,
     message: messages.requiredPromiseAwait,
-    suggestions: () => {
-      const changes: Suggestion["changes"] = [];
-      if (isHigherPrecedenceThanUnary(node)) {
-        changes.push({ start: node.getStart(), length: 0, newText: "await " });
-      } else {
-        changes.push({ start: node.getStart(), length: 0, newText: "await (" });
-        changes.push({ start: node.getEnd(), length: 0, newText: ")" });
-      }
-      return [{ message: messages.addAwait, changes }];
-    },
+    suggestions: () => [
+      { message: messages.addAwait, changes: addAwait(node) },
+    ],
   });
 }

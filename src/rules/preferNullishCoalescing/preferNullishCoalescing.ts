@@ -146,9 +146,15 @@ export const preferNullishCoalescing = createRule(
           if (
             node.condition.kind === SyntaxKind.PrefixUnaryExpression
             && node.condition.operator === SyntaxKind.ExclamationToken
-            && node.condition.operand.kind === SyntaxKind.Identifier
-            && node.whenFalse.kind === SyntaxKind.Identifier
-            && node.condition.operand.text === node.whenFalse.text
+            && (node.condition.operand.kind === SyntaxKind.Identifier
+              || node.condition.operand.kind
+                === SyntaxKind.PropertyAccessExpression)
+            && (node.whenFalse.kind === SyntaxKind.Identifier
+              || node.whenFalse.kind === SyntaxKind.PropertyAccessExpression)
+            && areNodesSimilarMemberAccess(
+              node.condition.operand,
+              node.whenFalse,
+            )
           ) {
             const type = context.checker.getTypeAtLocation(
               node.condition.operand,
@@ -156,7 +162,12 @@ export const preferNullishCoalescing = createRule(
             if (!typeHasFlag(type, TypeFlags.Null | TypeFlags.Undefined)) {
               return;
             }
-            if (isUnsafeConditional(type)) return;
+            if (
+              node.condition.operand.kind === SyntaxKind.Identifier
+              && isUnsafeConditional(type)
+            ) {
+              return;
+            }
             context.report({
               node,
               message: messages.preferNullishOverTernary,
@@ -166,9 +177,7 @@ export const preferNullishCoalescing = createRule(
                   changes: [
                     {
                       node,
-                      newText: `${
-                        node.whenFalse.text
-                      } ?? ${node.whenTrue.getText()}`,
+                      newText: `${node.condition.operand.getText()} ?? ${node.whenTrue.getText()}`,
                     },
                   ],
                 },
@@ -176,17 +185,25 @@ export const preferNullishCoalescing = createRule(
             });
             return;
           }
+
           // x ? x : y
           if (
-            node.condition.kind === SyntaxKind.Identifier
-            && node.whenTrue.kind === SyntaxKind.Identifier
-            && node.condition.text === node.whenTrue.text
+            (node.condition.kind === SyntaxKind.Identifier
+              || node.condition.kind === SyntaxKind.PropertyAccessExpression)
+            && (node.whenTrue.kind === SyntaxKind.Identifier
+              || node.whenTrue.kind === SyntaxKind.PropertyAccessExpression)
+            && areNodesSimilarMemberAccess(node.condition, node.whenTrue)
           ) {
             const type = context.checker.getTypeAtLocation(node.condition);
             if (!typeHasFlag(type, TypeFlags.Null | TypeFlags.Undefined)) {
               return;
             }
-            if (isUnsafeConditional(type)) return;
+            if (
+              node.condition.kind === SyntaxKind.Identifier
+              && isUnsafeConditional(type)
+            ) {
+              return;
+            }
             context.report({
               node,
               message: messages.preferNullishOverTernary,
@@ -196,7 +213,7 @@ export const preferNullishCoalescing = createRule(
                   changes: [
                     {
                       node,
-                      newText: `${node.whenTrue.getText()} ?? ${node.whenFalse.getText()}`,
+                      newText: `${node.condition.getText()} ?? ${node.whenFalse.getText()}`,
                     },
                   ],
                 },
@@ -297,7 +314,7 @@ export const preferNullishCoalescing = createRule(
 
           if (!operator) return;
 
-          let identifier: ts.Node | undefined;
+          let nullishCoalescingLeftNode: ts.Node | undefined;
           let hasUndefinedCheck = false;
           let hasNullCheck = false;
 
@@ -311,23 +328,24 @@ export const preferNullishCoalescing = createRule(
             ) {
               hasUndefinedCheck = true;
             } else if (
-              (operator === SyntaxKind.ExclamationEqualsEqualsToken
-                || operator === SyntaxKind.ExclamationEqualsToken)
-              && isNodeEqual(testNode, node.whenTrue)
+              areNodesSimilarMemberAccess(
+                testNode,
+                getBranchNodes(node, operator).nonNullishBranch,
+              )
             ) {
-              identifier = testNode;
-            } else if (
-              (operator === SyntaxKind.EqualsEqualsEqualsToken
-                || operator === SyntaxKind.EqualsEqualsToken)
-              && isNodeEqual(testNode, node.whenFalse)
-            ) {
-              identifier = testNode;
+              // Only consider the first expression in a multi-part nullish check,
+              // as subsequent expressions might not require all the optional chaining operators.
+              // For example: a?.b?.c !== undefined && a.b.c !== null ? a.b.c : 'foo';
+              // This works because `node.test` is always evaluated first in the loop
+              // and has the same or more necessary optional chaining operators
+              // than `node.alternate` or `node.consequent`.
+              nullishCoalescingLeftNode ??= testNode;
             } else {
               return;
             }
           }
 
-          if (!identifier) return;
+          if (!nullishCoalescingLeftNode) return;
 
           const isFixable = ((): boolean => {
             // it is fixable if we check for both null and undefined, or not if neither
@@ -343,7 +361,9 @@ export const preferNullishCoalescing = createRule(
               return true;
             }
 
-            const type = context.checker.getTypeAtLocation(identifier);
+            const type = context.checker.getTypeAtLocation(
+              nullishCoalescingLeftNode,
+            );
 
             if (typeHasFlag(type, TypeFlags.Any | TypeFlags.Unknown)) {
               return false;
@@ -367,18 +387,16 @@ export const preferNullishCoalescing = createRule(
               node,
               message: messages.preferNullishOverTernary,
               suggestions: () => {
-                const [left, right] =
-                  operator === SyntaxKind.EqualsEqualsEqualsToken
-                  || operator === SyntaxKind.EqualsEqualsToken
-                    ? [node.whenFalse, node.whenTrue]
-                    : [node.whenTrue, node.whenFalse];
                 return [
                   {
                     message: messages.suggestNullish({ equals: "" }),
                     changes: [
                       {
                         node,
-                        newText: `${left.getText()} ?? ${right.getText()}`,
+                        newText: `${nullishCoalescingLeftNode.getText()} ?? ${getBranchNodes(
+                          node,
+                          operator,
+                        ).nullishBranch.getText()}`,
                       },
                     ],
                   },
@@ -656,4 +674,40 @@ function isNodeEqual(a: AST.AnyNode, b: AST.AnyNode): boolean {
     );
   }
   return false;
+}
+
+/**
+ * Checks if two nodes have the same member access sequence,
+ * regardless of optional chaining differences.
+ *
+ * Note: This does not imply that the nodes are runtime-equivalent.
+ *
+ * Example: `a.b.c`, `a?.b.c`, `a.b?.c`, `(a?.b).c`, `(a.b)?.c` are considered similar.
+ */
+function areNodesSimilarMemberAccess(a: AST.AnyNode, b: AST.AnyNode): boolean {
+  if (a.kind === SyntaxKind.ParenthesizedExpression) a = a.expression;
+  if (b.kind === SyntaxKind.ParenthesizedExpression) b = b.expression;
+  if (
+    a.kind === SyntaxKind.PropertyAccessExpression
+    && b.kind === SyntaxKind.PropertyAccessExpression
+  ) {
+    return (
+      isNodeEqual(a.name, b.name)
+      && areNodesSimilarMemberAccess(a.expression, b.expression)
+    );
+  }
+  return isNodeEqual(a, b);
+}
+
+function getBranchNodes(
+  node: AST.ConditionalExpression,
+  operator: EqualityOperator,
+) {
+  if (
+    operator === SyntaxKind.EqualsEqualsEqualsToken
+    || operator === SyntaxKind.EqualsEqualsToken
+  ) {
+    return { nonNullishBranch: node.whenFalse, nullishBranch: node.whenTrue };
+  }
+  return { nonNullishBranch: node.whenTrue, nullishBranch: node.whenFalse };
 }

@@ -341,6 +341,19 @@ x!;
         readonly a = { foo: 'foo' } as const;
       }
       `,
+      `
+      const foo: unknown = {};
+      const baz: {} = foo!;
+          `,
+      `
+      const foo: unknown = {};
+      const bar: object = foo!;
+          `,
+      `
+      declare function foo<T extends unknown>(bar: T): T;
+      const baz: unknown = {};
+      foo(baz!);
+          `,
     ],
     invalid: [
       // https://github.com/typescript-eslint/typescript-eslint/issues/8737
@@ -1423,6 +1436,48 @@ class T {
   readonly a = (3 + 5);
 }
       `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+  const foo: unknown = {};
+  const bar: unknown = foo!;
+        `,
+        errors: [
+          {
+            message: messages.contextuallyUnnecessary,
+            suggestions: [
+              {
+                message: messages.removeAssertion,
+                output: `
+  const foo: unknown = {};
+  const bar: unknown = foo;
+        `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+  function foo(bar: unknown) {}
+  const baz: unknown = {};
+  foo(baz!);
+        `,
+        errors: [
+          {
+            message: messages.contextuallyUnnecessary,
+            suggestions: [
+              {
+                message: messages.removeAssertion,
+                output: `
+  function foo(bar: unknown) {}
+  const baz: unknown = {};
+  foo(baz);
+        `,
               },
             ],
           },

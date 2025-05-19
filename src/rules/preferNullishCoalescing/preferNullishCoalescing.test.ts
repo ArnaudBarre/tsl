@@ -106,7 +106,11 @@ x === null ? x : y;
 declare let x: string | null | unknown;
 x === null ? x : y;
       `,
-      ].map((code) => ({ options: { ignoreTernaryTests: false }, code })), // ignoreConditionalTests
+        `
+declare let x: { n: string[] };
+x.n ? x.n : y;
+      `,
+      ].map((code) => ({ options: { ignoreTernaryTests: false }, code })),
       ...nullishTypeTest((nullish, type, equals) => ({
         code: `
 declare let x: ${type} | ${nullish};
@@ -136,7 +140,8 @@ for (;(x ||${equals} 'foo');) {}
 declare let x: ${type} | ${nullish};
 while ((x ||${equals} 'foo')) {}
       `,
-      })), // ignoreMixedLogicalExpressions
+      })),
+      // ignoreMixedLogicalExpressions
       ...nullishTypeTest((nullish, type) => ({
         options: { ignoreMixedLogicalExpressions: true },
         code: `
@@ -699,7 +704,86 @@ x ?? y;
           },
         ],
       })),
-      // ignoreConditionalTests
+      ...[
+        `
+declare let x: { n?: { a?: string } };
+x.n?.a ? x?.n?.a : y;
+      `,
+        `
+declare let x: { n?: { a?: string } };
+x.n?.a ? (x?.n).a : y;
+      `,
+        `
+declare let x: { n?: { a?: string } };
+x.n?.a ? x.n.a : y;
+      `,
+        `
+declare let x: { n?: { a?: string } };
+x.n?.a !== undefined ? x?.n?.a : y;
+      `,
+        `
+declare let x: { n?: { a?: string } };
+x.n?.a !== undefined ? x?.n.a : y;
+      `,
+        `
+declare let x: { n?: { a?: string } };
+x.n?.a !== undefined ? x.n.a : y;
+      `,
+        `
+declare let x: { n?: { a?: string } };
+x.n?.a != undefined ? x?.n?.a : y;
+      `,
+        `
+declare let x: { n?: { a?: string } };
+x.n?.a != undefined ? x?.n.a : y;
+      `,
+        `
+declare let x: { n?: { a?: string } };
+x.n?.a != undefined ? x.n.a : y;
+      `,
+        `
+declare let x: { n?: { a?: string } };
+x.n?.a != null ? x?.n?.a : y;
+      `,
+        `
+declare let x: { n?: { a?: string } };
+x.n?.a != null ? x?.n.a : y;
+      `,
+        `
+declare let x: { n?: { a?: string } };
+x.n?.a != null ? x.n.a : y;
+      `,
+        `
+declare let x: { n?: { a?: string | null } };
+x.n?.a !== undefined && x.n.a !== null ? x?.n?.a : y;
+      `,
+        `
+declare let x: { n?: { a?: string | null } };
+x.n?.a !== undefined && x.n.a !== null ? x.n.a : y;
+      `,
+      ].map((code) => ({
+        options: { ignoreTernaryTests: false },
+        code,
+        errors: [
+          {
+            message: messages.preferNullishOverTernary,
+            line: 3,
+            column: 1,
+            endLine: 3,
+            endColumn: code.split("\n")[2].length,
+            suggestions: [
+              {
+                message: messages.suggestNullish({ equals: "" }),
+                output: `
+${code.split("\n")[1]}
+x.n?.a ?? y;
+      `,
+              },
+            ],
+          },
+        ],
+        output: null,
+      })),
       ...nullishTypeTest((nullish, type, equals) => ({
         options: { ignoreConditionalTests: false },
         code: `
@@ -839,7 +923,7 @@ while ((x ??${equals} 'foo')) {}
             ],
           },
         ],
-      })), // ignoreMixedLogicalExpressions
+      })),
       ...nullishTypeTest((nullish, type) => ({
         options: { ignoreMixedLogicalExpressions: false },
         code: `
@@ -983,7 +1067,8 @@ a && (b ?? c) || d;
             ],
           },
         ],
-      })), // should not false positive for functions inside conditional tests
+      })),
+      // should not false positive for functions inside conditional tests
       ...nullishTypeTest((nullish, type, equals) => ({
         code: `
 declare let x: ${type} | ${nullish};
@@ -1037,7 +1122,8 @@ if (function weird() { return (x ??${equals} 'foo') }) {}
             ],
           },
         ],
-      })), // https://github.com/typescript-eslint/typescript-eslint/issues/1290
+      })),
+      // https://github.com/typescript-eslint/typescript-eslint/issues/1290
       ...nullishTypeTest((nullish, type) => ({
         code: `
 declare let a: ${type} | ${nullish};

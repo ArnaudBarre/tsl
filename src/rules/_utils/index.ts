@@ -1,7 +1,7 @@
 import { intersectionTypeParts, unionTypeParts } from "ts-api-utils";
 import ts, { type NodeArray, SyntaxKind, TypeFlags } from "typescript";
 import type { AnyNode, BinaryOperatorToken, ModifierLike } from "../../ast.ts";
-import type { AST, Checker, Context } from "../../types.ts";
+import type { AST, Checker, Context, Suggestion } from "../../types.ts";
 import {
   getOperatorPrecedence,
   OperatorPrecedence,
@@ -290,6 +290,17 @@ export function isHigherPrecedenceThanUnary(node: AST.AnyNode): boolean {
       ? node.operatorToken.kind
       : SyntaxKind.Unknown;
   return getOperatorPrecedence(node.kind, operator) > OperatorPrecedence.Unary;
+}
+
+export function addAwait(node: AST.AnyNode): Suggestion["changes"] {
+  const changes: Suggestion["changes"] = [];
+  if (isHigherPrecedenceThanUnary(node)) {
+    changes.push({ start: node.getStart(), length: 0, newText: "await " });
+  } else {
+    changes.push({ start: node.getStart(), length: 0, newText: "await (" });
+    changes.push({ start: node.getEnd(), length: 0, newText: ")" });
+  }
+  return changes;
 }
 
 /*** Indicates whether identifiers require the use of quotation marks when accessing property definitions and dot notation. */

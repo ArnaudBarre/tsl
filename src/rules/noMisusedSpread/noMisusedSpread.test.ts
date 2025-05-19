@@ -593,6 +593,17 @@ export const test = () =>
             column: 11,
             endLine: 6,
             endColumn: 13,
+            suggestions: [
+              {
+                message: messages.replaceMapSpreadInObject,
+                output: `
+        const o = Object.fromEntries(new Map([
+            ['test-1', 1],
+            ['test-2', 2],
+          ]));
+      `,
+              },
+            ],
           },
         ],
       },
@@ -611,6 +622,19 @@ export const test = () =>
             line: 7,
             column: 21,
             endColumn: 27,
+            suggestions: [
+              {
+                message: messages.replaceMapSpreadInObject,
+                output: `
+        const map = new Map([
+          ['test-1', 1],
+          ['test-2', 2],
+        ]);
+
+        const o = Object.fromEntries(map);
+      `,
+              },
+            ],
           },
         ],
       },
@@ -625,6 +649,15 @@ export const test = () =>
             line: 3,
             column: 21,
             endColumn: 27,
+            suggestions: [
+              {
+                message: messages.replaceMapSpreadInObject,
+                output: `
+        declare const map: Map<string, number>;
+        const o = Object.fromEntries(map);
+      `,
+              },
+            ],
           },
         ],
       },
@@ -639,6 +672,15 @@ export const test = () =>
             line: 3,
             column: 21,
             endColumn: 27,
+            suggestions: [
+              {
+                message: messages.replaceMapSpreadInObject,
+                output: `
+        declare const map: ReadonlyMap<string, number>;
+        const o = Object.fromEntries(map);
+      `,
+              },
+            ],
           },
         ],
       },
@@ -653,6 +695,15 @@ export const test = () =>
             line: 3,
             column: 21,
             endColumn: 27,
+            suggestions: [
+              {
+                message: messages.replaceMapSpreadInObject,
+                output: `
+        declare const map: WeakMap<{ a: number }, string>;
+        const o = Object.fromEntries(map);
+      `,
+              },
+            ],
           },
         ],
       },
@@ -681,6 +732,15 @@ export const test = () =>
             line: 3,
             column: 21,
             endColumn: 32,
+            suggestions: [
+              {
+                message: messages.replaceMapSpreadInObject,
+                output: `
+        declare function getMap(): Map<string, number>;
+        const o = Object.fromEntries(getMap());
+      `,
+              },
+            ],
           },
         ],
       },
@@ -695,6 +755,15 @@ export const test = () =>
             line: 3,
             column: 21,
             endColumn: 25,
+            suggestions: [
+              {
+                message: messages.replaceMapSpreadInObject,
+                output: `
+        declare const a: Map<boolean, string> & Set<number>;
+        const o = Object.fromEntries(a);
+      `,
+              },
+            ],
           },
         ],
       },
@@ -723,6 +792,15 @@ export const test = () =>
             line: 3,
             column: 21,
             endColumn: 31,
+            suggestions: [
+              {
+                message: messages.addAwait,
+                output: `
+        const promise = new Promise(() => {});
+        const o = { ...await promise };
+      `,
+              },
+            ],
           },
         ],
       },
@@ -738,6 +816,16 @@ export const test = () =>
             line: 3,
             column: 20,
             endColumn: 30,
+            suggestions: [
+              {
+                message: messages.addAwait,
+                output: `
+        function withPromise<P extends Promise<void>>(promise: P) {
+          return { ...await promise };
+        }
+      `,
+              },
+            ],
           },
         ],
       },
@@ -752,6 +840,15 @@ export const test = () =>
             line: 3,
             column: 21,
             endColumn: 36,
+            suggestions: [
+              {
+                message: messages.addAwait,
+                output: `
+        declare const maybePromise: Promise<number> | { a: number };
+        const o = { ...await maybePromise };
+      `,
+              },
+            ],
           },
         ],
       },
@@ -766,6 +863,15 @@ export const test = () =>
             line: 3,
             column: 21,
             endColumn: 31,
+            suggestions: [
+              {
+                message: messages.addAwait,
+                output: `
+        declare const promise: Promise<number> & { a: number };
+        const o = { ...await promise };
+      `,
+              },
+            ],
           },
         ],
       },
@@ -780,6 +886,15 @@ export const test = () =>
             line: 3,
             column: 21,
             endColumn: 36,
+            suggestions: [
+              {
+                message: messages.addAwait,
+                output: `
+        declare function getPromise(): Promise<number>;
+        const o = { ...await getPromise() };
+      `,
+              },
+            ],
           },
         ],
       },
@@ -794,6 +909,15 @@ export const test = () =>
             line: 3,
             column: 21,
             endColumn: 36,
+            suggestions: [
+              {
+                message: messages.addAwait,
+                output: `
+        declare function getPromise<T extends Promise<number>>(arg: T): T;
+        const o = { ...await getPromise() };
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1406,6 +1530,16 @@ export const test = () =>
             line: 4,
             column: 24,
             endColumn: 32,
+            suggestions: [
+              {
+                message: messages.replaceMapSpreadInObject,
+                output: `
+        declare const map: Map<string, number>;
+
+        const o = <div {...Object.fromEntries(map)} />;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -1422,6 +1556,16 @@ export const test = () =>
             line: 4,
             column: 24,
             endColumn: 36,
+            suggestions: [
+              {
+                message: messages.addAwait,
+                output: `
+        const promise = new Promise(() => {});
+
+        const o = <div {...await promise} />;
+      `,
+              },
+            ],
           },
         ],
       },

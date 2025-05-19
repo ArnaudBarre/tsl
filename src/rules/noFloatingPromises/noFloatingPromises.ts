@@ -1,6 +1,7 @@
 import { unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import {
+  addAwait,
   isHigherPrecedenceThanUnary,
   isLogicalExpression,
 } from "../_utils/index.ts";
@@ -128,7 +129,7 @@ export const noFloatingPromises = createRule(
                   },
                   {
                     message: messages.floatingFixAwait,
-                    changes: addAwait(node.expression, node),
+                    changes: addAwaitOrReplaceVoid(node.expression, node),
                   },
                 ],
               });
@@ -141,7 +142,7 @@ export const noFloatingPromises = createRule(
                 suggestions: [
                   {
                     message: messages.floatingFixAwait,
-                    changes: addAwait(node.expression, node),
+                    changes: addAwaitOrReplaceVoid(node.expression, node),
                   },
                 ],
               });
@@ -153,20 +154,14 @@ export const noFloatingPromises = createRule(
   },
 );
 
-function addAwait(
+function addAwaitOrReplaceVoid(
   expression: AST.Expression,
   node: AST.ExpressionStatement,
 ): Suggestion["changes"] {
   if (expression.kind === SyntaxKind.VoidExpression) {
     return [{ start: node.getStart(), length: 4, newText: "await" }];
   }
-  if (isHigherPrecedenceThanUnary(node.expression)) {
-    return [{ start: node.getStart(), length: 0, newText: "await " }];
-  }
-  return [
-    { start: node.getStart(), length: 0, newText: "await (" },
-    { start: node.expression.getEnd(), length: 0, newText: ")" },
-  ];
+  return addAwait(node.expression);
 }
 
 function isAsyncIife(node: AST.ExpressionStatement): boolean {

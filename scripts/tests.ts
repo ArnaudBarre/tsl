@@ -4,9 +4,7 @@ const rules = readdirSync("src/rules").filter(
   (f) => !f.startsWith(".") && !f.startsWith("_"),
 );
 
-let fileFocus = process.argv
-  .at(2)
-  ?.replaceAll(/[A-Z]/g, (l) => `-${l.toLowerCase()}`);
+let fileFocus = process.argv.at(2);
 if (fileFocus?.endsWith(".ts")) fileFocus = fileFocus.slice(0, -3);
 if (fileFocus?.startsWith("core/")) fileFocus = fileFocus.slice(5);
 if (fileFocus?.startsWith("src/rules/")) fileFocus = fileFocus.slice(10);

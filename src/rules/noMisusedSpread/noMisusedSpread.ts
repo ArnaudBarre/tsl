@@ -4,14 +4,16 @@ import {
   isObjectType,
   isTypeFlagSet,
   typeParts,
+  unionTypeParts,
 } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
-import { isTypeRecurser } from "../_utils/index.ts";
+import { addAwait, isTypeRecurser } from "../_utils/index.ts";
 import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
 import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {
+  addAwait: "Add await operator.",
   noArraySpreadInObject:
     "Using the spread operator on an array in an object will result in a list of indices.",
   noClassDeclarationSpreadInObject:
@@ -33,6 +35,8 @@ export const messages = {
     "Consider using `Intl.Segmenter` for locale-aware string decomposition.",
     "Otherwise, if you don't need to preserve emojis or other non-Ascii characters, disable this lint rule on this line or configure the 'allow' rule option.",
   ].join("\n"),
+  replaceMapSpreadInObject:
+    "Replace map spread in object with `Object.fromEntries()`",
 };
 
 export const noMisusedSpread = createRule(() => ({
@@ -67,7 +71,13 @@ function checkObjectSpread(
   const type = context.utils.getConstrainedTypeAtLocation(node.expression);
 
   if (isPromise(context.program, type)) {
-    context.report({ node, message: messages.noPromiseSpreadInObject });
+    context.report({
+      node,
+      message: messages.noPromiseSpreadInObject,
+      suggestions: () => [
+        { message: messages.addAwait, changes: addAwait(node.expression) },
+      ],
+    });
     return;
   }
 
@@ -77,7 +87,57 @@ function checkObjectSpread(
   }
 
   if (isMap(context.program, type)) {
-    context.report({ node, message: messages.noMapSpreadInObject });
+    context.report({
+      node,
+      message: messages.noMapSpreadInObject,
+      suggestions: () => {
+        const types = unionTypeParts(type);
+        if (types.some((t) => !isMap(context.program, t))) {
+          return [];
+        }
+
+        if (
+          node.parent.kind === SyntaxKind.ObjectLiteralExpression
+          && node.parent.properties.length === 1
+        ) {
+          return [
+            {
+              message: messages.replaceMapSpreadInObject,
+              changes: [
+                {
+                  start: node.parent.getStart(),
+                  end: node.expression.getStart(),
+                  newText: "Object.fromEntries(",
+                },
+                {
+                  start: node.expression.getEnd(),
+                  end: node.parent.getEnd(),
+                  newText: ")",
+                },
+              ],
+            },
+          ];
+        }
+
+        return [
+          {
+            message: messages.replaceMapSpreadInObject,
+            changes: [
+              {
+                start: node.expression.getStart(),
+                length: 0,
+                newText: "Object.fromEntries(",
+              },
+              {
+                start: node.expression.getEnd(),
+                length: 0,
+                newText: ")",
+              },
+            ],
+          },
+        ];
+      },
+    });
     return;
   }
 
