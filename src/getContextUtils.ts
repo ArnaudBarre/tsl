@@ -1,4 +1,4 @@
-import { unionTypeParts } from "ts-api-utils";
+import { unionConstituents } from "ts-api-utils";
 import type { ParameterDeclaration, Program, Type } from "typescript";
 import type { Context } from "./types";
 
@@ -8,11 +8,11 @@ export const getContextUtils = (
 ): Context["utils"] => ({
   isThenableType(node, type) {
     const checker = getProgram().getTypeChecker();
-    for (const typePart of unionTypeParts(checker.getApparentType(type))) {
+    for (const typePart of unionConstituents(checker.getApparentType(type))) {
       const then = typePart.getProperty("then");
       if (!then) continue;
       const thenType = checker.getTypeOfSymbolAtLocation(then, node);
-      for (const subTypePart of unionTypeParts(thenType)) {
+      for (const subTypePart of unionConstituents(thenType)) {
         for (const signature of subTypePart.getCallSignatures()) {
           if (signature.parameters.length !== 0) {
             const param = signature.parameters[0];
@@ -26,7 +26,7 @@ export const getContextUtils = (
               type = type.getNumberIndexType();
               if (type === void 0) return false;
             }
-            for (const subType of unionTypeParts(type)) {
+            for (const subType of unionConstituents(type)) {
               if (subType.getCallSignatures().length !== 0) return true;
             }
             return false;

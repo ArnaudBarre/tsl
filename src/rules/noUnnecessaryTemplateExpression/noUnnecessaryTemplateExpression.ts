@@ -188,7 +188,7 @@ function isUnderlyingTypeString(
   const type = context.utils.getConstrainedTypeAtLocation(expression);
 
   const isString = (t: ts.Type): boolean => {
-    return isTypeFlagSet(t, ts.TypeFlags.StringLike);
+    return isTypeFlagSet(t, TypeFlags.StringLike);
   };
 
   if (type.isUnion()) {

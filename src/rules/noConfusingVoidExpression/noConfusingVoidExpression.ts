@@ -2,9 +2,9 @@ import {
   getCallSignaturesOfType,
   isIntrinsicVoidType,
   isTypeFlagSet,
-  unionTypeParts,
+  unionConstituents,
 } from "ts-api-utils";
-import ts, { SyntaxKind } from "typescript";
+import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { getParentFunctionNode, isLogicalExpression } from "../_utils/index.ts";
 import type { AnyNode } from "../../ast.ts";
 import { createRule } from "../../index.ts";
@@ -74,7 +74,7 @@ export const noConfusingVoidExpression = createRule(
       context: Context,
     ): void {
       const type = context.utils.getConstrainedTypeAtLocation(node);
-      if (!isTypeFlagSet(type, ts.TypeFlags.VoidLike)) {
+      if (!isTypeFlagSet(type, TypeFlags.VoidLike)) {
         // not a void expression
         return;
       }
@@ -387,7 +387,7 @@ export const noConfusingVoidExpression = createRule(
         node.kind === SyntaxKind.ReturnStatement ? node.expression! : node;
 
       const type = context.utils.getConstrainedTypeAtLocation(targetNode);
-      return isTypeFlagSet(type, ts.TypeFlags.VoidLike);
+      return isTypeFlagSet(type, TypeFlags.VoidLike);
     }
 
     function isFunctionReturnTypeIncludesVoid(functionType: ts.Type): boolean {
@@ -396,7 +396,7 @@ export const noConfusingVoidExpression = createRule(
       return callSignatures.some((signature) => {
         const returnType = signature.getReturnType();
 
-        return unionTypeParts(returnType).some(isIntrinsicVoidType);
+        return unionConstituents(returnType).some(isIntrinsicVoidType);
       });
     }
 
@@ -419,7 +419,7 @@ export const noConfusingVoidExpression = createRule(
           functionNode.type,
         );
 
-        return unionTypeParts(returnType).some(isIntrinsicVoidType);
+        return unionConstituents(returnType).some(isIntrinsicVoidType);
       }
 
       if (
@@ -429,7 +429,7 @@ export const noConfusingVoidExpression = createRule(
         const functionType = context.checker.getContextualType(functionNode);
 
         if (functionType) {
-          return unionTypeParts(functionType).some(
+          return unionConstituents(functionType).some(
             isFunctionReturnTypeIncludesVoid,
           );
         }

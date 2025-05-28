@@ -172,6 +172,31 @@ throw new Map();
         throw createError();
       `,
       },
+      {
+        options: {
+          allowRethrowing: true,
+          allowThrowingAny: false,
+          allowThrowingUnknown: false,
+        },
+        code: `
+try {
+} catch (e) {
+  throw e;
+}
+      `,
+      },
+      {
+        options: {
+          allowRethrowing: true,
+          allowThrowingAny: false,
+          allowThrowingUnknown: false,
+        },
+        code: `
+Promise.reject('foo').catch(e => {
+  throw e;
+});
+      `,
+      },
     ],
     invalid: [
       { code: "throw undefined;", errors: [{ message: messages.undef }] },

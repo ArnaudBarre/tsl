@@ -1,5 +1,5 @@
 import { isTypeFlagSet } from "ts-api-utils";
-import ts from "typescript";
+import ts, { TypeFlags } from "typescript";
 import { isTypeRecurser } from "../_utils/index.ts";
 import { createRule } from "../../index.ts";
 import type { Checker } from "../../types.ts";
@@ -38,6 +38,6 @@ function hasArrayishLength(checker: Checker, type: ts.Type): boolean {
 
   return isTypeFlagSet(
     checker.getTypeOfSymbol(lengthProperty),
-    ts.TypeFlags.NumberLike,
+    TypeFlags.NumberLike,
   );
 }

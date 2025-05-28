@@ -1,4 +1,4 @@
-import ts, { SyntaxKind } from "typescript";
+import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../index.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { Context } from "../types.ts";
@@ -42,7 +42,7 @@ function collectToStringCertainty(type: ts.Type, context: Context) {
   }
 
   if (
-    type.flags & ts.TypeFlags.Literal
+    type.flags & TypeFlags.Literal
     || context.checker.typeToString(type) === "RegExp"
   ) {
     return "Always";

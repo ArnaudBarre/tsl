@@ -4,9 +4,9 @@ import {
   isObjectType,
   isTypeFlagSet,
   typeParts,
-  unionTypeParts,
+  unionConstituents,
 } from "ts-api-utils";
-import ts, { SyntaxKind } from "typescript";
+import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { addAwait, isTypeRecurser } from "../_utils/index.ts";
 import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
 import { createRule } from "../../index.ts";
@@ -91,7 +91,7 @@ function checkObjectSpread(
       node,
       message: messages.noMapSpreadInObject,
       suggestions: () => {
-        const types = unionTypeParts(type);
+        const types = unionConstituents(type);
         if (types.some((t) => !isMap(context.program, t))) {
           return [];
         }
@@ -185,7 +185,7 @@ function isArray(context: Context, type: ts.Type): boolean {
 }
 
 function isString(type: ts.Type): boolean {
-  return isTypeRecurser(type, (t) => isTypeFlagSet(t, ts.TypeFlags.StringLike));
+  return isTypeRecurser(type, (t) => isTypeFlagSet(t, TypeFlags.StringLike));
 }
 
 function isFunctionWithoutProps(type: ts.Type): boolean {

@@ -1,4 +1,4 @@
-import { intersectionTypeParts, isTypeFlagSet } from "ts-api-utils";
+import { intersectionConstituents, isTypeFlagSet } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
   getOperatorPrecedenceForNode,
@@ -603,7 +603,7 @@ function truthinessEligibleForNullishCoalescing(
     type.flags !== TypeFlags.Null
     && type.flags !== TypeFlags.Undefined
     && (type as ts.UnionOrIntersectionType).types.some((t) =>
-      intersectionTypeParts(t).some((t) => isTypeFlagSet(t, ignorableFlags)),
+      intersectionConstituents(t).some((t) => isTypeFlagSet(t, ignorableFlags)),
     )
   ) {
     return false;

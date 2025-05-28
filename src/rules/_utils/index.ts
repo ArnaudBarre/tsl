@@ -1,4 +1,4 @@
-import { intersectionTypeParts, unionTypeParts } from "ts-api-utils";
+import { intersectionConstituents, unionConstituents } from "ts-api-utils";
 import ts, { type NodeArray, SyntaxKind, TypeFlags } from "typescript";
 import type { AnyNode, BinaryOperatorToken, ModifierLike } from "../../ast.ts";
 import type { AST, Checker, Context, Suggestion } from "../../types.ts";
@@ -130,8 +130,8 @@ export function isArrayMethodCallWithPredicate(
   const type = context.utils.getConstrainedTypeAtLocation(
     node.expression.expression,
   );
-  return unionTypeParts(type)
-    .flatMap((part) => intersectionTypeParts(part))
+  return unionConstituents(type)
+    .flatMap((part) => intersectionConstituents(part))
     .some(
       (t) => context.checker.isArrayType(t) || context.checker.isTupleType(t),
     );
@@ -152,14 +152,14 @@ export function getTypeName(
   type: ts.Type,
 ): string {
   // It handles `string` and string literal types as string.
-  if ((type.flags & ts.TypeFlags.StringLike) !== 0) {
+  if ((type.flags & TypeFlags.StringLike) !== 0) {
     return "string";
   }
 
   // If the type is a type parameter which extends primitive string types,
   // but it was not recognized as a string like. So check the constraint
   // type of the type parameter.
-  if ((type.flags & ts.TypeFlags.TypeParameter) !== 0) {
+  if ((type.flags & TypeFlags.TypeParameter) !== 0) {
     // `type.getConstraint()` method doesn't return the constraint type of
     // the type parameter for some reason. So this gets the constraint type
     // via AST.
@@ -321,10 +321,10 @@ export function requiresQuoting(
   return false;
 }
 
-export function typeHasFlag(type: ts.Type, flag: ts.TypeFlags): boolean {
+export function typeHasFlag(type: ts.Type, flag: TypeFlags): boolean {
   if (!type.isUnion()) return (type.flags & flag) !== 0;
   // @ts-expect-error Since typescript 5.0, this is invalid, but uses 0 as the default value of TypeFlags.
-  let flags: ts.TypeFlags = 0;
+  let flags: TypeFlags = 0;
   for (const t of type.types) flags |= t.flags;
   return (flags & flag) !== 0;
 }

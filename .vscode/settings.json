@@ -1,5 +1,7 @@
 {
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.tsserver.nodePath": "~/.bun/bin/bun",
-  "typescript.tsserver.experimental.enableProjectDiagnostics": true
+  "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+  "terminal.integrated.env.osx": {
+    "PATH": "./node_modules/.bin:${env:PATH}"
+  }
 }

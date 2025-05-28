@@ -1,4 +1,4 @@
-import { intersectionTypeParts, unionTypeParts } from "ts-api-utils";
+import { intersectionConstituents, unionConstituents } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { createRule } from "../../index.ts";
 import type { Context, Suggestion } from "../../types.ts";
@@ -79,8 +79,8 @@ export const preferReduceTypeParameter = createRule(() => ({
 }));
 
 function isArrayType(type: ts.Type, context: Context): boolean {
-  return unionTypeParts(type).every((unionPart) =>
-    intersectionTypeParts(unionPart).every(
+  return unionConstituents(type).every((unionPart) =>
+    intersectionConstituents(unionPart).every(
       (t) => context.checker.isArrayType(t) || context.checker.isTupleType(t),
     ),
   );

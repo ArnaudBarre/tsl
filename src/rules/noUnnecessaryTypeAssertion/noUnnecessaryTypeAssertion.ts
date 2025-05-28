@@ -1,4 +1,4 @@
-import { isBooleanLiteralType, unionTypeParts } from "ts-api-utils";
+import { isBooleanLiteralType, unionConstituents } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
   getContextualType,
@@ -297,11 +297,11 @@ function isTypeUnchanged(
     && typeHasFlag(cast, TypeFlags.Undefined)
     && context.compilerOptions.exactOptionalPropertyTypes
   ) {
-    const uncastParts = unionTypeParts(uncast).filter(
+    const uncastParts = unionConstituents(uncast).filter(
       (part) => !typeHasFlag(part, TypeFlags.Undefined),
     );
 
-    const castParts = unionTypeParts(cast).filter(
+    const castParts = unionConstituents(cast).filter(
       (part) => !typeHasFlag(part, TypeFlags.Undefined),
     );
 

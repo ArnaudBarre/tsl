@@ -1,10 +1,10 @@
 import {
-  intersectionTypeParts,
+  intersectionConstituents,
   isIntrinsicUndefinedType,
   isTypeFlagSet,
-  unionTypeParts,
+  unionConstituents,
 } from "ts-api-utils";
-import ts, { SyntaxKind } from "typescript";
+import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { requiresQuoting } from "../_utils/index.ts";
 import { createRule } from "../../index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
@@ -83,8 +83,8 @@ export const switchExhaustivenessCheck = createRule(
 
       const missingLiteralCasesTypes: ts.Type[] = [];
 
-      for (const unionPart of unionTypeParts(discriminantType)) {
-        for (const intersectionPart of intersectionTypeParts(unionPart)) {
+      for (const unionPart of unionConstituents(discriminantType)) {
+        for (const intersectionPart of intersectionConstituents(unionPart)) {
           if (
             caseTypes.has(intersectionPart)
             || !isTypeLiteralLikeType(intersectionPart)
@@ -133,7 +133,7 @@ export const switchExhaustivenessCheck = createRule(
           message: messages.switchIsNotExhaustive({
             missingCases: missingLiteralCasesTypes
               .map((missingType) =>
-                isTypeFlagSet(missingType, ts.TypeFlags.ESSymbolLike)
+                isTypeFlagSet(missingType, TypeFlags.ESSymbolLike)
                   ? `typeof ${missingType.getSymbol()?.escapedName as string}`
                   : context.checker.typeToString(missingType),
               )
@@ -176,10 +176,7 @@ export const switchExhaustivenessCheck = createRule(
         }
 
         const missingBranchName = missingBranchType.getSymbol()?.escapedName;
-        let caseTest = isTypeFlagSet(
-          missingBranchType,
-          ts.TypeFlags.ESSymbolLike,
-        )
+        let caseTest = isTypeFlagSet(missingBranchType, TypeFlags.ESSymbolLike)
           ? missingBranchName!
           : context.checker.typeToString(missingBranchType);
 
@@ -304,10 +301,10 @@ export const switchExhaustivenessCheck = createRule(
 function isTypeLiteralLikeType(type: ts.Type): boolean {
   return isTypeFlagSet(
     type,
-    ts.TypeFlags.Literal
-      | ts.TypeFlags.Undefined
-      | ts.TypeFlags.Null
-      | ts.TypeFlags.UniqueESSymbol,
+    TypeFlags.Literal
+      | TypeFlags.Undefined
+      | TypeFlags.Null
+      | TypeFlags.UniqueESSymbol,
   );
 }
 
@@ -321,8 +318,8 @@ function isTypeLiteralLikeType(type: ts.Type): boolean {
  * Default cases are never superfluous in switches with non-literal types.
  */
 function doesTypeContainNonLiteralType(type: ts.Type): boolean {
-  return unionTypeParts(type).some((type) =>
-    intersectionTypeParts(type).every(
+  return unionConstituents(type).some((type) =>
+    intersectionConstituents(type).every(
       (subType) => !isTypeLiteralLikeType(subType),
     ),
   );

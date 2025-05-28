@@ -1,13 +1,13 @@
 import {
   getCallSignaturesOfType,
-  intersectionTypeParts,
+  intersectionConstituents,
   isBooleanLiteralType,
   isFalseLiteralType,
   isFalsyType,
   isSymbolFlagSet,
   isTrueLiteralType,
   isTypeParameter,
-  unionTypeParts,
+  unionConstituents,
 } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
@@ -174,14 +174,14 @@ export const noUnnecessaryCondition = createRule(
 
 function nodeIsArrayType(node: AST.Expression, context: Context): boolean {
   const nodeType = context.utils.getConstrainedTypeAtLocation(node);
-  return unionTypeParts(nodeType).some((part) =>
+  return unionConstituents(nodeType).some((part) =>
     context.checker.isArrayType(part),
   );
 }
 
 function nodeIsTupleType(node: AST.Expression, context: Context): boolean {
   const nodeType = context.utils.getConstrainedTypeAtLocation(node);
-  return unionTypeParts(nodeType).some((part) =>
+  return unionConstituents(nodeType).some((part) =>
     context.checker.isTupleType(part),
   );
 }
@@ -286,7 +286,7 @@ function checkNode(
   }
   let message: string | null = null;
 
-  if (typeHasFlag(type, ts.TypeFlags.Never)) {
+  if (typeHasFlag(type, TypeFlags.Never)) {
     message = messages.never;
   } else if (!isPossiblyTruthy(type)) {
     message = !isUnaryNotArgument
@@ -310,17 +310,17 @@ function checkNodeForNullish(node: AST.Expression, context: Context): void {
   if (
     typeHasFlag(
       type,
-      ts.TypeFlags.Any
-        | ts.TypeFlags.Unknown
-        | ts.TypeFlags.TypeParameter
-        | ts.TypeFlags.TypeVariable,
+      TypeFlags.Any
+        | TypeFlags.Unknown
+        | TypeFlags.TypeParameter
+        | TypeFlags.TypeVariable,
     )
   ) {
     return;
   }
 
   let message: string | null = null;
-  if (typeHasFlag(type, ts.TypeFlags.Never)) {
+  if (typeHasFlag(type, TypeFlags.Never)) {
     message = messages.never;
   } else if (
     !isPossiblyNullish(type)
@@ -395,16 +395,16 @@ function checkIfBoolExpressionIsNecessaryConditional(
   }
 
   // Workaround for https://github.com/microsoft/TypeScript/issues/37160
-  const UNDEFINED = ts.TypeFlags.Undefined;
-  const NULL = ts.TypeFlags.Null;
-  const VOID = ts.TypeFlags.Void;
-  const isComparable = (type: ts.Type, flag: ts.TypeFlags): boolean => {
+  const UNDEFINED = TypeFlags.Undefined;
+  const NULL = TypeFlags.Null;
+  const VOID = TypeFlags.Void;
+  const isComparable = (type: ts.Type, flag: TypeFlags): boolean => {
     // Allow comparison to `any`, `unknown` or a naked type parameter.
     flag |=
-      ts.TypeFlags.Any
-      | ts.TypeFlags.Unknown
-      | ts.TypeFlags.TypeParameter
-      | ts.TypeFlags.TypeVariable;
+      TypeFlags.Any
+      | TypeFlags.Unknown
+      | TypeFlags.TypeParameter
+      | TypeFlags.TypeVariable;
 
     // Allow loose comparison to nullish values.
     if (
@@ -898,22 +898,22 @@ export function isPossiblyFalsy(type: ts.Type): boolean {
 }
 
 const isPossiblyTruthy = (type: ts.Type): boolean =>
-  unionTypeParts(type).some((type) =>
+  unionConstituents(type).some((type) =>
     // It is possible to define intersections that are always falsy,
     // like `"" & { __brand: string }`.
-    intersectionTypeParts(type).every((t2) => !isFalsyType(t2)),
+    intersectionConstituents(type).every((t2) => !isFalsyType(t2)),
   );
 
 // Nullish utilities
-const nullishFlag = ts.TypeFlags.Undefined | ts.TypeFlags.Null;
+const nullishFlag = TypeFlags.Undefined | TypeFlags.Null;
 const isNullishType = (type: ts.Type): boolean =>
   typeHasFlag(type, nullishFlag);
 
 const isPossiblyNullish = (type: ts.Type): boolean =>
-  unionTypeParts(type).some(isNullishType);
+  unionConstituents(type).some(isNullishType);
 
 const isAlwaysNullish = (type: ts.Type): boolean =>
-  unionTypeParts(type).every(isNullishType);
+  unionConstituents(type).every(isNullishType);
 
 function toStaticValue(
   type: ts.Type,
@@ -924,10 +924,10 @@ function toStaticValue(
   if (isBooleanLiteralType(type)) {
     return { value: isTrueLiteralType(type) };
   }
-  if (type.flags === ts.TypeFlags.Undefined) {
+  if (type.flags === TypeFlags.Undefined) {
     return { value: undefined };
   }
-  if (type.flags === ts.TypeFlags.Null) {
+  if (type.flags === TypeFlags.Null) {
     return { value: null };
   }
   if (type.isLiteral()) {

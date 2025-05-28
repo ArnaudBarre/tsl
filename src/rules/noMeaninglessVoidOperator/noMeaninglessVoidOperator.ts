@@ -1,5 +1,5 @@
-import { unionTypeParts } from "ts-api-utils";
-import ts from "typescript";
+import { unionConstituents } from "ts-api-utils";
+import { TypeFlags } from "typescript";
 import { createRule } from "../../index.ts";
 
 export const messages = {
@@ -22,10 +22,10 @@ export const noMeaninglessVoidOperator = createRule(
     visitor: {
       VoidExpression(node, context) {
         const argType = context.checker.getTypeAtLocation(node.expression);
-        const unionParts = unionTypeParts(argType);
+        const unionParts = unionConstituents(argType);
         const checkFlags = options?.checkNever
-          ? ts.TypeFlags.Void | ts.TypeFlags.Undefined | ts.TypeFlags.Never
-          : ts.TypeFlags.Void | ts.TypeFlags.Undefined;
+          ? TypeFlags.Void | TypeFlags.Undefined | TypeFlags.Never
+          : TypeFlags.Void | TypeFlags.Undefined;
         if (unionParts.every((part) => part.flags & checkFlags)) {
           context.report({
             node,

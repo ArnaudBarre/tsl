@@ -1,8 +1,8 @@
 import {
-  intersectionTypeParts,
+  intersectionConstituents,
   isIntrinsicNullType,
   isIntrinsicUndefinedType,
-  unionTypeParts,
+  unionConstituents,
 } from "ts-api-utils";
 import { SyntaxKind, type Type } from "typescript";
 import { createRule } from "../../index.ts";
@@ -139,14 +139,16 @@ function parseArrayFilterExpressions(
  */
 function isArrayish(type: Type, context: Context): boolean {
   let isAtLeastOneArrayishComponent = false;
-  for (const unionPart of unionTypeParts(type)) {
+  for (const unionPart of unionConstituents(type)) {
     if (isIntrinsicNullType(unionPart) || isIntrinsicUndefinedType(unionPart)) {
       continue;
     }
 
     // apparently checker.isArrayType(T[] & S[]) => false.
     // so we need to check the intersection parts individually.
-    const isArrayOrIntersectionThereof = intersectionTypeParts(unionPart).every(
+    const isArrayOrIntersectionThereof = intersectionConstituents(
+      unionPart,
+    ).every(
       (intersectionPart) =>
         context.checker.isArrayType(intersectionPart)
         || context.checker.isTupleType(intersectionPart),

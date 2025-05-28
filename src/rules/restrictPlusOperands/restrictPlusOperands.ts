@@ -1,11 +1,11 @@
 import {
-  intersectionTypeParts,
+  intersectionConstituents,
   isIntrinsicAnyType,
   isObjectType,
   isTypeFlagSet,
-  unionTypeParts,
+  unionConstituents,
 } from "ts-api-utils";
-import ts, { SyntaxKind, type Type, TypeFlags } from "typescript";
+import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { getTypeName, typeHasFlag } from "../_utils/index.ts";
 import { createRule } from "../../index.ts";
 
@@ -75,9 +75,9 @@ export const restrictPlusOperands = createRule(
             leftType === rightType
             && isTypeFlagSet(
               leftType,
-              ts.TypeFlags.BigIntLike
-                | ts.TypeFlags.NumberLike
-                | ts.TypeFlags.StringLike,
+              TypeFlags.BigIntLike
+                | TypeFlags.NumberLike
+                | TypeFlags.StringLike,
             )
           ) {
             return;
@@ -92,19 +92,14 @@ export const restrictPlusOperands = createRule(
             if (
               isTypeFlagSetInUnion(
                 baseType,
-                ts.TypeFlags.ESSymbolLike
-                  | ts.TypeFlags.Never
-                  | ts.TypeFlags.Unknown,
+                TypeFlags.ESSymbolLike | TypeFlags.Never | TypeFlags.Unknown,
               )
               || (!options.allowAny
-                && isTypeFlagSetInUnion(baseType, ts.TypeFlags.Any))
+                && isTypeFlagSetInUnion(baseType, TypeFlags.Any))
               || (!options.allowBoolean
-                && isTypeFlagSetInUnion(baseType, ts.TypeFlags.BooleanLike))
+                && isTypeFlagSetInUnion(baseType, TypeFlags.BooleanLike))
               || (!options.allowNullish
-                && typeHasFlag(
-                  baseType,
-                  ts.TypeFlags.Null | ts.TypeFlags.Undefined,
-                ))
+                && typeHasFlag(baseType, TypeFlags.Null | TypeFlags.Undefined))
             ) {
               context.report({
                 node: baseNode,
@@ -117,13 +112,13 @@ export const restrictPlusOperands = createRule(
               continue;
             }
 
-            // RegExps also contain ts.TypeFlags.Any & ts.TypeFlags.Object
-            for (const subBaseType of unionTypeParts(baseType)) {
+            // RegExps also contain TypeFlags.Any & TypeFlags.Object
+            for (const subBaseType of unionConstituents(baseType)) {
               const typeName = getTypeName(context.rawChecker, subBaseType);
               if (
                 typeName === "RegExp"
                   ? !options.allowRegExp
-                    || isTypeFlagSet(otherType, ts.TypeFlags.NumberLike)
+                    || isTypeFlagSet(otherType, TypeFlags.NumberLike)
                   : (!options.allowAny && isIntrinsicAnyType(subBaseType))
                     || isDeeplyObjectType(subBaseType)
               ) {
@@ -149,10 +144,10 @@ export const restrictPlusOperands = createRule(
           ] as const) {
             if (
               !options.allowNumberAndString
-              && isTypeFlagSetInUnion(baseType, ts.TypeFlags.StringLike)
+              && isTypeFlagSetInUnion(baseType, TypeFlags.StringLike)
               && isTypeFlagSetInUnion(
                 otherType,
-                ts.TypeFlags.NumberLike | ts.TypeFlags.BigIntLike,
+                TypeFlags.NumberLike | TypeFlags.BigIntLike,
               )
             ) {
               context.report({
@@ -167,8 +162,8 @@ export const restrictPlusOperands = createRule(
             }
 
             if (
-              isTypeFlagSetInUnion(baseType, ts.TypeFlags.NumberLike)
-              && isTypeFlagSetInUnion(otherType, ts.TypeFlags.BigIntLike)
+              isTypeFlagSetInUnion(baseType, TypeFlags.NumberLike)
+              && isTypeFlagSetInUnion(otherType, TypeFlags.BigIntLike)
             ) {
               context.report({
                 node,
@@ -186,12 +181,14 @@ export const restrictPlusOperands = createRule(
   },
 );
 
-function isDeeplyObjectType(type: Type): boolean {
+function isDeeplyObjectType(type: ts.Type): boolean {
   return type.isIntersection()
-    ? intersectionTypeParts(type).every(isObjectType)
-    : unionTypeParts(type).every(isObjectType);
+    ? intersectionConstituents(type).every(isObjectType)
+    : unionConstituents(type).every(isObjectType);
 }
 
-function isTypeFlagSetInUnion(type: Type, flag: TypeFlags): boolean {
-  return unionTypeParts(type).some((subType) => isTypeFlagSet(subType, flag));
+function isTypeFlagSetInUnion(type: ts.Type, flag: TypeFlags): boolean {
+  return unionConstituents(type).some((subType) =>
+    isTypeFlagSet(subType, flag),
+  );
 }

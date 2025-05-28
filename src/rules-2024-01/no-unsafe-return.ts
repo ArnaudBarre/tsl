@@ -1,5 +1,5 @@
 import { isIntrinsicAnyType } from "ts-api-utils";
-import ts, { SyntaxKind, TypeFlags } from "typescript";
+import { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../index.ts";
 import {
   getContextualType,
@@ -68,7 +68,7 @@ function checkReturn(
         returnNodeType === signature.getReturnType()
         || typeHasFlag(
           signature.getReturnType(),
-          ts.TypeFlags.Any | ts.TypeFlags.Unknown,
+          TypeFlags.Any | TypeFlags.Unknown,
         )
       ) {
         return;
@@ -130,7 +130,7 @@ function checkReturn(
 }
 
 export function isAnyOrAnyArrayTypeDiscriminated(
-  node: ts.Node,
+  node: AST.Expression,
   checker: Checker,
 ) {
   const type = checker.getTypeAtLocation(node);

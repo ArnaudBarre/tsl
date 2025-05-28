@@ -1,7 +1,8 @@
 import { isIntrinsicAnyType, isIntrinsicUnknownType } from "ts-api-utils";
-import ts, { SyntaxKind } from "typescript";
+import { SyntaxKind, TypeFlags } from "typescript";
 import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
 import { createRule } from "../../index.ts";
+import type { AST } from "../../types.ts";
 
 export const messages = {
   object: "Expected an error object to be thrown.",
@@ -20,6 +21,11 @@ export type OnlyThrowErrorOptions = {
    */
   allowThrowingUnknown?: boolean;
   /**
+   * Whether to allow rethrowing caught values that are not `Error` objects.
+   * @default true
+   */
+  allowRethrowing?: boolean;
+  /**
    * A list of identifiers to ignore.
    * @default []
    */
@@ -30,6 +36,7 @@ export const onlyThrowError = createRule((_options?: OnlyThrowErrorOptions) => {
   const options = {
     allowThrowingAny: true,
     allowThrowingUnknown: true,
+    allowRethrowing: true,
     ..._options,
   };
 
@@ -42,6 +49,38 @@ export const onlyThrowError = createRule((_options?: OnlyThrowErrorOptions) => {
           || node.kind === SyntaxKind.YieldExpression
         ) {
           return;
+        }
+
+        if (options.allowRethrowing && node.kind === SyntaxKind.Identifier) {
+          const declaration = context.checker
+            .getSymbolAtLocation(node)
+            ?.getDeclarations()
+            ?.at(0) as AST.AnyNode | undefined;
+          const parent = declaration?.parent;
+          if (parent?.kind === SyntaxKind.CatchClause) return;
+          if (
+            parent
+            && parent.kind === SyntaxKind.ArrowFunction
+            && parent.parameters.length >= 1
+            && parent.parameters[0] === declaration
+            && parent.parent.kind === SyntaxKind.CallExpression
+            && parent.parent.expression.kind
+              === SyntaxKind.PropertyAccessExpression
+            && parent.parent.expression.name.kind === SyntaxKind.Identifier
+          ) {
+            if (
+              parent.parent.expression.name.text === "catch"
+              && parent.parent.arguments[0] === parent
+            ) {
+              return;
+            }
+            if (
+              parent.parent.expression.name.text === "then"
+              && parent.parent.arguments[1] === parent
+            ) {
+              return;
+            }
+          }
         }
 
         const type = context.checker.getTypeAtLocation(node);
@@ -57,7 +96,7 @@ export const onlyThrowError = createRule((_options?: OnlyThrowErrorOptions) => {
           }
         }
 
-        if (type.flags & ts.TypeFlags.Undefined) {
+        if (type.flags & TypeFlags.Undefined) {
           context.report({ node, message: messages.undef });
           return;
         }

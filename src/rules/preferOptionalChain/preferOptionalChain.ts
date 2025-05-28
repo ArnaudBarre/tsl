@@ -3,7 +3,7 @@ import {
   isBooleanLiteralType,
   isNumberLiteralType,
   isStringLiteralType,
-  unionTypeParts,
+  unionConstituents,
 } from "ts-api-utils";
 import { SyntaxKind, TypeFlags } from "typescript";
 import { compareNodes } from "../_utils/compareNodes.ts";
@@ -431,7 +431,7 @@ function isValidFalseBooleanCheckType(
   options: ParsedOptions,
 ): boolean {
   const type = context.checker.getTypeAtLocation(node);
-  const types = unionTypeParts(type);
+  const types = unionConstituents(type);
 
   if (
     disallowFalseyLiteral
@@ -476,7 +476,7 @@ function checkNullishAndReport(
   if (
     !options.requireNullish
     || maybeNullishNodes.some((node) =>
-      unionTypeParts(context.checker.getTypeAtLocation(node)).some((t) =>
+      unionConstituents(context.checker.getTypeAtLocation(node)).some((t) =>
         typeHasFlag(t, TypeFlags.Null | TypeFlags.Undefined),
       ),
     )
@@ -721,7 +721,7 @@ function includesType(
   typeFlagIn: TypeFlags,
 ): boolean {
   const typeFlag = typeFlagIn | TypeFlags.Any | TypeFlags.Unknown;
-  const types = unionTypeParts(context.checker.getTypeAtLocation(node));
+  const types = unionConstituents(context.checker.getTypeAtLocation(node));
   return types.some((t) => typeHasFlag(t, typeFlag));
 }
 

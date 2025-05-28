@@ -1,5 +1,5 @@
 import { isTypeFlagSet } from "ts-api-utils";
-import ts, { SyntaxKind } from "typescript";
+import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { createRule } from "../index.ts";
 import { ruleTester } from "../ruleTester.ts";
 import type { AST, Context } from "../types.ts";
@@ -111,7 +111,7 @@ function getBooleanComparison(
 function isBooleanType(expressionType: ts.Type): boolean {
   return isTypeFlagSet(
     expressionType,
-    ts.TypeFlags.Boolean | ts.TypeFlags.BooleanLiteral,
+    TypeFlags.Boolean | TypeFlags.BooleanLiteral,
   );
 }
 
@@ -129,7 +129,7 @@ function isNullableBoolean(expressionType: ts.Type): boolean {
   const { types } = expressionType;
 
   const nonNullishTypes = types.filter(
-    (type) => !isTypeFlagSet(type, ts.TypeFlags.Undefined | ts.TypeFlags.Null),
+    (type) => !isTypeFlagSet(type, TypeFlags.Undefined | TypeFlags.Null),
   );
 
   const hasNonNullishType = nonNullishTypes.length > 0;

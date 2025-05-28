@@ -1,7 +1,7 @@
 import {
   getWellKnownSymbolPropertyOfType,
   isIntrinsicAnyType,
-  unionTypeParts,
+  unionConstituents,
 } from "ts-api-utils";
 import { NodeFlags } from "typescript";
 import { needsToBeAwaited } from "../_utils/needsToBeAwaited.ts";
@@ -48,7 +48,7 @@ export const awaitThenable = createRule(() => ({
         const type = context.checker.getTypeAtLocation(node.expression);
         if (isIntrinsicAnyType(type)) return;
 
-        const asyncIteratorSymbol = unionTypeParts(type).some((t) =>
+        const asyncIteratorSymbol = unionConstituents(type).some((t) =>
           getWellKnownSymbolPropertyOfType(
             t,
             "asyncIterator",
@@ -79,7 +79,7 @@ export const awaitThenable = createRule(() => ({
           );
           if (isIntrinsicAnyType(type)) continue;
 
-          const hasAsyncDisposeSymbol = unionTypeParts(type).some(
+          const hasAsyncDisposeSymbol = unionConstituents(type).some(
             (typePart) =>
               getWellKnownSymbolPropertyOfType(
                 typePart,
