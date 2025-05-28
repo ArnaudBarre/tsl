@@ -44,6 +44,7 @@ const allTypedRules = {
   "no-unnecessary-template-expression": true,
   "no-unnecessary-type-arguments": true,
   "no-unnecessary-type-assertion": true,
+  "no-unnecessary-type-conversion": true,
   "no-unnecessary-type-parameters": true,
   "no-unsafe-argument": true,
   "no-unsafe-assignment": true, // strict mode only

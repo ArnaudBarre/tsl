@@ -65,12 +65,10 @@ const log = (v: string) => {
 const init: ts.server.PluginModuleFactory = ({ typescript: ts }) => {
   const pluginModule: ts.server.PluginModule = {
     create(info) {
-      if (!logPath) {
-        logPath = join(
-          dirname(info.project.getProjectName()),
-          "plugin-logs.txt",
-        );
-      }
+      logPath ??= join(
+        dirname(info.project.getProjectName()),
+        "plugin-logs.txt",
+      );
       log(
         `Create ${info.project.getProjectName()} (${info.project.projectKind})`,
       );

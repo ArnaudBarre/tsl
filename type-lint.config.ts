@@ -15,6 +15,7 @@ import { noUnnecessaryCondition } from "./src/rules/noUnnecessaryCondition/noUnn
 import { noUnnecessaryTemplateExpression } from "./src/rules/noUnnecessaryTemplateExpression/noUnnecessaryTemplateExpression.ts";
 import { noUnnecessaryTypeArguments } from "./src/rules/noUnnecessaryTypeArguments/noUnnecessaryTypeArguments.ts";
 import { noUnnecessaryTypeAssertion } from "./src/rules/noUnnecessaryTypeAssertion/noUnnecessaryTypeAssertion.ts";
+import { noUnnecessaryTypeConversion } from "./src/rules/noUnnecessaryTypeConversion/noUnnecessaryTypeConversion.ts";
 import { noUnsafeUnaryMinus } from "./src/rules/noUnsafeUnaryMinus/noUnsafeUnaryMinus.ts";
 import { onlyThrowError } from "./src/rules/onlyThrowError/onlyThrowError.ts";
 import { preferFind } from "./src/rules/preferFind/preferFind.ts";
@@ -48,6 +49,7 @@ export default defineConfig({
     noUnnecessaryTemplateExpression(),
     noUnnecessaryTypeArguments(),
     noUnnecessaryTypeAssertion(),
+    noUnnecessaryTypeConversion(),
     noUnsafeUnaryMinus(),
     nonNullableTypeAssertionStyle(),
     onlyThrowError(),

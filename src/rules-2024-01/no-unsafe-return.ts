@@ -58,9 +58,7 @@ function checkReturn(
     || functionTSNode.kind === SyntaxKind.ArrowFunction
       ? getContextualType(context.checker, functionTSNode)
       : context.checker.getTypeAtLocation(functionNode);
-  if (!functionType) {
-    functionType = context.checker.getTypeAtLocation(functionNode);
-  }
+  functionType ??= context.checker.getTypeAtLocation(functionNode);
 
   // If there is an explicit type annotation *and* that type matches the actual
   // function return type, we shouldn't complain (it's intentional, even if unsafe)
