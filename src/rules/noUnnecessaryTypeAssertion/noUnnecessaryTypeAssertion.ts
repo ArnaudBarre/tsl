@@ -1,4 +1,4 @@
-import { unionTypeParts } from "ts-api-utils";
+import { isBooleanLiteralType, unionTypeParts } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
   getContextualType,
@@ -160,12 +160,20 @@ function checkAssertion(
   }
 
   const castType = context.checker.getTypeAtLocation(node);
+  const castTypeIsLiteral = isTypeLiteral(castType);
+  const typeAnnotationIsConstAssertion = isConstAssertion(node.type);
+
+  if (castTypeIsLiteral && typeAnnotationIsConstAssertion) {
+    // as const can impact inferred type in following declarations :/
+    // https://www.typescriptlang.org/play/?#code/MYewdgzgLgBAZiEMC8MBECRpgQwjUSKAbgCgYKYB6KmAPQH5TDoYAjHAJxXQ87TKVqtRs3CtMAeTYArAKbBYqAN7xEMAL6DKNekxaw+0+Yp6q+m8jpEMgA
+    return;
+  }
+
   const uncastType = context.checker.getTypeAtLocation(node.expression);
   const typeIsUnchanged = isTypeUnchanged(uncastType, castType, context);
-
-  const wouldSameTypeBeInferred = castType.isLiteral()
+  const wouldSameTypeBeInferred = castTypeIsLiteral
     ? isImplicitlyNarrowedLiteralDeclaration(node)
-    : !isConstAssertion(node.type);
+    : !typeAnnotationIsConstAssertion;
 
   if (typeIsUnchanged && wouldSameTypeBeInferred) {
     context.report({
@@ -193,6 +201,10 @@ function checkAssertion(
   }
 
   // TODO - add contextually unnecessary check for this
+}
+
+function isTypeLiteral(type: ts.Type) {
+  return type.isLiteral() || isBooleanLiteralType(type);
 }
 
 /**

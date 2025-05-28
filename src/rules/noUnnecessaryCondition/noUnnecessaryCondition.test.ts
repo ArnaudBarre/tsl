@@ -3177,5 +3177,13 @@ a.a?.a.a;
           },
         ],
       },
+      {
+        compilerOptions: { noUncheckedIndexedAccess: true },
+        code: `
+declare const arr: object[];
+if (arr[42] && arr[42]) {}
+       `,
+        errors: [{ message: messages.alwaysTruthy, line: 3, column: 16 }],
+      },
     ],
   });

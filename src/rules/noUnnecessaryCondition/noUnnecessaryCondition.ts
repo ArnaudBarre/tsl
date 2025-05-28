@@ -257,7 +257,10 @@ function checkNode(
   // Since typescript array index signature types don't represent the
   //  possibility of out-of-bounds access, if we're indexing into an array
   //  just skip the check, to avoid false positives
-  if (isArrayIndexExpression(expression, context)) {
+  if (
+    !context.compilerOptions.noUncheckedIndexedAccess
+    && isArrayIndexExpression(expression, context)
+  ) {
     return;
   }
 
@@ -331,11 +334,12 @@ function checkNodeForNullish(node: AST.Expression, context: Context): void {
     //  possibility of out-of-bounds access, if we're indexing into an array
     //  just skip the check, to avoid false positives
     if (
-      !isArrayIndexExpression(node, context)
-      && !(
-        node.kind === SyntaxKind.PropertyAccessExpression
-        && optionChainContainsOptionArrayIndex(node, context)
-      )
+      context.compilerOptions.noUncheckedIndexedAccess === true
+      || (!isArrayIndexExpression(node, context)
+        && !(
+          node.kind === SyntaxKind.PropertyAccessExpression
+          && optionChainContainsOptionArrayIndex(node, context)
+        ))
     ) {
       message = messages.neverNullish;
     }
@@ -852,7 +856,10 @@ function checkOptionalChain(
   // Since typescript array index signature types don't represent the
   //  possibility of out-of-bounds access, if we're indexing into an array
   //  just skip the check, to avoid false positives
-  if (optionChainContainsOptionArrayIndex(node, context)) {
+  if (
+    !context.compilerOptions.noUncheckedIndexedAccess
+    && optionChainContainsOptionArrayIndex(node, context)
+  ) {
     return;
   }
 

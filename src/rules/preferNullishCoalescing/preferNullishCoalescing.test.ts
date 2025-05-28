@@ -28,11 +28,20 @@ export const test = () =>
   ruleTester({
     ruleFn: preferNullishCoalescing,
     valid: [
-      "declare let x: string | undefined; x ? x : '1';",
-      "declare let x: number | undefined; x ? x : 1;",
-      "declare let x: string | undefined; !x ? '1' : x;",
-      "declare let x: number | undefined; !x ? 1 : x;",
       "declare let x: number | undefined; 15 !== x && x !== undefined ? x : y;",
+      `declare let x: () => string | null; x() ? x() : y;`,
+      {
+        code: `
+      declare let foo: string;
+      declare function makeFoo(): string;
+      
+      function lazyInitialize() {
+        if (!foo) {
+          foo = makeFoo();
+        }
+      }
+      `,
+      },
       ...types.map(
         (type) => `
 declare let x: ${type};
@@ -200,20 +209,10 @@ x || y;
       `,
       })),
       `
-      declare let x: any;
-      declare let y: number;
-      x || y;
-    `,
-      `
-      declare let x: unknown;
-      declare let y: number;
-      x || y;
-    `,
-      `
       declare let x: never;
       declare let y: number;
       x || y;
-    `,
+     `,
       {
         options: {
           ignorePrimitives: {
@@ -480,6 +479,14 @@ if (((a = b), b || c)) {
   }
         `,
       },
+      {
+        options: { ignorePrimitives: true },
+        code: `
+  declare const a: any;
+  declare const b: any;
+  a ? a : b;
+        `,
+      },
     ],
     invalid: [
       // ternaries
@@ -506,6 +513,28 @@ if (((a = b), b || c)) {
               {
                 message: messages.suggestNullish({ equals: "" }),
                 output: "declare let x: object | undefined; x ?? {};",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+declare let x: unknown;
+declare let y: number;
+x ? x : y;
+        `,
+        errors: [
+          {
+            message: messages.preferNullishOverTernary,
+            suggestions: [
+              {
+                message: messages.suggestNullish({ equals: "" }),
+                output: `
+declare let x: unknown;
+declare let y: number;
+x ?? y;
+        `,
               },
             ],
           },
@@ -2288,11 +2317,11 @@ if (f(a ?? b)) {
       {
         options: { ignoreConditionalTests: true },
         code: `
-  declare const a: string | undefined;
-  declare const b: string;
-  
-  if (+(a || b)) {
-  }
+declare const a: string | undefined;
+declare const b: string;
+
+if (+(a || b)) {
+}
         `,
         errors: [
           {
@@ -2304,12 +2333,88 @@ if (f(a ?? b)) {
               {
                 message: messages.suggestNullish({ equals: "" }),
                 output: `
-  declare const a: string | undefined;
-  declare const b: string;
-  
-  if (+(a ?? b)) {
-  }
+declare const a: string | undefined;
+declare const b: string;
+
+if (+(a ?? b)) {
+}
         `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+let a: string | undefined;
+let b: { message: string } | undefined;
+
+const foo = a ? a : b ? 1 : 2;
+      `,
+        errors: [
+          {
+            message: messages.preferNullishOverTernary,
+            suggestions: [
+              {
+                message: messages.suggestNullish({ equals: "" }),
+                output: `
+let a: string | undefined;
+let b: { message: string } | undefined;
+
+const foo = a ?? (b ? 1 : 2);
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+declare let foo: string | null;
+declare function makeFoo(): string;
+if (foo == null) foo = makeFoo();
+        `,
+        errors: [
+          {
+            message: messages.preferNullishOverAssignment,
+            suggestions: [
+              {
+                message: messages.suggestNullish({ equals: "=" }),
+                output: `
+declare let foo: string | null;
+declare function makeFoo(): string;
+foo ??= makeFoo();
+        `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+declare let foo: { a: string } | null;
+declare function makeFoo(): string;
+
+function lazyInitialize() {
+  if (foo?.a == null) {
+    foo.a = makeFoo();
+  }
+}
+      `,
+        errors: [
+          {
+            message: messages.preferNullishOverAssignment,
+            suggestions: [
+              {
+                message: messages.suggestNullish({ equals: "=" }),
+                output: `
+declare let foo: { a: string } | null;
+declare function makeFoo(): string;
+
+function lazyInitialize() {
+  foo.a ??= makeFoo();
+}
+      `,
               },
             ],
           },

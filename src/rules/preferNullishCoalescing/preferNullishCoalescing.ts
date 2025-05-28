@@ -1,28 +1,23 @@
-import {
-  intersectionTypeParts,
-  isFalseLiteralType,
-  isTypeFlagSet,
-} from "ts-api-utils";
+import { intersectionTypeParts, isTypeFlagSet } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
-  getValueOfLiteralType,
-  isLogicalExpression,
-  isTypeRecurser,
-  typeHasFlag,
-} from "../_utils/index.ts";
+  getOperatorPrecedenceForNode,
+  OperatorPrecedence,
+} from "../_utils/getOperatorPrecedence.ts";
+import { isLogicalExpression, typeHasFlag } from "../_utils/index.ts";
 import type { EqualityOperator } from "../../ast.ts";
 import { createRule } from "../../index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
 
 export const messages = {
-  noStrictNullCheck:
-    "This rule requires the `strictNullChecks` compiler option to be turned on to function correctly.",
   preferNullishOverOr: (params: {
     equals: string;
     description: "assignment" | "or";
   }) =>
     `Prefer using nullish coalescing operator (\`??${params.equals}\`) instead of a logical ${params.description} (\`||${params.equals}\`), as it is a safer operator.`,
   preferNullishOverTernary: `Prefer using nullish coalescing operator (\`??\`) instead of a ternary expression, as it is simpler to read.`,
+  preferNullishOverAssignment:
+    "Prefer using nullish coalescing operator (??=) instead of an assignment expression, as it is simpler to read.",
   suggestNullish: (params: { equals: string }) =>
     `Fix to nullish coalescing operator (\`??${params.equals}\`).`,
 };
@@ -49,6 +44,11 @@ export type PreferNullishCoalescingOptions = {
    */
   ignoreTernaryTests?: boolean;
   /**
+   * Whether to ignore any if statements that could be simplified by using the nullish coalescing operator.
+   * @default false
+   */
+  ignoreIfStatements?: boolean;
+  /**
    * Whether to ignore all (`true`) or some (an object with properties) primitive types.
    * @default false
    */
@@ -72,6 +72,7 @@ type ParsedOptions = {
   ignoreConditionalTests: boolean;
   ignoreMixedLogicalExpressions: boolean;
   ignoreTernaryTests: boolean;
+  ignoreIfStatements: boolean;
   ignorePrimitives: {
     bigint: boolean;
     boolean: boolean;
@@ -86,6 +87,7 @@ export const preferNullishCoalescing = createRule(
     ignoreConditionalTests?: boolean;
     ignoreMixedLogicalExpressions?: boolean;
     ignoreTernaryTests?: boolean;
+    ignoreIfStatements?: boolean;
     ignorePrimitives?:
       | {
           bigint?: boolean;
@@ -100,6 +102,7 @@ export const preferNullishCoalescing = createRule(
       ignoreConditionalTests: true,
       ignoreMixedLogicalExpressions: false,
       ignoreTernaryTests: false,
+      ignoreIfStatements: false,
       ..._options,
       ignorePrimitives:
         _options?.ignorePrimitives === true
@@ -146,25 +149,19 @@ export const preferNullishCoalescing = createRule(
           if (
             node.condition.kind === SyntaxKind.PrefixUnaryExpression
             && node.condition.operator === SyntaxKind.ExclamationToken
-            && (node.condition.operand.kind === SyntaxKind.Identifier
-              || node.condition.operand.kind
-                === SyntaxKind.PropertyAccessExpression)
-            && (node.whenFalse.kind === SyntaxKind.Identifier
-              || node.whenFalse.kind === SyntaxKind.PropertyAccessExpression)
+            && isMemberAccessLike(node.condition.operand)
+            && isMemberAccessLike(node.whenFalse)
             && areNodesSimilarMemberAccess(
               node.condition.operand,
               node.whenFalse,
             )
           ) {
-            const type = context.checker.getTypeAtLocation(
-              node.condition.operand,
-            );
-            if (!typeHasFlag(type, TypeFlags.Null | TypeFlags.Undefined)) {
-              return;
-            }
             if (
-              node.condition.operand.kind === SyntaxKind.Identifier
-              && isUnsafeConditional(type)
+              !truthinessEligibleForNullishCoalescing(
+                context,
+                options,
+                node.condition.operand,
+              )
             ) {
               return;
             }
@@ -177,7 +174,10 @@ export const preferNullishCoalescing = createRule(
                   changes: [
                     {
                       node,
-                      newText: `${node.condition.operand.getText()} ?? ${node.whenTrue.getText()}`,
+                      newText: getNewText(
+                        node.condition.operand,
+                        node.whenTrue,
+                      ),
                     },
                   ],
                 },
@@ -188,19 +188,16 @@ export const preferNullishCoalescing = createRule(
 
           // x ? x : y
           if (
-            (node.condition.kind === SyntaxKind.Identifier
-              || node.condition.kind === SyntaxKind.PropertyAccessExpression)
-            && (node.whenTrue.kind === SyntaxKind.Identifier
-              || node.whenTrue.kind === SyntaxKind.PropertyAccessExpression)
+            isMemberAccessLike(node.condition)
+            && isMemberAccessLike(node.whenTrue)
             && areNodesSimilarMemberAccess(node.condition, node.whenTrue)
           ) {
-            const type = context.checker.getTypeAtLocation(node.condition);
-            if (!typeHasFlag(type, TypeFlags.Null | TypeFlags.Undefined)) {
-              return;
-            }
             if (
-              node.condition.kind === SyntaxKind.Identifier
-              && isUnsafeConditional(type)
+              !truthinessEligibleForNullishCoalescing(
+                context,
+                options,
+                node.condition,
+              )
             ) {
               return;
             }
@@ -213,7 +210,7 @@ export const preferNullishCoalescing = createRule(
                   changes: [
                     {
                       node,
-                      newText: `${node.condition.getText()} ?? ${node.whenFalse.getText()}`,
+                      newText: getNewText(node.condition, node.whenFalse),
                     },
                   ],
                 },
@@ -222,188 +219,117 @@ export const preferNullishCoalescing = createRule(
             return;
           }
 
-          if (node.condition.kind !== SyntaxKind.BinaryExpression) return;
+          const result = conditionEligibleForNullishCoalescing(
+            context,
+            node.condition,
+            (operator) => getBranchNodes(node, operator).nonNullishBranch,
+          );
 
-          let operator: EqualityOperator | undefined;
-          let nodesInsideTestExpression: AST.AnyNode[] = [];
-          switch (node.condition.operatorToken.kind) {
-            case SyntaxKind.EqualsEqualsToken:
-            case SyntaxKind.EqualsEqualsEqualsToken:
-            case SyntaxKind.ExclamationEqualsToken:
-            case SyntaxKind.ExclamationEqualsEqualsToken:
-              nodesInsideTestExpression = [
-                node.condition.left,
-                node.condition.right,
+          if (!result) return;
+
+          context.report({
+            node,
+            message: messages.preferNullishOverTernary,
+            suggestions: () => {
+              return [
+                {
+                  message: messages.suggestNullish({ equals: "" }),
+                  changes: [
+                    {
+                      node,
+                      newText: getNewText(
+                        result.nullishCoalescingLeftNode,
+                        getBranchNodes(node, result.operator).nullishBranch,
+                      ),
+                    },
+                  ],
+                },
               ];
+            },
+          });
+        },
+        IfStatement(node, context) {
+          if (options.ignoreIfStatements) return;
+          if (node.elseStatement) return;
 
-              operator = node.condition.operatorToken.kind;
-              break;
-            case SyntaxKind.BarBarToken:
-            case SyntaxKind.BarBarEqualsToken:
-            case SyntaxKind.AmpersandAmpersandToken:
-              if (node.condition.left.kind !== SyntaxKind.BinaryExpression) {
-                return;
-              }
-              if (node.condition.right.kind !== SyntaxKind.BinaryExpression) {
-                return;
-              }
-              nodesInsideTestExpression = [
-                node.condition.left.left,
-                node.condition.left.right,
-                node.condition.right.left,
-                node.condition.right.right,
-              ];
-
-              if (
-                node.condition.operatorToken.kind === SyntaxKind.BarBarToken
-                || node.condition.operatorToken.kind
-                  === SyntaxKind.BarBarEqualsToken
-              ) {
-                if (
-                  node.condition.left.operatorToken.kind
-                    === SyntaxKind.EqualsEqualsEqualsToken
-                  && node.condition.right.operatorToken.kind
-                    === SyntaxKind.EqualsEqualsEqualsToken
-                ) {
-                  operator = SyntaxKind.EqualsEqualsEqualsToken;
-                } else if (
-                  ((node.condition.left.operatorToken.kind
-                    === SyntaxKind.EqualsEqualsEqualsToken
-                    || node.condition.right.operatorToken.kind
-                      === SyntaxKind.EqualsEqualsEqualsToken)
-                    && (node.condition.left.operatorToken.kind
-                      === SyntaxKind.EqualsEqualsToken
-                      || node.condition.right.operatorToken.kind
-                        === SyntaxKind.EqualsEqualsToken))
-                  || (node.condition.left.operatorToken.kind
-                    === SyntaxKind.EqualsEqualsToken
-                    && node.condition.right.operatorToken.kind
-                      === SyntaxKind.EqualsEqualsToken)
-                ) {
-                  operator = SyntaxKind.EqualsEqualsToken;
-                }
-              } else {
-                if (
-                  node.condition.left.operatorToken.kind
-                    === SyntaxKind.ExclamationEqualsEqualsToken
-                  && node.condition.right.operatorToken.kind
-                    === SyntaxKind.ExclamationEqualsEqualsToken
-                ) {
-                  operator = SyntaxKind.ExclamationEqualsEqualsToken;
-                } else if (
-                  ((node.condition.left.operatorToken.kind
-                    === SyntaxKind.ExclamationEqualsEqualsToken
-                    || node.condition.right.operatorToken.kind
-                      === SyntaxKind.ExclamationEqualsEqualsToken)
-                    && (node.condition.left.operatorToken.kind
-                      === SyntaxKind.ExclamationEqualsToken
-                      || node.condition.right.operatorToken.kind
-                        === SyntaxKind.ExclamationEqualsToken))
-                  || (node.condition.left.operatorToken.kind
-                    === SyntaxKind.ExclamationEqualsToken
-                    && node.condition.right.operatorToken.kind
-                      === SyntaxKind.ExclamationEqualsToken)
-                ) {
-                  operator = SyntaxKind.ExclamationEqualsToken;
-                }
-              }
-              break;
-            default:
-              break;
+          let assignmentExpression: AST.Expression | undefined;
+          if (
+            node.thenStatement.kind === SyntaxKind.Block
+            && node.thenStatement.statements.length === 1
+            && node.thenStatement.statements[0].kind
+              === SyntaxKind.ExpressionStatement
+          ) {
+            assignmentExpression = node.thenStatement.statements[0].expression;
+          } else if (
+            node.thenStatement.kind === SyntaxKind.ExpressionStatement
+          ) {
+            assignmentExpression = node.thenStatement.expression;
           }
 
-          if (!operator) return;
+          if (!assignmentExpression) return;
+          if (
+            !(
+              assignmentExpression.kind === SyntaxKind.BinaryExpression
+              && assignmentExpression.operatorToken.kind
+                === SyntaxKind.EqualsToken
+            )
+          ) {
+            return;
+          }
+          if (!isMemberAccessLike(assignmentExpression.left)) return;
 
-          let nullishCoalescingLeftNode: ts.Node | undefined;
-          let hasUndefinedCheck = false;
-          let hasNullCheck = false;
+          let eligible = false;
 
-          // we check that the test only contains null, undefined and the identifier
-          for (const testNode of nodesInsideTestExpression) {
-            if (testNode.kind === SyntaxKind.NullKeyword) {
-              hasNullCheck = true;
-            } else if (
-              testNode.kind === SyntaxKind.Identifier
-              && testNode.text === "undefined"
-            ) {
-              hasUndefinedCheck = true;
-            } else if (
-              areNodesSimilarMemberAccess(
-                testNode,
-                getBranchNodes(node, operator).nonNullishBranch,
-              )
-            ) {
-              // Only consider the first expression in a multi-part nullish check,
-              // as subsequent expressions might not require all the optional chaining operators.
-              // For example: a?.b?.c !== undefined && a.b.c !== null ? a.b.c : 'foo';
-              // This works because `node.test` is always evaluated first in the loop
-              // and has the same or more necessary optional chaining operators
-              // than `node.alternate` or `node.consequent`.
-              nullishCoalescingLeftNode ??= testNode;
-            } else {
-              return;
-            }
+          // if (!a) a = b
+          if (
+            node.expression.kind === SyntaxKind.PrefixUnaryExpression
+            && node.expression.operator === SyntaxKind.ExclamationToken
+            && isMemberAccessLike(node.expression.operand)
+            && areNodesSimilarMemberAccess(
+              node.expression.operand,
+              assignmentExpression.left,
+            )
+            && truthinessEligibleForNullishCoalescing(
+              context,
+              options,
+              node.expression.operand,
+            )
+          ) {
+            eligible = true;
           }
 
-          if (!nullishCoalescingLeftNode) return;
+          const result = conditionEligibleForNullishCoalescing(
+            context,
+            node.expression,
+            () => assignmentExpression.left,
+          );
 
-          const isFixable = ((): boolean => {
-            // it is fixable if we check for both null and undefined, or not if neither
-            if (hasUndefinedCheck === hasNullCheck) {
-              return hasUndefinedCheck;
-            }
+          if (
+            result
+            && (result.operator === SyntaxKind.EqualsEqualsToken
+              || result.operator === SyntaxKind.EqualsEqualsEqualsToken)
+          ) {
+            // if (a == null) {...}
+            eligible = true;
+          }
 
-            // it is fixable if we loosely check for either null or undefined
-            if (
-              operator === SyntaxKind.EqualsEqualsToken
-              || operator === SyntaxKind.ExclamationEqualsToken
-            ) {
-              return true;
-            }
+          if (!eligible) return;
 
-            const type = context.checker.getTypeAtLocation(
-              nullishCoalescingLeftNode,
-            );
-
-            if (typeHasFlag(type, TypeFlags.Any | TypeFlags.Unknown)) {
-              return false;
-            }
-
-            const hasNullType = typeHasFlag(type, TypeFlags.Null);
-
-            // it is fixable if we check for undefined and the type is not nullable
-            if (hasUndefinedCheck && !hasNullType) {
-              return true;
-            }
-
-            const hasUndefinedType = typeHasFlag(type, TypeFlags.Undefined);
-
-            // it is fixable if we check for null and the type can't be undefined
-            return hasNullCheck && !hasUndefinedType;
-          })();
-
-          if (isFixable) {
-            context.report({
-              node,
-              message: messages.preferNullishOverTernary,
-              suggestions: () => {
-                return [
+          context.report({
+            node,
+            message: messages.preferNullishOverAssignment,
+            suggestions: [
+              {
+                message: messages.suggestNullish({ equals: "=" }),
+                changes: [
                   {
-                    message: messages.suggestNullish({ equals: "" }),
-                    changes: [
-                      {
-                        node,
-                        newText: `${nullishCoalescingLeftNode.getText()} ?? ${getBranchNodes(
-                          node,
-                          operator,
-                        ).nullishBranch.getText()}`,
-                      },
-                    ],
+                    node,
+                    newText: `${assignmentExpression.left.getText()} ??= ${assignmentExpression.right.getText()};`,
                   },
-                ];
+                ],
               },
-            });
-          }
+            ],
+          });
         },
       },
     };
@@ -425,25 +351,7 @@ function checkAssignmentOrLogicalExpression(
     return;
   }
 
-  const type = context.checker.getTypeAtLocation(node.left);
-  if (!typeHasFlag(type, TypeFlags.Null | TypeFlags.Undefined)) {
-    return;
-  }
-
-  let ignorableFlags = 0;
-  const { ignorePrimitives } = options;
-  if (ignorePrimitives.bigint) ignorableFlags |= TypeFlags.BigIntLike;
-  if (ignorePrimitives.boolean) ignorableFlags |= TypeFlags.BooleanLike;
-  if (ignorePrimitives.number) ignorableFlags |= TypeFlags.NumberLike;
-  if (ignorePrimitives.string) ignorableFlags |= TypeFlags.StringLike;
-
-  if (
-    type.flags !== TypeFlags.Null
-    && type.flags !== TypeFlags.Undefined
-    && (type as ts.UnionOrIntersectionType).types.some((t) =>
-      intersectionTypeParts(t).some((t) => isTypeFlagSet(t, ignorableFlags)),
-    )
-  ) {
+  if (!truthinessEligibleForNullishCoalescing(context, options, node.left)) {
     return;
   }
 
@@ -490,18 +398,234 @@ function checkAssignmentOrLogicalExpression(
   });
 }
 
-function isUnsafeConditional(type: ts.Type): boolean {
-  return isTypeRecurser(type, (t) => {
-    return t.isLiteral()
-      ? !getValueOfLiteralType(t)
-      : t.flags === TypeFlags.Any
-          || t.flags === TypeFlags.Unknown
-          || t.flags === TypeFlags.String
-          || t.flags === TypeFlags.Number
-          || t.flags === TypeFlags.BigInt
-          || t.flags === TypeFlags.Boolean
-          || isFalseLiteralType(t);
-  });
+function conditionEligibleForNullishCoalescing(
+  context: Context,
+  condition: AST.Expression,
+  getNonNullishBranch: (operator: EqualityOperator) => AST.AnyNode,
+) {
+  if (condition.kind !== SyntaxKind.BinaryExpression) return;
+  let operator: EqualityOperator | undefined;
+  let nodesInsideTestExpression: AST.AnyNode[] = [];
+  switch (condition.operatorToken.kind) {
+    case SyntaxKind.EqualsEqualsToken:
+    case SyntaxKind.EqualsEqualsEqualsToken:
+    case SyntaxKind.ExclamationEqualsToken:
+    case SyntaxKind.ExclamationEqualsEqualsToken:
+      nodesInsideTestExpression = [condition.left, condition.right];
+
+      operator = condition.operatorToken.kind;
+      break;
+    case SyntaxKind.BarBarToken:
+    case SyntaxKind.BarBarEqualsToken:
+    case SyntaxKind.AmpersandAmpersandToken:
+      if (condition.left.kind !== SyntaxKind.BinaryExpression) {
+        return;
+      }
+      if (condition.right.kind !== SyntaxKind.BinaryExpression) {
+        return;
+      }
+      nodesInsideTestExpression = [
+        condition.left.left,
+        condition.left.right,
+        condition.right.left,
+        condition.right.right,
+      ];
+
+      if (
+        condition.operatorToken.kind === SyntaxKind.BarBarToken
+        || condition.operatorToken.kind === SyntaxKind.BarBarEqualsToken
+      ) {
+        if (
+          condition.left.operatorToken.kind
+            === SyntaxKind.EqualsEqualsEqualsToken
+          && condition.right.operatorToken.kind
+            === SyntaxKind.EqualsEqualsEqualsToken
+        ) {
+          operator = SyntaxKind.EqualsEqualsEqualsToken;
+        } else if (
+          ((condition.left.operatorToken.kind
+            === SyntaxKind.EqualsEqualsEqualsToken
+            || condition.right.operatorToken.kind
+              === SyntaxKind.EqualsEqualsEqualsToken)
+            && (condition.left.operatorToken.kind
+              === SyntaxKind.EqualsEqualsToken
+              || condition.right.operatorToken.kind
+                === SyntaxKind.EqualsEqualsToken))
+          || (condition.left.operatorToken.kind === SyntaxKind.EqualsEqualsToken
+            && condition.right.operatorToken.kind
+              === SyntaxKind.EqualsEqualsToken)
+        ) {
+          operator = SyntaxKind.EqualsEqualsToken;
+        }
+      } else {
+        if (
+          condition.left.operatorToken.kind
+            === SyntaxKind.ExclamationEqualsEqualsToken
+          && condition.right.operatorToken.kind
+            === SyntaxKind.ExclamationEqualsEqualsToken
+        ) {
+          operator = SyntaxKind.ExclamationEqualsEqualsToken;
+        } else if (
+          ((condition.left.operatorToken.kind
+            === SyntaxKind.ExclamationEqualsEqualsToken
+            || condition.right.operatorToken.kind
+              === SyntaxKind.ExclamationEqualsEqualsToken)
+            && (condition.left.operatorToken.kind
+              === SyntaxKind.ExclamationEqualsToken
+              || condition.right.operatorToken.kind
+                === SyntaxKind.ExclamationEqualsToken))
+          || (condition.left.operatorToken.kind
+            === SyntaxKind.ExclamationEqualsToken
+            && condition.right.operatorToken.kind
+              === SyntaxKind.ExclamationEqualsToken)
+        ) {
+          operator = SyntaxKind.ExclamationEqualsToken;
+        }
+      }
+      break;
+    default:
+      break;
+  }
+
+  if (!operator) return;
+
+  let nullishCoalescingLeftNode: AST.AnyNode | undefined;
+  let hasUndefinedCheck = false;
+  let hasNullCheck = false;
+
+  // we check that the test only contains null, undefined and the identifier
+  for (const testNode of nodesInsideTestExpression) {
+    if (testNode.kind === SyntaxKind.NullKeyword) {
+      hasNullCheck = true;
+    } else if (
+      testNode.kind === SyntaxKind.Identifier
+      && testNode.text === "undefined"
+    ) {
+      hasUndefinedCheck = true;
+    } else if (
+      areNodesSimilarMemberAccess(testNode, getNonNullishBranch(operator))
+    ) {
+      // Only consider the first expression in a multi-part nullish check,
+      // as subsequent expressions might not require all the optional chaining operators.
+      // For example: a?.b?.c !== undefined && a.b.c !== null ? a.b.c : 'foo';
+      // This works because `node.test` is always evaluated first in the loop
+      // and has the same or more necessary optional chaining operators
+      // than `node.alternate` or `node.consequent`.
+      nullishCoalescingLeftNode ??= testNode;
+    } else {
+      return;
+    }
+  }
+
+  if (!nullishCoalescingLeftNode) return;
+
+  const isEligible = ((): boolean => {
+    // it is eligible if we check for both null and undefined, or not if neither
+    if (hasUndefinedCheck === hasNullCheck) {
+      return hasUndefinedCheck;
+    }
+
+    // it is eligible if we loosely check for either null or undefined
+    if (
+      operator === SyntaxKind.EqualsEqualsToken
+      || operator === SyntaxKind.ExclamationEqualsToken
+    ) {
+      return true;
+    }
+
+    const type = context.checker.getTypeAtLocation(nullishCoalescingLeftNode);
+
+    if (typeHasFlag(type, TypeFlags.Any | TypeFlags.Unknown)) {
+      return false;
+    }
+
+    const hasNullType = typeHasFlag(type, TypeFlags.Null);
+
+    // it is eligible if we check for undefined and the type is not nullable
+    if (hasUndefinedCheck && !hasNullType) {
+      return true;
+    }
+
+    const hasUndefinedType = typeHasFlag(type, TypeFlags.Undefined);
+
+    // it is eligible if we check for null and the type can't be undefined
+    return hasNullCheck && !hasUndefinedType;
+  })();
+
+  if (!isEligible) return;
+
+  return { nullishCoalescingLeftNode, operator };
+}
+
+function truthinessEligibleForNullishCoalescing(
+  context: Context,
+  options: ParsedOptions,
+  testNode: AST.Expression,
+): boolean {
+  const type = context.checker.getTypeAtLocation(testNode);
+  if (
+    !typeHasFlag(
+      type,
+      TypeFlags.Null
+        | TypeFlags.Undefined
+        | TypeFlags.Any
+        | TypeFlags.Unknown
+        | TypeFlags.Void,
+    )
+  ) {
+    return false;
+  }
+
+  let ignorableFlags = 0;
+  const { ignorePrimitives } = options;
+  if (ignorePrimitives.bigint) ignorableFlags |= TypeFlags.BigIntLike;
+  if (ignorePrimitives.boolean) ignorableFlags |= TypeFlags.BooleanLike;
+  if (ignorePrimitives.number) ignorableFlags |= TypeFlags.NumberLike;
+  if (ignorePrimitives.string) ignorableFlags |= TypeFlags.StringLike;
+
+  if (ignorableFlags === 0) {
+    // any types are eligible for conversion.
+    return true;
+  }
+
+  // if the type is `any` or `unknown` we can't make any assumptions
+  // about the value, so it could be any primitive, even though the flags
+  // won't be set.
+  //
+  // technically, this is true of `void` as well, however, it's a TS error
+  // to test `void` for truthiness, so we don't need to bother checking for
+  // it in valid code.
+  if (isTypeFlagSet(type, TypeFlags.Any | TypeFlags.Unknown)) {
+    return false;
+  }
+
+  if (
+    type.flags !== TypeFlags.Null
+    && type.flags !== TypeFlags.Undefined
+    && (type as ts.UnionOrIntersectionType).types.some((t) =>
+      intersectionTypeParts(t).some((t) => isTypeFlagSet(t, ignorableFlags)),
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function isMemberAccessLike(node: AST.AnyNode): boolean {
+  return (
+    node.kind === SyntaxKind.Identifier
+    || node.kind === SyntaxKind.PropertyAccessExpression
+  );
+}
+
+function getNewText(left: AST.AnyNode, right: AST.AnyNode): string {
+  const rightText =
+    right.kind !== SyntaxKind.ParenthesizedExpression
+    && getOperatorPrecedenceForNode(right) <= OperatorPrecedence.Coalesce
+      ? `(${right.getText()})`
+      : right.getText();
+  return `${left.getText()} ?? ${rightText}`;
 }
 
 function isConditionalTest(node: AST.AnyNode): boolean {

@@ -354,45 +354,11 @@ x!;
       const baz: unknown = {};
       foo(baz!);
           `,
+      // https://www.typescriptlang.org/play/?#code/MYewdgzgLgBAZiEMC8MBECRpgQwjUSKAbgCgYKYB6KmAPQH5TDoYAjHAJxXQ87TKVqtRs3CtMAeTYArAKbBYqAN7xEMAL6DKNekxaw+0+Yp6q+m8jpEMgA
+      "const a = 'a' as const;",
+      "const a = <const>'a';",
     ],
     invalid: [
-      // https://github.com/typescript-eslint/typescript-eslint/issues/8737
-      {
-        code: "const a = `a` as const;",
-        errors: [
-          {
-            message: messages.unnecessaryAssertion,
-            line: 1,
-            suggestions: [
-              { message: messages.removeAssertion, output: "const a = `a`;" },
-            ],
-          },
-        ],
-      },
-      {
-        code: "const a = 'a' as const;",
-        errors: [
-          {
-            message: messages.unnecessaryAssertion,
-            line: 1,
-            suggestions: [
-              { message: messages.removeAssertion, output: "const a = 'a';" },
-            ],
-          },
-        ],
-      },
-      {
-        code: "const a = <const>'a';",
-        errors: [
-          {
-            message: messages.unnecessaryAssertion,
-            line: 1,
-            suggestions: [
-              { message: messages.removeAssertion, output: "const a = 'a';" },
-            ],
-          },
-        ],
-      },
       {
         code: "const foo = <3>3;",
         errors: [
@@ -1343,28 +1309,6 @@ const b: string | undefined = (a ? undefined : a)!;
                 output: `
 const a = '';
 const b: string | undefined = (a ? undefined : a);
-      `,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        code: `
-class T {
-  readonly a = 'a' as const;
-}
-      `,
-        errors: [
-          {
-            message: messages.unnecessaryAssertion,
-            suggestions: [
-              {
-                message: messages.removeAssertion,
-                output: `
-class T {
-  readonly a = 'a';
-}
       `,
               },
             ],
