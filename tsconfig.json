@@ -3,9 +3,11 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "target": "ES2022",
-    "jsx": "react-jsx",
     "module": "ESNext",
+    "moduleDetection": "force",
     "lib": ["ES2023"],
+    "types": ["bun"],
+    "skipLibCheck": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -15,7 +17,6 @@
     "noEmit": true,
 
     /* Linting */
-    "skipLibCheck": true,
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
