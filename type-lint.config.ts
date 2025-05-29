@@ -2,6 +2,7 @@ import { defineConfig } from "./src/index.ts";
 import { awaitThenable } from "./src/rules/awaitThenable/awaitThenable.ts";
 import { dotNotation } from "./src/rules/dotNotation/dotNotation.ts";
 import { noArrayDelete } from "./src/rules/noArrayDelete/noArrayDelete.ts";
+import { noBaseToString } from "./src/rules/noBaseToString/noBaseToString.ts";
 import { noConfusingVoidExpression } from "./src/rules/noConfusingVoidExpression/noConfusingVoidExpression.ts";
 import { noFloatingPromises } from "./src/rules/noFloatingPromises/noFloatingPromises.ts";
 import { noForInArray } from "./src/rules/noForInArray/noForInArray.ts";
@@ -35,6 +36,7 @@ export default defineConfig({
     awaitThenable(),
     dotNotation(),
     noArrayDelete(),
+    noBaseToString(),
     noConfusingVoidExpression({ ignoreArrowShorthand: true }),
     noFloatingPromises(),
     noForInArray(),

@@ -26,7 +26,7 @@ const allTypedRules = {
   "dot-notation": true, // without options
   "naming-convention": "styling is out of core",
   "no-array-delete": true,
-  "no-base-to-string": true, // without options, only `.toString()`, see `restrict-plus-operands` and `restrict-template-expressions` for other checks
+  "no-base-to-string": true, // only String(), .to(Locale)String() and .join() are checked, see `restrict-plus-operands` and `restrict-template-expressions` for other checks
   "no-confusing-void-expression": true,
   "no-deprecated": true,
   "no-duplicate-type-constituents": "merged with no-redundant-type-constituents",

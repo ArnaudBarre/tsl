@@ -1,5 +1,6 @@
 import { isTypeParameter } from "ts-api-utils";
 import ts from "typescript";
+import type { AST, Context } from "../../types";
 
 export function isBuiltinSymbolLike(
   program: ts.Program,
@@ -70,6 +71,16 @@ function isBuiltinSymbolLikeRecurser(
     }
   }
   return false;
+}
+
+export function isIdentifierFromDefaultLibrary(
+  context: Context,
+  node: AST.Identifier,
+): boolean {
+  return isSymbolFromDefaultLibrary(
+    context.program,
+    context.checker.getSymbolAtLocation(node),
+  );
 }
 
 function isSymbolFromDefaultLibrary(

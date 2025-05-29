@@ -2,6 +2,7 @@ import { unionConstituents } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { getOperatorPrecedenceForNode } from "../_utils/getOperatorPrecedence.ts";
 import { typeHasFlag } from "../_utils/index.ts";
+import { isIdentifierFromDefaultLibrary } from "../_utils/isBuiltinSymbolLike.ts";
 import { createRule } from "../../index.ts";
 import type { Context } from "../../types.ts";
 
@@ -92,16 +93,8 @@ export const noUnnecessaryTypeConversion = createRule(() => ({
         if (node.arguments.length !== 1) return;
 
         const arg = node.arguments[0];
-        const declarationSourceFile = context.checker
-          .getSymbolAtLocation(callee)
-          ?.getDeclarations()
-          ?.at(0)
-          ?.getSourceFile();
 
-        if (
-          !declarationSourceFile
-          || !context.program.isSourceFileDefaultLibrary(declarationSourceFile)
-        ) {
+        if (!isIdentifierFromDefaultLibrary(context, callee)) {
           // Not the built-in function
           return;
         }
