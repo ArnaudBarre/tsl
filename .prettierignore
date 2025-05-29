@@ -1,3 +1,4 @@
 # codgeen
 /src/ast.ts
 /src/visitorEntries.ts
+/scripts/kindToNodeTypeMap.ts
