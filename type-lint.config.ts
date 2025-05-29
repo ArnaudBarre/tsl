@@ -12,6 +12,7 @@ import { noMisusedPromises } from "./src/rules/noMisusedPromises/noMisusedPromis
 import { noMisusedSpread } from "./src/rules/noMisusedSpread/noMisusedSpread.ts";
 import { nonNullableTypeAssertionStyle } from "./src/rules/nonNullableTypeAssertionStyle/nonNullableTypeAssertionStyle.ts";
 import { noRedundantTypeConstituents } from "./src/rules/noRedundantTypeConstituents/noRedundantTypeConstituents.ts";
+import { noUnnecessaryBooleanLiteralCompare } from "./src/rules/noUnnecessaryBooleanLiteralCompare/noUnnecessaryBooleanLiteralCompare.ts";
 import { noUnnecessaryCondition } from "./src/rules/noUnnecessaryCondition/noUnnecessaryCondition.ts";
 import { noUnnecessaryTemplateExpression } from "./src/rules/noUnnecessaryTemplateExpression/noUnnecessaryTemplateExpression.ts";
 import { noUnnecessaryTypeArguments } from "./src/rules/noUnnecessaryTypeArguments/noUnnecessaryTypeArguments.ts";
@@ -47,6 +48,7 @@ export default defineConfig({
     }),
     noMisusedSpread(),
     noRedundantTypeConstituents(),
+    noUnnecessaryBooleanLiteralCompare(),
     noUnnecessaryCondition(),
     noUnnecessaryTemplateExpression(),
     noUnnecessaryTypeArguments(),

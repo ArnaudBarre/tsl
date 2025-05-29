@@ -828,6 +828,10 @@ for (const rule of rulesToImport) {
         fnWithInjectedContext.push(path.node.id!.name);
       }
     },
+    YieldExpression(path) {
+      // yield fixer.replaceText() -> fixer.replaceText()
+      path.replaceWith(path.node.argument!);
+    },
   });
 
   // retraverse and inject context to fn calls

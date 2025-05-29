@@ -276,9 +276,8 @@ export function getOperatorPrecedenceForNode(node: AST.AnyNode): number {
     case SyntaxKind.TemplateExpression:
     case SyntaxKind.JsxElement:
     case SyntaxKind.JsxFragment:
-      // we don't have nodes for these cases
-      // case SyntaxKind.ParenthesizedExpression:
-      // case SyntaxKind.OmittedExpression:
+    case SyntaxKind.ParenthesizedExpression:
+    case SyntaxKind.OmittedExpression:
       return OperatorPrecedence.Primary;
 
     default:
