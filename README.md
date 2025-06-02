@@ -1,12 +1,12 @@
-# type-lint
+# type-lint [![npm](https://img.shields.io/npm/v/@arnaud-barre/type-lint)](https://www.npmjs.com/package/@arnaud-barre/type-lint)
 
 Ongoing work for a modern TypeScript linter
 
 ## Features
 
-- Faster than runing through ESLint
+- Faster than running through ESLint
 - Type safe config with custom rules in TypeScript
-- No [IDE chaching issue](https://typescript-eslint.io/troubleshooting/faqs/general/#changes-to-one-file-are-not-reflected-when-linting-other-files-in-my-ide)
+- No [IDE caching issue](https://typescript-eslint.io/troubleshooting/faqs/general/#changes-to-one-file-are-not-reflected-when-linting-other-files-in-my-ide)
 
 ## Philosophy
 
@@ -18,7 +18,7 @@ Yes this mean one more tool, but the benefits of precise type-aware linting + cu
 
 ### What about tsgo?
 
-I still have to investigate how the langauge service integration will work with inter-process communication. Probably most of the main rules will have to be ported to Go to be efficient, but this having them ported to the TS AST is still a necessary useful step.
+I still have to investigate how the language service integration will work with inter-process communication. Probably most of the main rules will have to be ported to Go to be efficient, but this having them ported to the TS AST is still a necessary useful step.
 
 ## Installation
 
@@ -64,7 +64,7 @@ export default defineConfig({
 });
 ```
 
-### Add the typescript plugin
+### Add the TypeScript plugin
 
 In your `tsconfig.json` add the following:
 
@@ -94,7 +94,7 @@ To avoid parsing and typechecking twice your codebase, type-lint run first tsc v
 
 #### Can I use it without the tsc wrapper?
 
-Yes, you can run `type-lint --lint-only` directly. But if you use rules that request type information for a lot of nodes, this can be very inefficient with you run one after the other. As an exmaple, running on my work codebase (~1k TS files), tsc take 17s, `type-lint --lint-only` take 17s, and `type-lint` take 21s.
+Yes, you can run `type-lint --lint-only` directly. But if you use rules that request type information for a lot of nodes, this can be very inefficient with you run one after the other. As an example, running on my work codebase (~1k TS files), `tsc` take 17s, `type-lint --lint-only` take 17s, and `type-lint` (doing both) take 21s.
 
 ### Update your CI
 
@@ -111,13 +111,13 @@ Everything in node_modules is ignored by default. If you want to ignore generate
 
 ```ts
 defineConfig({
-  ignore: ["src/generated"],
+  ignore: ["src/generated/"],
 });
 ```
 
 ### diagnosticCategory
 
-To differenciate type-lint reports from TS errors, type-lint disgnostics are reported by default as warnings. If you prefer having only red squiggles, you can set the `diagnosticCategory` option to `"error"`.
+To differentiate type-lint reports from TS errors, type-lint diagnostics are reported by default as warnings. If you prefer having only red squiggles, you can set the `diagnosticCategory` option to `"error"`.
 
 ```ts
 defineConfig({
@@ -149,7 +149,7 @@ Redeclare rules (identical name) completely replace the "base" rule, there is no
 
 ## Core rules
 
-Currently the list of core rules are the type aware lint rules I use from TS-ESLint. If you think more rules should be added, please open an issue, but to reduce the surface, only non-styling type-aware rules will be accepted. Here is the list of [TS-ESLint type aware rules](https://typescript-eslint.io/rules/?=typeInformation) with their status:
+Currently, the list of core rules are the type-aware lint rules I use from TS-ESLint. If you think more rules should be added, please open an issue, but to reduce the surface, only non-styling type-aware rules will be accepted. Here is the list of [TS-ESLint type aware rules](https://typescript-eslint.io/rules/?=typeInformation) with their status:
 
 - await-thenable: ✅ Implemented
 - consistent-return: 🛑 Implementation not planned, you can use `noImplicitReturns` compilerOption
@@ -213,13 +213,13 @@ Currently the list of core rules are the type aware lint rules I use from TS-ESL
 
 ## Custom rules
 
-Wrtting custom rules is part of the core value of type-lint.
+Writing custom rules is part of the core value of type-lint.
 
 Rules run on the TS AST, which is less known than ESTree but allows to query type information for a given node with `context.checker.getTypeAtLocation(node)`. Use [ast-explorer.dev](https://ast-explorer.dev/#eNo9zEEKwjAQheGrxLdSKG5ctV5AcO9qNiEdQmSYCUlVpPTuTSl0+72fN0Mw4O2/voaS8oQOucH0z3xAaBBMqwlfxeKZ8GARcz8rMp4Ilztpy6xlM6lzBPEaPz7yi0tNpoTB9X23b/vtM+m48Y10wbIChCAraw==) to explore the AST.
 
-By default the TS AST is, funny enough, poorly typed. That's why the linter ships rewritten AST types that you can import and allow for type narrowing and exhaustive switchs.
+By default, the TS AST is, funny enough, poorly typed. That's why the linter ships rewritten AST types that you can import and allow for type narrowing and exhaustive switches.
 
-To help build rules, a few common utils are available on `context.utils`, and `context.checker` is ovveriden with some type changes. If you need to pass the checker to a another library that expect the builtin TypeChecker type, like [ts-api-utils](https://github.com/JoshuaKGoldberg/ts-api-utils), you can use `context.rawChecker`.
+To help build rules, a few common utils are available on `context.utils`, and `context.checker` is overridden with some type changes. If you need to pass the checker to another library that expect the builtin TypeChecker type, like [ts-api-utils](https://github.com/JoshuaKGoldberg/ts-api-utils), you can use `context.rawChecker`.
 
 ```ts
 import { type AST, core, defineConfig } from "@arnaud-barre/type-lint";

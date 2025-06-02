@@ -13,7 +13,7 @@ export type { AST };
 
 export type Config<BaseRuleName extends string> = {
   /**
-   * List of base rules. You can use core.all() as a initial list and then update it based on your needs:
+   * List of base rules. You can use core.all() as an initial list and then update it based on your needs:
    *
    * @example
    * ```ts
@@ -39,13 +39,13 @@ export type Config<BaseRuleName extends string> = {
    * @example
    * ```ts
    * defineConfig({
-   *   ignore: ["src/generated"],
+   *   ignore: ["src/generated/"],
    * });
    * ```
    */
   ignore?: string[];
   /**
-   * To differenciate type-lint reports from TS errors, type-lint disgnostics are reported by default as warnings.
+   * To differentiate type-lint reports from TS errors, type-lint diagnostics are reported by default as warnings.
    * If you prefer having only red squiggles, you can set this option to `"error"`.
    * @default "warning"
    */
