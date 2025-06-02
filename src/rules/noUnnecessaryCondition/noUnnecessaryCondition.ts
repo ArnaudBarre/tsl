@@ -11,6 +11,7 @@ import {
 } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
+  defineRule,
   getTypeName,
   getValueOfLiteralType,
   isArrayMethodCallWithPredicate,
@@ -19,7 +20,6 @@ import {
   isTypeRecurser,
   typeHasFlag,
 } from "../_utils/index.ts";
-import { createRule } from "../../index.ts";
 import type { AST, Checker, Context } from "../../types.ts";
 
 export const messages = {
@@ -67,110 +67,110 @@ type ParsedOptions = {
   checkTypePredicates: boolean;
 };
 
-export const noUnnecessaryCondition = createRule(
-  (_options?: NoUnnecessaryConditionOptions) => {
-    const options: ParsedOptions = {
-      allowConstantLoopConditions: "never",
-      checkTypePredicates: false,
-      ..._options,
-    };
-    return {
-      name: "core/noUnnecessaryCondition",
-      visitor: {
-        BinaryExpression(node, context) {
-          switch (node.operatorToken.kind) {
-            case SyntaxKind.BarBarEqualsToken:
-            case SyntaxKind.AmpersandAmpersandEqualsToken:
-              // Similar to checkLogicalExpressionForUnnecessaryConditionals, since
-              // a ||= b is equivalent to a || (a = b)
-              checkNode(node.left, context);
-              break;
-            case SyntaxKind.QuestionQuestionEqualsToken:
-              checkNodeForNullish(node.left, context);
-              break;
-            case SyntaxKind.QuestionQuestionToken:
-              checkNodeForNullish(node.left, context);
-              break;
-            case SyntaxKind.BarBarToken:
-            case SyntaxKind.AmpersandAmpersandToken:
-              // Only checks the left side, since the right side might not be "conditional" at all.
-              // The right side will be checked if the LogicalExpression is used in a conditional context
-              checkNode(node.left, context);
-              break;
-            case SyntaxKind.LessThanToken:
-            case SyntaxKind.GreaterThanToken:
-            case SyntaxKind.LessThanEqualsToken:
-            case SyntaxKind.GreaterThanEqualsToken:
-            case SyntaxKind.EqualsEqualsToken:
-            case SyntaxKind.EqualsEqualsEqualsToken:
-            case SyntaxKind.ExclamationEqualsToken:
-            case SyntaxKind.ExclamationEqualsEqualsToken:
-              checkIfBoolExpressionIsNecessaryConditional(
-                node,
-                node.left,
-                node.right,
-                node.operatorToken.kind,
-                context,
-              );
-              break;
-            default:
-              break;
-          }
-        },
-        CallExpression(node, context) {
-          checkCallExpression(node, context, options);
-        },
-        ConditionalExpression(node, context) {
-          checkNode(node.condition, context);
-        },
-        DoStatement(node, context) {
-          checkIfLoopIsNecessaryConditional(node.expression, context, options);
-        },
-        ForStatement(node, context) {
-          if (node.condition) {
-            checkIfLoopIsNecessaryConditional(node.condition, context, options);
-          }
-        },
-        IfStatement(node, context) {
-          checkNode(node.expression, context);
-        },
-        PropertyAccessExpression(node, context) {
-          if (node.questionDotToken) {
-            checkOptionalChain(node, ".", context);
-          }
-        },
-        ElementAccessExpression(node, context) {
-          if (node.questionDotToken) {
-            checkOptionalChain(node, "", context);
-          }
-        },
-        CaseClause(node, context) {
-          checkIfBoolExpressionIsNecessaryConditional(
-            node.expression,
-            node.parent.parent.expression,
-            node.expression,
-            SyntaxKind.EqualsEqualsEqualsToken,
-            context,
-          );
-        },
-        WhileStatement(node, context) {
-          if (
-            options.allowConstantLoopConditions === "only-allowed-literals"
-            && (node.expression.kind === SyntaxKind.TrueKeyword
-              || node.expression.kind === SyntaxKind.FalseKeyword
-              || (node.expression.kind === SyntaxKind.NumericLiteral
-                && (node.expression.text === "0"
-                  || node.expression.text === "1")))
-          ) {
-            return;
-          }
-
-          checkIfLoopIsNecessaryConditional(node.expression, context, options);
-        },
+export function noUnnecessaryCondition(
+  _options?: NoUnnecessaryConditionOptions,
+) {
+  const options: ParsedOptions = {
+    allowConstantLoopConditions: "never",
+    checkTypePredicates: false,
+    ..._options,
+  };
+  return defineRule({
+    name: "core/noUnnecessaryCondition",
+    visitor: {
+      BinaryExpression(node, context) {
+        switch (node.operatorToken.kind) {
+          case SyntaxKind.BarBarEqualsToken:
+          case SyntaxKind.AmpersandAmpersandEqualsToken:
+            // Similar to checkLogicalExpressionForUnnecessaryConditionals, since
+            // a ||= b is equivalent to a || (a = b)
+            checkNode(node.left, context);
+            break;
+          case SyntaxKind.QuestionQuestionEqualsToken:
+            checkNodeForNullish(node.left, context);
+            break;
+          case SyntaxKind.QuestionQuestionToken:
+            checkNodeForNullish(node.left, context);
+            break;
+          case SyntaxKind.BarBarToken:
+          case SyntaxKind.AmpersandAmpersandToken:
+            // Only checks the left side, since the right side might not be "conditional" at all.
+            // The right side will be checked if the LogicalExpression is used in a conditional context
+            checkNode(node.left, context);
+            break;
+          case SyntaxKind.LessThanToken:
+          case SyntaxKind.GreaterThanToken:
+          case SyntaxKind.LessThanEqualsToken:
+          case SyntaxKind.GreaterThanEqualsToken:
+          case SyntaxKind.EqualsEqualsToken:
+          case SyntaxKind.EqualsEqualsEqualsToken:
+          case SyntaxKind.ExclamationEqualsToken:
+          case SyntaxKind.ExclamationEqualsEqualsToken:
+            checkIfBoolExpressionIsNecessaryConditional(
+              node,
+              node.left,
+              node.right,
+              node.operatorToken.kind,
+              context,
+            );
+            break;
+          default:
+            break;
+        }
       },
-    };
-  },
-);
+      CallExpression(node, context) {
+        checkCallExpression(node, context, options);
+      },
+      ConditionalExpression(node, context) {
+        checkNode(node.condition, context);
+      },
+      DoStatement(node, context) {
+        checkIfLoopIsNecessaryConditional(node.expression, context, options);
+      },
+      ForStatement(node, context) {
+        if (node.condition) {
+          checkIfLoopIsNecessaryConditional(node.condition, context, options);
+        }
+      },
+      IfStatement(node, context) {
+        checkNode(node.expression, context);
+      },
+      PropertyAccessExpression(node, context) {
+        if (node.questionDotToken) {
+          checkOptionalChain(node, ".", context);
+        }
+      },
+      ElementAccessExpression(node, context) {
+        if (node.questionDotToken) {
+          checkOptionalChain(node, "", context);
+        }
+      },
+      CaseClause(node, context) {
+        checkIfBoolExpressionIsNecessaryConditional(
+          node.expression,
+          node.parent.parent.expression,
+          node.expression,
+          SyntaxKind.EqualsEqualsEqualsToken,
+          context,
+        );
+      },
+      WhileStatement(node, context) {
+        if (
+          options.allowConstantLoopConditions === "only-allowed-literals"
+          && (node.expression.kind === SyntaxKind.TrueKeyword
+            || node.expression.kind === SyntaxKind.FalseKeyword
+            || (node.expression.kind === SyntaxKind.NumericLiteral
+              && (node.expression.text === "0"
+                || node.expression.text === "1")))
+        ) {
+          return;
+        }
+
+        checkIfLoopIsNecessaryConditional(node.expression, context, options);
+      },
+    },
+  });
+}
 
 function nodeIsArrayType(node: AST.Expression, context: Context): boolean {
   const nodeType = context.utils.getConstrainedTypeAtLocation(node);

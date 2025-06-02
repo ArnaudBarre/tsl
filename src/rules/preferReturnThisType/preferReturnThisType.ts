@@ -1,5 +1,5 @@
 import { type InterfaceType, SyntaxKind } from "typescript";
-import { createRule } from "../../index.ts";
+import { defineRule } from "../_utils/index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {
@@ -19,56 +19,58 @@ type Data = {
   };
 };
 
-export const preferReturnThisType = createRule(() => ({
-  name: "core/preferReturnThisType",
-  createData: (): Data | undefined => undefined,
-  visitor: {
-    ClassDeclaration(node, context) {
-      const className = node.name?.text;
-      if (!className) return;
-      context.data = {
-        currentClass: {
-          className,
-          type: context.checker.getTypeAtLocation(node) as InterfaceType,
-        },
-      };
-    },
-    "ClassDeclaration:exit"(_, context) {
-      context.data = undefined;
-    },
-    MethodDeclaration(node, context) {
-      functionEnter(context, node);
-    },
-    "MethodDeclaration:exit"(_, context) {
-      if (!context.data) return;
-      functionExit(context);
-      context.data.currentMethod = undefined;
-    },
-    PropertyDeclaration(node, context) {
-      if (
-        node.initializer?.kind === SyntaxKind.FunctionExpression
-        || node.initializer?.kind === SyntaxKind.ArrowFunction
-      ) {
-        functionEnter(context, node.initializer);
+export function preferReturnThisType() {
+  return defineRule({
+    name: "core/preferReturnThisType",
+    createData: (): Data | undefined => undefined,
+    visitor: {
+      ClassDeclaration(node, context) {
+        const className = node.name?.text;
+        if (!className) return;
+        context.data = {
+          currentClass: {
+            className,
+            type: context.checker.getTypeAtLocation(node) as InterfaceType,
+          },
+        };
+      },
+      "ClassDeclaration:exit"(_, context) {
+        context.data = undefined;
+      },
+      MethodDeclaration(node, context) {
+        functionEnter(context, node);
+      },
+      "MethodDeclaration:exit"(_, context) {
+        if (!context.data) return;
+        functionExit(context);
+        context.data.currentMethod = undefined;
+      },
+      PropertyDeclaration(node, context) {
         if (
-          node.initializer.kind === SyntaxKind.ArrowFunction
-          && node.initializer.body.kind !== SyntaxKind.Block
+          node.initializer?.kind === SyntaxKind.FunctionExpression
+          || node.initializer?.kind === SyntaxKind.ArrowFunction
         ) {
-          checkReturnExpression(context, node.initializer.body);
+          functionEnter(context, node.initializer);
+          if (
+            node.initializer.kind === SyntaxKind.ArrowFunction
+            && node.initializer.body.kind !== SyntaxKind.Block
+          ) {
+            checkReturnExpression(context, node.initializer.body);
+          }
         }
-      }
+      },
+      "PropertyDeclaration:exit"(_, context) {
+        if (!context.data) return;
+        functionExit(context);
+        context.data.currentMethod = undefined;
+      },
+      ReturnStatement(node, context) {
+        if (!node.expression) return;
+        checkReturnExpression(context, node.expression);
+      },
     },
-    "PropertyDeclaration:exit"(_, context) {
-      if (!context.data) return;
-      functionExit(context);
-      context.data.currentMethod = undefined;
-    },
-    ReturnStatement(node, context) {
-      if (!node.expression) return;
-      checkReturnExpression(context, node.expression);
-    },
-  },
-}));
+  });
+}
 
 function functionEnter(
   context: Context<Data | undefined>,

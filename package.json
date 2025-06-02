@@ -1,7 +1,7 @@
 {
   "name": "@arnaud-barre/type-lint",
   "description": "Modern TypeScript linter",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
   "author": "Arnaud Barré (https://github.com/ArnaudBarre)",
   "private": true,
@@ -27,7 +27,7 @@
     ]
   },
   "peerDependencies": {
-    "typescript": "^5.8.3"
+    "typescript": "~5.8.3"
   },
   "dependencies": {
     "esbuild": "^0.25.4",
@@ -42,8 +42,9 @@
     "@types/bun": "^1.2.13",
     "@types/react": "^19.1.4",
     "patch-package": "^8.0.0",
-    "prettier": "3.5.3",
+    "prettier": "^3.5.3",
     "publint": "^0.3.12",
-    "typescript": "5.8.3"
+    "tsdown": "^0.12.5",
+    "typescript": "~5.8.3"
   }
 }

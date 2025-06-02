@@ -1,7 +1,7 @@
 import { isIntrinsicAnyType, isSymbolFlagSet } from "ts-api-utils";
 import ts, { type NodeArray, SyntaxKind } from "typescript";
+import { defineRule } from "../_utils/index.ts";
 import type { AnyNode, TypeNode } from "../../ast.ts";
-import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {
@@ -21,20 +21,22 @@ type ParameterCapableNode =
   | AST.TypeQueryNode
   | AST.TypeReferenceNode;
 
-export const noUnnecessaryTypeArguments = createRule(() => ({
-  name: "core/noUnnecessaryTypeArguments",
-  visitor: {
-    CallExpression: checkParameters,
-    ExpressionWithTypeArguments: checkParameters,
-    ImportType: checkParameters,
-    JsxOpeningElement: checkParameters,
-    JsxSelfClosingElement: checkParameters,
-    NewExpression: checkParameters,
-    TaggedTemplateExpression: checkParameters,
-    TypeQuery: checkParameters,
-    TypeReference: checkParameters,
-  },
-}));
+export function noUnnecessaryTypeArguments() {
+  return defineRule({
+    name: "core/noUnnecessaryTypeArguments",
+    visitor: {
+      CallExpression: checkParameters,
+      ExpressionWithTypeArguments: checkParameters,
+      ImportType: checkParameters,
+      JsxOpeningElement: checkParameters,
+      JsxSelfClosingElement: checkParameters,
+      NewExpression: checkParameters,
+      TaggedTemplateExpression: checkParameters,
+      TypeQuery: checkParameters,
+      TypeReference: checkParameters,
+    },
+  });
+}
 
 function checkParameters(node: ParameterCapableNode, context: Context) {
   const typeArguments = node.typeArguments;

@@ -13,12 +13,12 @@ import {
   OperatorPrecedence,
 } from "../_utils/getOperatorPrecedence.ts";
 import {
+  defineRule,
   isLogicalExpression,
   isReferenceToGlobalFunction,
   run,
   typeHasFlag,
 } from "../_utils/index.ts";
-import { createRule } from "../../index.ts";
 import type { AST, Context, ReportDescriptor } from "../../types.ts";
 
 export const messages = {
@@ -46,7 +46,7 @@ type ParsedOptions = {
   requireNullish: boolean;
 };
 
-export const preferOptionalChain = createRule((_options?: OptionsInput) => {
+export function preferOptionalChain(_options?: OptionsInput) {
   const options = {
     checkAny: true,
     checkBigInt: true,
@@ -57,8 +57,7 @@ export const preferOptionalChain = createRule((_options?: OptionsInput) => {
     requireNullish: false,
     ..._options,
   };
-
-  return {
+  return defineRule({
     name: "core/preferOptionalChain",
     createData: () => ({ seenLogicals: new Set<AST.BinaryExpression>() }),
     visitor: {
@@ -153,8 +152,8 @@ export const preferOptionalChain = createRule((_options?: OptionsInput) => {
         }
       },
     },
-  };
-});
+  });
+}
 
 type ValidOperand = {
   type: "Valid";

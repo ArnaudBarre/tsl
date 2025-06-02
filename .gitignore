@@ -1,6 +1,6 @@
-/.idea
-node_modules/
-dist/
+/.idea/
+/node_modules/
+/dist/
 dev-plugin/index.js
-dev-plugin/get-plugin.mjs
+dev-plugin/getPlugin.mjs
 plugin-logs.txt

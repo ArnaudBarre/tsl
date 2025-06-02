@@ -1,7 +1,6 @@
 import { SyntaxKind } from "typescript";
-import { addAwait, hasModifier } from "../_utils/index.ts";
+import { addAwait, defineRule, hasModifier } from "../_utils/index.ts";
 import { needsToBeAwaited } from "../_utils/needsToBeAwaited.ts";
-import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {
@@ -14,40 +13,42 @@ type FunctionNode =
   | AST.FunctionDeclaration
   | AST.FunctionExpression;
 
-export const returnAwait = createRule(() => ({
-  name: "core/returnAwait",
-  // Keep track of (async) function stack
-  createData: (): boolean[] => [],
-  visitor: {
-    ArrowFunction: enterFunction,
-    "ArrowFunction:exit"(node, context) {
-      context.data.pop();
-      if (
-        hasModifier(node, SyntaxKind.AsyncKeyword)
-        && node.body.kind !== SyntaxKind.Block
-      ) {
-        for (const expression of findPossiblyReturnedNodes(node.body)) {
+export function returnAwait() {
+  return defineRule({
+    name: "core/returnAwait",
+    // Keep track of (async) function stack
+    createData: (): boolean[] => [],
+    visitor: {
+      ArrowFunction: enterFunction,
+      "ArrowFunction:exit"(node, context) {
+        context.data.pop();
+        if (
+          hasModifier(node, SyntaxKind.AsyncKeyword)
+          && node.body.kind !== SyntaxKind.Block
+        ) {
+          for (const expression of findPossiblyReturnedNodes(node.body)) {
+            checkExpression(expression, context);
+          }
+        }
+      },
+      FunctionDeclaration: enterFunction,
+      "FunctionDeclaration:exit"(_, context) {
+        context.data.pop();
+      },
+      FunctionExpression: enterFunction,
+      "FunctionExpression:exit"(_, context) {
+        context.data.pop();
+      },
+
+      ReturnStatement(node, context) {
+        if (!context.data.at(-1) || !node.expression) return;
+        for (const expression of findPossiblyReturnedNodes(node.expression)) {
           checkExpression(expression, context);
         }
-      }
+      },
     },
-    FunctionDeclaration: enterFunction,
-    "FunctionDeclaration:exit"(_, context) {
-      context.data.pop();
-    },
-    FunctionExpression: enterFunction,
-    "FunctionExpression:exit"(_, context) {
-      context.data.pop();
-    },
-
-    ReturnStatement(node, context) {
-      if (!context.data.at(-1) || !node.expression) return;
-      for (const expression of findPossiblyReturnedNodes(node.expression)) {
-        checkExpression(expression, context);
-      }
-    },
-  },
-}));
+  });
+}
 
 function enterFunction(node: FunctionNode, context: Context<boolean[]>): void {
   context.data.push(hasModifier(node, SyntaxKind.AsyncKeyword));

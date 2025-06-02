@@ -1,9 +1,8 @@
 import { isSymbolFlagSet } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
-import { isReferenceToGlobalFunction } from "../_utils/index.ts";
+import { defineRule, isReferenceToGlobalFunction } from "../_utils/index.ts";
 import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
 import type { AnyNode } from "../../ast.ts";
-import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {
@@ -21,13 +20,15 @@ const EVAL_LIKE_METHODS = new Set([
   "setTimeout",
 ]);
 
-export const noImpliedEval = createRule(() => ({
-  name: "core/noImpliedEval",
-  visitor: {
-    CallExpression: checkImpliedEval,
-    NewExpression: checkImpliedEval,
-  },
-}));
+export function noImpliedEval() {
+  return defineRule({
+    name: "core/noImpliedEval",
+    visitor: {
+      CallExpression: checkImpliedEval,
+      NewExpression: checkImpliedEval,
+    },
+  });
+}
 
 function getCalleeName(node: AST.Expression): string | null {
   if (node.kind === SyntaxKind.Identifier) {

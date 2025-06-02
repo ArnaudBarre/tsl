@@ -1,6 +1,6 @@
 import { unionConstituents } from "ts-api-utils";
 import { TypeFlags } from "typescript";
-import { createRule } from "../../index.ts";
+import { defineRule } from "../_utils/index.ts";
 
 export const messages = {
   meaninglessVoidOperator: (params: { type: string }) =>
@@ -16,8 +16,10 @@ export type NoMeaninglessVoidOperatorOptions = {
   checkNever?: boolean;
 };
 
-export const noMeaninglessVoidOperator = createRule(
-  (options?: NoMeaninglessVoidOperatorOptions) => ({
+export function noMeaninglessVoidOperator(
+  options?: NoMeaninglessVoidOperatorOptions,
+) {
+  return defineRule({
     name: "core/noMeaninglessVoidOperator",
     visitor: {
       VoidExpression(node, context) {
@@ -48,5 +50,5 @@ export const noMeaninglessVoidOperator = createRule(
         }
       },
     },
-  }),
-);
+  });
+}

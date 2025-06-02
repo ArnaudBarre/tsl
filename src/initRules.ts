@@ -12,7 +12,7 @@ import type {
 } from "./types.ts";
 import { visitorEntries } from "./visitorEntries.ts";
 
-const timing = !!process.env["TIMING"];
+export const showTiming = !!process.env["TIMING"];
 
 type UnknownRule = Rule<string, unknown>;
 
@@ -46,14 +46,14 @@ export const initRules = async (
   const allRules = new Set<string>();
   for (const rule of baseRules) {
     allRules.add(rule.name);
-    if (timing) rulesTimingMap[rule.name] = 0;
+    if (showTiming) rulesTimingMap[rule.name] = 0;
   }
   if (config.overrides) {
     for (const override of config.overrides) {
       if (override.rules) {
         for (const rule of override.rules) {
           allRules.add(rule.name);
-          if (timing) rulesTimingMap[rule.name] = 0;
+          if (showTiming) rulesTimingMap[rule.name] = 0;
         }
       }
     }
@@ -70,7 +70,7 @@ export const initRules = async (
   const commentsStarts = new Set<number>();
   let lineStarts: readonly number[] = [];
 
-  type RuleWithContext = { rule: UnknownRule; context: Context<unknown> };
+  type RuleWithContext = { rule: UnknownRule; context: Context };
   const getRulesVisitFnCache = new Map<
     string /* overridesKey */,
     ReturnType<typeof getRulesVisitFn>
@@ -147,12 +147,12 @@ export const initRules = async (
         if (rulesWithKey.length) {
           map[kind] = (node) => {
             for (const ruleWithOptions of rulesWithKey) {
-              const start = timing ? performance.now() : 0;
+              const start = showTiming ? performance.now() : 0;
               ruleWithOptions.rule.visitor[key]!(
                 node as any,
                 ruleWithOptions.context,
               );
-              if (timing) {
+              if (showTiming) {
                 rulesTimingMap[ruleWithOptions.rule.name] +=
                   performance.now() - start;
               }
@@ -226,7 +226,7 @@ export const initRules = async (
       if (sourceFile.fileName.includes("node_modules")) return;
       if (config.ignore?.some((p) => sourceFile.fileName.includes(p))) return;
       const { rulesWithContext, visit } = getRulesVisitFn(sourceFile.fileName);
-      const start = timing ? performance.now() : 0;
+      const start = showTiming ? performance.now() : 0;
       const reports: Report[] = [];
       for (const { rule, context } of rulesWithContext) {
         context.sourceFile = sourceFile;
@@ -234,9 +234,9 @@ export const initRules = async (
           reports.push({ type: "rule", rule, ...props });
         };
         if (rule.createData) {
-          const start = timing ? performance.now() : 0;
+          const start = showTiming ? performance.now() : 0;
           context.data = rule.createData(context);
-          if (timing) {
+          if (showTiming) {
             rulesTimingMap[rule.name] += performance.now() - start;
           }
         }
@@ -246,7 +246,7 @@ export const initRules = async (
       lineStarts = sourceFile.getLineStarts();
       visit(sourceFile);
       for (const report of reports) {
-        const timingStart = timing ? performance.now() : 0;
+        const timingStart = showTiming ? performance.now() : 0;
         const start = "node" in report ? report.node.getStart() : report.start;
         const line =
           lineStarts.findLastIndex((lineStart) => start >= lineStart) + 1;
@@ -261,7 +261,7 @@ export const initRules = async (
           continue;
         }
         onReport(report);
-        if (timing) {
+        if (showTiming) {
           rulesTimingMap[report.rule.name] += performance.now() - timingStart;
         }
       }
@@ -294,11 +294,13 @@ export const initRules = async (
           ],
         });
       }
-      if (timing) {
+      if (showTiming) {
         filesTimingMap[sourceFile.fileName] = performance.now() - start;
       }
     },
     rulesCount: allRules.size,
-    timing: timing ? { Rule: rulesTimingMap, File: filesTimingMap } : undefined,
+    timingMaps: showTiming
+      ? { Rule: rulesTimingMap, File: filesTimingMap }
+      : undefined,
   };
 };

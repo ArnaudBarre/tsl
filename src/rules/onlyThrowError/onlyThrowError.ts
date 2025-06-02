@@ -1,7 +1,7 @@
 import { isIntrinsicAnyType, isIntrinsicUnknownType } from "ts-api-utils";
 import { SyntaxKind, TypeFlags } from "typescript";
+import { defineRule } from "../_utils/index.ts";
 import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
-import { createRule } from "../../index.ts";
 import type { AST } from "../../types.ts";
 
 export const messages = {
@@ -32,15 +32,14 @@ export type OnlyThrowErrorOptions = {
   allow?: string[];
 };
 
-export const onlyThrowError = createRule((_options?: OnlyThrowErrorOptions) => {
+export function onlyThrowError(_options?: OnlyThrowErrorOptions) {
   const options = {
     allowThrowingAny: true,
     allowThrowingUnknown: true,
     allowRethrowing: true,
     ..._options,
   };
-
-  return {
+  return defineRule({
     name: "core/onlyThrowError",
     visitor: {
       ThrowStatement({ expression: node }, context) {
@@ -116,5 +115,5 @@ export const onlyThrowError = createRule((_options?: OnlyThrowErrorOptions) => {
         context.report({ node, message: messages.object });
       },
     },
-  };
-});
+  });
+}

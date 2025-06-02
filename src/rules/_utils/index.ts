@@ -1,13 +1,17 @@
 import { intersectionConstituents, unionConstituents } from "ts-api-utils";
 import ts, { type NodeArray, SyntaxKind, TypeFlags } from "typescript";
 import type { AnyNode, BinaryOperatorToken, ModifierLike } from "../../ast.ts";
-import type { AST, Checker, Context, Suggestion } from "../../types.ts";
+import type { AST, Checker, Context, Rule, Suggestion } from "../../types.ts";
 import {
   getOperatorPrecedence,
   OperatorPrecedence,
 } from "./getOperatorPrecedence.ts";
 
 export const run = <T>(cb: () => T) => cb();
+
+export const defineRule = <Name extends string, Data = undefined>(
+  rule: Rule<Name, Data>,
+) => rule as Rule<Name>;
 
 const estreeLogicalOperator = [
   SyntaxKind.BarBarToken,
@@ -112,7 +116,7 @@ const ARRAY_PREDICATE_FUNCTIONS = [
   "some",
 ];
 export function isArrayMethodCallWithPredicate(
-  context: Context<unknown>,
+  context: Context,
   node: AST.CallExpression,
 ): boolean {
   if (node.expression.kind !== SyntaxKind.PropertyAccessExpression) {
@@ -267,7 +271,7 @@ export function getContextualType(
 
 export function isReferenceToGlobalFunction(
   node: AnyNode,
-  context: Context<unknown>,
+  context: Context,
 ): boolean {
   const symbol = context.checker.getSymbolAtLocation(node);
 

@@ -1041,14 +1041,14 @@ await Bun.write(
   `src/rules/${camelCaseRule}/${camelCaseRule}.ts`,
   await format(
     `import ts, { SyntaxKind, SymbolFlags } from "typescript";${tsApiUtilsImports}
-      import { createRule } from "../../index.ts";
-      import type { AST, Checker, Context } from "../../types.ts";
-      
-      export const messages = ${
-        toTemplateStrings ? `{${toTemplateStrings}}` : '"extended"'
-      }
-      
-      ` + generate(srcAST, { retainLines: true, filename }).code,
+     import { rule } from "../_utils/index.ts";
+     import type { AST, Checker, Context } from "../../types.ts";
+     
+     export const messages = ${
+       toTemplateStrings ? `{${toTemplateStrings}}` : '"extended"'
+     }
+     
+     ` + generate(srcAST, { retainLines: true, filename }).code,
     { filepath: `${rule}.ts`, parser: "babel-ts", trailingComma: "all" },
   ),
 );

@@ -1,12 +1,12 @@
 import { isBooleanLiteralType, unionConstituents } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
+  defineRule,
   getContextualType,
   hasModifier,
   isConstAssertion,
   typeHasFlag,
 } from "../_utils/index.ts";
-import { createRule } from "../../index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
 
 export const messages = {
@@ -25,8 +25,10 @@ export type NoUnnecessaryTypeAssertionOptions = {
   typesToIgnore?: string[];
 };
 
-export const noUnnecessaryTypeAssertion = createRule(
-  (options: NoUnnecessaryTypeAssertionOptions = {}) => ({
+export function noUnnecessaryTypeAssertion(
+  options: NoUnnecessaryTypeAssertionOptions = {},
+) {
+  return defineRule({
     name: "core/noUnnecessaryTypeAssertion",
     visitor: {
       NonNullExpression(node, context) {
@@ -147,8 +149,8 @@ export const noUnnecessaryTypeAssertion = createRule(
         checkAssertion(node, context, options);
       },
     },
-  }),
-);
+  });
+}
 
 function checkAssertion(
   node: AST.AsExpression | AST.TypeAssertion,

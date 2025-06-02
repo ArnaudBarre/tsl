@@ -1,7 +1,6 @@
 import { isIntrinsicAnyType, isIntrinsicNeverType } from "ts-api-utils";
 import { SyntaxKind, type Type, TypeFlags } from "typescript";
-import { getTypeName, typeHasFlag } from "../_utils/index.ts";
-import { createRule } from "../../index.ts";
+import { defineRule, getTypeName, typeHasFlag } from "../_utils/index.ts";
 import type { Context } from "../../types.ts";
 
 export const messages = {
@@ -54,11 +53,8 @@ export type RestrictTemplateExpressionsOptions = {
 
 type OptionTester = (
   type: Type,
-  context: Context<RestrictTemplateExpressionsOptions>,
-  recursivelyCheckType: (
-    type: Type,
-    context: Context<RestrictTemplateExpressionsOptions>,
-  ) => boolean,
+  context: Context,
+  recursivelyCheckType: (type: Type, context: Context) => boolean,
 ) => boolean;
 
 const testTypeFlag =
@@ -91,76 +87,72 @@ const optionTesters = (
   tester,
 }));
 
-export const restrictTemplateExpressions = createRule(
-  (_options?: RestrictTemplateExpressionsOptions) => {
-    const options = {
-      allow: ["Error", "URL", "URLSearchParams"],
-      allowAny: false,
-      allowBoolean: true,
-      allowNullish: false,
-      allowNumber: true,
-      allowRegExp: false,
-      ..._options,
-    };
+export function restrictTemplateExpressions(
+  _options?: RestrictTemplateExpressionsOptions,
+) {
+  const options = {
+    allow: ["Error", "URL", "URLSearchParams"],
+    allowAny: false,
+    allowBoolean: true,
+    allowNullish: false,
+    allowNumber: true,
+    allowRegExp: false,
+    ..._options,
+  };
 
-    const enabledOptionTesters = optionTesters.filter(
-      ({ option }) => options[option],
-    );
+  const enabledOptionTesters = optionTesters.filter(
+    ({ option }) => options[option],
+  );
 
-    function recursivelyCheckType(
-      innerType: Type,
-      context: Context<RestrictTemplateExpressionsOptions>,
-    ): boolean {
-      if (innerType.isUnion()) {
-        return innerType.types.every((t) => recursivelyCheckType(t, context));
-      }
-
-      if (innerType.isIntersection()) {
-        return innerType.types.some((t) => recursivelyCheckType(t, context));
-      }
-
-      return (
-        typeHasFlag(innerType, TypeFlags.StringLike)
-        || enabledOptionTesters.some(({ tester }) =>
-          tester(innerType, context, recursivelyCheckType),
-        )
-      );
+  function recursivelyCheckType(innerType: Type, context: Context): boolean {
+    if (innerType.isUnion()) {
+      return innerType.types.every((t) => recursivelyCheckType(t, context));
     }
 
-    return {
-      name: "core/restrictTemplateExpressions",
-      visitor: {
-        TemplateExpression(node, context) {
-          // don't check tagged template literals
-          if (node.parent.kind === SyntaxKind.TaggedTemplateExpression) {
+    if (innerType.isIntersection()) {
+      return innerType.types.some((t) => recursivelyCheckType(t, context));
+    }
+
+    return (
+      typeHasFlag(innerType, TypeFlags.StringLike)
+      || enabledOptionTesters.some(({ tester }) =>
+        tester(innerType, context, recursivelyCheckType),
+      )
+    );
+  }
+  return defineRule({
+    name: "core/restrictTemplateExpressions",
+    visitor: {
+      TemplateExpression(node, context) {
+        // don't check tagged template literals
+        if (node.parent.kind === SyntaxKind.TaggedTemplateExpression) {
+          return;
+        }
+
+        for (const span of node.templateSpans) {
+          const identifier =
+            span.expression.kind === SyntaxKind.NewExpression
+            || span.expression.kind === SyntaxKind.CallExpression
+              ? span.expression.expression
+              : span.expression;
+          if (options.allow.includes(identifier.getText())) {
             return;
           }
 
-          for (const span of node.templateSpans) {
-            const identifier =
-              span.expression.kind === SyntaxKind.NewExpression
-              || span.expression.kind === SyntaxKind.CallExpression
-                ? span.expression.expression
-                : span.expression;
-            if (options.allow.includes(identifier.getText())) {
-              return;
-            }
+          const expressionType = context.utils.getConstrainedTypeAtLocation(
+            span.expression,
+          );
 
-            const expressionType = context.utils.getConstrainedTypeAtLocation(
-              span.expression,
-            );
-
-            if (!recursivelyCheckType(expressionType, context)) {
-              context.report({
-                node: span.expression,
-                message: messages.invalidType({
-                  type: context.checker.typeToString(expressionType),
-                }),
-              });
-            }
+          if (!recursivelyCheckType(expressionType, context)) {
+            context.report({
+              node: span.expression,
+              message: messages.invalidType({
+                type: context.checker.typeToString(expressionType),
+              }),
+            });
           }
-        },
+        }
       },
-    };
-  },
-);
+    },
+  });
+}

@@ -4,8 +4,8 @@ import {
   unionConstituents,
 } from "ts-api-utils";
 import { NodeFlags } from "typescript";
+import { defineRule } from "../_utils/index.ts";
 import { needsToBeAwaited } from "../_utils/needsToBeAwaited.ts";
-import { createRule } from "../../index.ts";
 
 export const messages = {
   await: 'Unexpected `await` of a non-Promise (non-"Thenable") value.',
@@ -17,99 +17,101 @@ export const messages = {
   removeAwait: "Remove unnecessary `await`.",
 };
 
-export const awaitThenable = createRule(() => ({
-  name: "core/awaitThenable",
-  visitor: {
-    AwaitExpression(node, context) {
-      const type = context.checker.getTypeAtLocation(node.expression);
-      const certainty = needsToBeAwaited(context, node, type);
-
-      if (certainty === "Never") {
-        context.report({
-          node,
-          message: messages.await,
-          suggestions: [
-            {
-              message: messages.removeAwait,
-              changes: [
-                {
-                  start: node.getStart(),
-                  end: node.expression.getStart(),
-                  newText: "",
-                },
-              ],
-            },
-          ],
-        });
-      }
-    },
-    ForOfStatement(node, context) {
-      if (node.awaitModifier) {
+export function awaitThenable() {
+  return defineRule({
+    name: "core/awaitThenable",
+    visitor: {
+      AwaitExpression(node, context) {
         const type = context.checker.getTypeAtLocation(node.expression);
-        if (isIntrinsicAnyType(type)) return;
+        const certainty = needsToBeAwaited(context, node, type);
 
-        const asyncIteratorSymbol = unionConstituents(type).some((t) =>
-          getWellKnownSymbolPropertyOfType(
-            t,
-            "asyncIterator",
-            context.rawChecker,
-          ),
-        );
-
-        if (!asyncIteratorSymbol) {
+        if (certainty === "Never") {
           context.report({
-            message: messages.forAwaitOfNonAsyncIterable,
-            node: node.awaitModifier,
+            node,
+            message: messages.await,
             suggestions: [
               {
-                message: messages.convertToOrdinaryFor,
-                changes: [{ node: node.awaitModifier, newText: "" }],
+                message: messages.removeAwait,
+                changes: [
+                  {
+                    start: node.getStart(),
+                    end: node.expression.getStart(),
+                    newText: "",
+                  },
+                ],
               },
             ],
           });
         }
-      }
-    },
-    VariableDeclarationList(node, context) {
-      if ((node.flags & NodeFlags.BlockScoped) === NodeFlags.AwaitUsing) {
-        for (const declarator of node.declarations) {
-          if (!declarator.initializer) continue;
-          const type = context.checker.getTypeAtLocation(
-            declarator.initializer,
-          );
-          if (isIntrinsicAnyType(type)) continue;
+      },
+      ForOfStatement(node, context) {
+        if (node.awaitModifier) {
+          const type = context.checker.getTypeAtLocation(node.expression);
+          if (isIntrinsicAnyType(type)) return;
 
-          const hasAsyncDisposeSymbol = unionConstituents(type).some(
-            (typePart) =>
-              getWellKnownSymbolPropertyOfType(
-                typePart,
-                "asyncDispose",
-                context.rawChecker,
-              ) != null,
+          const asyncIteratorSymbol = unionConstituents(type).some((t) =>
+            getWellKnownSymbolPropertyOfType(
+              t,
+              "asyncIterator",
+              context.rawChecker,
+            ),
           );
 
-          if (!hasAsyncDisposeSymbol) {
+          if (!asyncIteratorSymbol) {
             context.report({
-              node: declarator.initializer,
-              message: messages.awaitUsingOfNonAsyncDisposable,
-              suggestions:
-                // let the user figure out what to do if there's
-                // await using a = b, c = d, e = f;
-                // it's rare and not worth the complexity to handle.
-                node.declarations.length === 1
-                  ? [
-                      {
-                        message: messages.removeAwait,
-                        changes: [
-                          { start: node.getStart(), length: 6, newText: "" },
-                        ],
-                      },
-                    ]
-                  : [],
+              message: messages.forAwaitOfNonAsyncIterable,
+              node: node.awaitModifier,
+              suggestions: [
+                {
+                  message: messages.convertToOrdinaryFor,
+                  changes: [{ node: node.awaitModifier, newText: "" }],
+                },
+              ],
             });
           }
         }
-      }
+      },
+      VariableDeclarationList(node, context) {
+        if ((node.flags & NodeFlags.BlockScoped) === NodeFlags.AwaitUsing) {
+          for (const declarator of node.declarations) {
+            if (!declarator.initializer) continue;
+            const type = context.checker.getTypeAtLocation(
+              declarator.initializer,
+            );
+            if (isIntrinsicAnyType(type)) continue;
+
+            const hasAsyncDisposeSymbol = unionConstituents(type).some(
+              (typePart) =>
+                getWellKnownSymbolPropertyOfType(
+                  typePart,
+                  "asyncDispose",
+                  context.rawChecker,
+                ) != null,
+            );
+
+            if (!hasAsyncDisposeSymbol) {
+              context.report({
+                node: declarator.initializer,
+                message: messages.awaitUsingOfNonAsyncDisposable,
+                suggestions:
+                  // let the user figure out what to do if there's
+                  // await using a = b, c = d, e = f;
+                  // it's rare and not worth the complexity to handle.
+                  node.declarations.length === 1
+                    ? [
+                        {
+                          message: messages.removeAwait,
+                          changes: [
+                            { start: node.getStart(), length: 6, newText: "" },
+                          ],
+                        },
+                      ]
+                    : [],
+              });
+            }
+          }
+        }
+      },
     },
-  },
-}));
+  });
+}

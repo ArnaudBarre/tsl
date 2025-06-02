@@ -12,11 +12,57 @@ import type * as AST from "./ast.ts";
 export type { AST };
 
 export type Config<BaseRuleName extends string> = {
-  rules: (Rule<BaseRuleName, any> | Promise<Rule<BaseRuleName, any>[]>)[];
+  /**
+   * List of base rules. You can use core.all() as a initial list and then update it based on your needs:
+   *
+   * @example
+   * ```ts
+   * import { core, defineConfig } from "@arnaud-barre/type-lint";
+   *
+   * defineConfig({
+   *   rules: [
+   *     ...core.all({ preferOptionalChain: "off" }),
+   *     {
+   *       name: "org/my-custom-rule",
+   *       visitor: {
+   *         // ...
+   *       },
+   *     },
+   *   ],
+   * });
+   * ```
+   */
+  rules: Rule<BaseRuleName, any>[];
+  /**
+   * List of path parts to ignore (using string.includes)
+   *
+   * @example
+   * ```ts
+   * defineConfig({
+   *   ignore: ["src/generated"],
+   * });
+   * ```
+   */
   ignore?: string[];
+  /**
+   * To differenciate type-lint reports from TS errors, type-lint disgnostics are reported by default as warnings.
+   * If you prefer having only red squiggles, you can set this option to `"error"`.
+   * @default "warning"
+   */
+  diagnosticCategory?: "warning" | "error";
   overrides?: {
+    /**
+     * List of path parts to override (using string.includes)
+     */
     files: string[];
+    /**
+     * Name of the base rule to disable for these files
+     */
     disabled?: NoInfer<BaseRuleName>[];
+    /**
+     * Additional rules to add for these files.
+     * Redeclared rules (identical name) completely replace the base rules, there is no merging of options.
+     */
     rules?: Rule<string, any>[];
   }[];
 };
@@ -75,7 +121,7 @@ export type ReportDescriptor = (
   message: string;
   suggestions?: Suggestion[] | (() => Suggestion[]);
 };
-export type Context<Data = undefined> = {
+export type Context<Data = unknown> = {
   sourceFile: AST.SourceFile;
   program: Program;
   checker: Checker;
@@ -88,21 +134,3 @@ export type Context<Data = undefined> = {
   report(descriptor: ReportDescriptor): void;
   data: Data;
 };
-
-export type AllRulesPreset<
-  Key extends string,
-  Props extends Partial<Record<Key, "off" | "on" | Record<string, unknown>>>,
-> = <UsedProps extends Props>(
-  rules: UsedProps,
-) => Promise<
-  Rule<
-    {
-      [K in keyof UsedProps]: K extends Key
-        ? UsedProps[K] extends "off"
-          ? never
-          : K
-        : never;
-    }[keyof UsedProps],
-    any
-  >[]
->;

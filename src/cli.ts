@@ -1,11 +1,16 @@
-#!/usr/bin/env node
 import fs from "node:fs";
 import ts from "typescript";
 import type { SourceFile } from "./ast.ts";
-import { initRules } from "./initRules.ts";
+import { initRules, showTiming } from "./initRules.ts";
 import { loadConfig } from "./loadConfig.ts";
 
 const start = performance.now();
+
+if (showTiming) {
+  console.log(
+    `Booted in ${(start - globalThis.__type_lint_start).toFixed(2)}ms`,
+  );
+}
 
 const formatDiagnostics = (diagnostics: ts.Diagnostic[]) =>
   ts.formatDiagnostics(diagnostics, {
@@ -34,39 +39,47 @@ if (result.errors.length) throw new Error(formatDiagnostics(result.errors));
 
 const host = ts.createCompilerHost(result.options, true);
 const program = ts.createProgram(result.fileNames, result.options, host);
-const emitResult = program.emit();
-const allDiagnostics = ts
-  .getPreEmitDiagnostics(program)
-  .concat(emitResult.diagnostics);
+if (!process.argv.includes("--lint-only")) {
+  const emitResult = program.emit();
+  const allDiagnostics = ts
+    .getPreEmitDiagnostics(program)
+    .concat(emitResult.diagnostics);
 
-allDiagnostics.forEach((diagnostic) => {
-  if (diagnostic.file) {
-    let { line, character } = ts.getLineAndCharacterOfPosition(
-      diagnostic.file,
-      diagnostic.start!,
-    );
-    let message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-    console.log(
-      `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`,
-    );
-  } else {
-    console.log(ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
-  }
-});
-
-console.log(`Typecheck in ${(performance.now() - start).toFixed(2)}ms`);
+  allDiagnostics.forEach((diagnostic) => {
+    if (diagnostic.file) {
+      let { line, character } = ts.getLineAndCharacterOfPosition(
+        diagnostic.file,
+        diagnostic.start!,
+      );
+      let message = ts.flattenDiagnosticMessageText(
+        diagnostic.messageText,
+        "\n",
+      );
+      console.log(
+        `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`,
+      );
+    } else {
+      console.log(
+        ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
+      );
+    }
+  });
+  console.log(`Typecheck in ${(performance.now() - start).toFixed(2)}ms`);
+}
 
 const configStart = performance.now();
 
 const { config } = await loadConfig(program);
 
-const { lint, rulesCount, timing } = await initRules(() => program, config);
+const { lint, rulesCount, timingMaps } = await initRules(() => program, config);
 
-console.log(
-  `Config (${rulesCount} base ${
-    rulesCount === 1 ? "rule" : "rules"
-  }) loaded in ${(performance.now() - configStart).toFixed(2)}ms`,
-);
+if (showTiming) {
+  console.log(
+    `Config (${rulesCount} base ${
+      rulesCount === 1 ? "rule" : "rules"
+    }) loaded in ${(performance.now() - configStart).toFixed(2)}ms`,
+  );
+}
 
 const lintStart = performance.now();
 
@@ -100,10 +113,12 @@ for (const it of files) {
 
 const lintTime = performance.now() - lintStart;
 console.log(`Lint ran in ${lintTime.toFixed(2)}ms`);
-console.log(`Total time: ${(performance.now() - start).toFixed(2)}ms`);
 
-if (timing) {
-  for (const [timingName, map] of Object.entries(timing)) {
+if (timingMaps) {
+  console.log(
+    `Total time: ${(performance.now() - globalThis.__type_lint_start).toFixed(2)}ms`,
+  );
+  for (const [timingName, map] of Object.entries(timingMaps)) {
     const rulesEntries = Object.entries(map)
       .map(([key, time]) => ({ key, time }))
       .sort((a, b) => b.time - a.time);
@@ -116,4 +131,19 @@ if (timing) {
       })),
     );
   }
+}
+
+if (globalThis.__type_lint_profile_session) {
+  globalThis.__type_lint_profile_session.post(
+    "Profiler.stop",
+    (err, { profile }) => {
+      if (err) {
+        throw err;
+      } else {
+        const path = "type-lint-profile.cpuprofile";
+        fs.writeFileSync(path, JSON.stringify(profile));
+        console.log(`Profile save to ${path}`);
+      }
+    },
+  );
 }

@@ -1,8 +1,7 @@
 import { isIntersectionType, isTypeParameter, isUnionType } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
-import { getTypeName } from "../_utils/index.ts";
+import { defineRule, getTypeName } from "../_utils/index.ts";
 import { isIdentifierFromDefaultLibrary } from "../_utils/isBuiltinSymbolLike.ts";
-import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {
@@ -18,51 +17,48 @@ type ParsedOptions = {
   ignoredTypeNames: string[];
 };
 
-export const noBaseToString = createRule(
-  (_options?: { ignoredTypeNames?: string[] }) => {
-    const options: ParsedOptions = {
-      ignoredTypeNames: ["Error", "RegExp", "URL", "URLSearchParams"],
-      ..._options,
-    };
-
-    return {
-      name: "core/noBaseToString",
-      visitor: {
-        CallExpression(node, context) {
-          if (
-            isBuiltInStringCall(context, node)
-            && node.arguments.length === 1
-            && node.arguments[0].kind !== SyntaxKind.SpreadElement
-          ) {
-            checkExpression(context, options, node.arguments[0]);
+export function noBaseToString(_options?: { ignoredTypeNames?: string[] }) {
+  const options: ParsedOptions = {
+    ignoredTypeNames: ["Error", "RegExp", "URL", "URLSearchParams"],
+    ..._options,
+  };
+  return defineRule({
+    name: "core/noBaseToString",
+    visitor: {
+      CallExpression(node, context) {
+        if (
+          isBuiltInStringCall(context, node)
+          && node.arguments.length === 1
+          && node.arguments[0].kind !== SyntaxKind.SpreadElement
+        ) {
+          checkExpression(context, options, node.arguments[0]);
+        }
+        if (
+          node.expression.kind === SyntaxKind.PropertyAccessExpression
+          && node.expression.name.kind === SyntaxKind.Identifier
+        ) {
+          if (node.expression.name.text === "join") {
+            const type = context.utils.getConstrainedTypeAtLocation(
+              node.expression.expression,
+            );
+            checkExpressionForArrayJoin(
+              context,
+              options,
+              node.expression.expression,
+              type,
+            );
           }
           if (
-            node.expression.kind === SyntaxKind.PropertyAccessExpression
-            && node.expression.name.kind === SyntaxKind.Identifier
+            node.expression.name.text === "toString"
+            || node.expression.name.text === "toLocaleString"
           ) {
-            if (node.expression.name.text === "join") {
-              const type = context.utils.getConstrainedTypeAtLocation(
-                node.expression.expression,
-              );
-              checkExpressionForArrayJoin(
-                context,
-                options,
-                node.expression.expression,
-                type,
-              );
-            }
-            if (
-              node.expression.name.text === "toString"
-              || node.expression.name.text === "toLocaleString"
-            ) {
-              checkExpression(context, options, node.expression.expression);
-            }
+            checkExpression(context, options, node.expression.expression);
           }
-        },
+        }
       },
-    };
-  },
-);
+    },
+  });
+}
 
 function checkExpression(
   context: Context,

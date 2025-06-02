@@ -5,6 +5,7 @@ import {
 } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
+  defineRule,
   hasModifier,
   isArrayMethodCallWithPredicate,
   isAssignmentExpression,
@@ -12,7 +13,6 @@ import {
   isLogicalExpression,
   run,
 } from "../_utils/index.ts";
-import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {
@@ -69,130 +69,127 @@ export type NoMisusedPromisesOptions = {
 
 const createData = () => ({ checkedNodes: new Set<ts.Node>() });
 type Data = ReturnType<typeof createData>;
-export const noMisusedPromises = createRule(
-  (_options?: NoMisusedPromisesOptions) => {
-    const options = {
-      checksConditionals: _options?.checksConditionals ?? true,
-      checksSpreads: _options?.checksSpreads ?? true,
-      checksVoidReturn: run(() => {
-        switch (_options?.checksVoidReturn) {
-          case false:
-            return false as const;
-          case true:
-          case undefined:
-            return {
-              arguments: true,
-              attributes: true,
-              inheritedMethods: true,
-              properties: true,
-              returns: true,
-              variables: true,
-            };
-          default:
-            return {
-              arguments: _options?.checksVoidReturn.arguments ?? true,
-              attributes: _options?.checksVoidReturn.attributes ?? true,
-              inheritedMethods:
-                _options?.checksVoidReturn.inheritedMethods ?? true,
-              properties: _options?.checksVoidReturn.properties ?? true,
-              returns: _options?.checksVoidReturn.returns ?? true,
-              variables: _options?.checksVoidReturn.variables ?? true,
-            };
-        }
-      }),
-    };
+export function noMisusedPromises(_options?: NoMisusedPromisesOptions) {
+  const options = {
+    checksConditionals: _options?.checksConditionals ?? true,
+    checksSpreads: _options?.checksSpreads ?? true,
+    checksVoidReturn: run(() => {
+      switch (_options?.checksVoidReturn) {
+        case false:
+          return false as const;
+        case true:
+        case undefined:
+          return {
+            arguments: true,
+            attributes: true,
+            inheritedMethods: true,
+            properties: true,
+            returns: true,
+            variables: true,
+          };
+        default:
+          return {
+            arguments: _options?.checksVoidReturn.arguments ?? true,
+            attributes: _options?.checksVoidReturn.attributes ?? true,
+            inheritedMethods:
+              _options?.checksVoidReturn.inheritedMethods ?? true,
+            properties: _options?.checksVoidReturn.properties ?? true,
+            returns: _options?.checksVoidReturn.returns ?? true,
+            variables: _options?.checksVoidReturn.variables ?? true,
+          };
+      }
+    }),
+  };
 
-    const conditionalChecks: AST.Visitor<Data> = options.checksConditionals
-      ? {
-          CallExpression(node, context) {
-            if (node.expression.kind === SyntaxKind.PropertyAccessExpression) {
-              checkArrayPredicates(context, node.expression);
-            }
-          },
-          ConditionalExpression(node, context) {
-            checkConditional(node.condition, true, context);
-          },
-          DoStatement(node, context) {
-            checkConditional(node.expression, true, context);
-          },
-          ForStatement(node, context) {
-            if (node.condition) checkConditional(node.condition, true, context);
-          },
-          IfStatement(node, context) {
-            checkConditional(node.expression, true, context);
-          },
-          BinaryExpression(node, context) {
-            if (isLogicalExpression(node.operatorToken)) {
-              checkConditional(node, false, context);
-            }
-          },
-          PrefixUnaryExpression(node, context) {
-            checkConditional(node.operand, true, context);
-          },
-          WhileStatement(node, context) {
-            checkConditional(node.expression, true, context);
-          },
-        }
-      : {};
-
-    const voidReturnChecks: AST.Visitor<Data> = options.checksVoidReturn
-      ? {
-          ...(options.checksVoidReturn.arguments
-            && ({
-              CallExpression: checkArguments,
-              NewExpression: checkArguments,
-            } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.attributes
-            && ({
-              JsxAttribute: checkJSXAttribute,
-            } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.inheritedMethods
-            && ({
-              ClassDeclaration: checkClassLikeOrInterfaceNode,
-              ClassExpression: checkClassLikeOrInterfaceNode,
-              InterfaceDeclaration: checkClassLikeOrInterfaceNode,
-            } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.properties
-            && ({
-              PropertyAssignment: checkPropertyAssignment,
-              ShorthandPropertyAssignment: checkShorthandPropertyAssignment,
-              MethodDeclaration: checkMethodDeclaration,
-            } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.returns
-            && ({
-              ReturnStatement: checkReturnStatement,
-            } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.variables
-            && ({
-              BinaryExpression: checkAssignment,
-              VariableDeclaration: checkVariableDeclaration,
-            } satisfies AST.Visitor<Data>)),
-        }
-      : {};
-
-    const spreadChecks: AST.Visitor<Data> = options.checksSpreads
-      ? { SpreadAssignment: checkSpread }
-      : {};
-
-    return {
-      name: "core/noMisusedPromises",
-      createData: () => ({ checkedNodes: new Set<ts.Node>() }),
-      visitor: {
-        ...conditionalChecks,
-        ...voidReturnChecks,
-        ...spreadChecks,
-        BinaryExpression(node, context) {
-          conditionalChecks.BinaryExpression?.(node, context);
-          voidReturnChecks.BinaryExpression?.(node, context);
-        },
+  const conditionalChecks: AST.Visitor<Data> = options.checksConditionals
+    ? {
         CallExpression(node, context) {
-          conditionalChecks.CallExpression?.(node, context);
-          voidReturnChecks.CallExpression?.(node, context);
+          if (node.expression.kind === SyntaxKind.PropertyAccessExpression) {
+            checkArrayPredicates(context, node.expression);
+          }
         },
+        ConditionalExpression(node, context) {
+          checkConditional(node.condition, true, context);
+        },
+        DoStatement(node, context) {
+          checkConditional(node.expression, true, context);
+        },
+        ForStatement(node, context) {
+          if (node.condition) checkConditional(node.condition, true, context);
+        },
+        IfStatement(node, context) {
+          checkConditional(node.expression, true, context);
+        },
+        BinaryExpression(node, context) {
+          if (isLogicalExpression(node.operatorToken)) {
+            checkConditional(node, false, context);
+          }
+        },
+        PrefixUnaryExpression(node, context) {
+          checkConditional(node.operand, true, context);
+        },
+        WhileStatement(node, context) {
+          checkConditional(node.expression, true, context);
+        },
+      }
+    : {};
+
+  const voidReturnChecks: AST.Visitor<Data> = options.checksVoidReturn
+    ? {
+        ...(options.checksVoidReturn.arguments
+          && ({
+            CallExpression: checkArguments,
+            NewExpression: checkArguments,
+          } satisfies AST.Visitor<Data>)),
+        ...(options.checksVoidReturn.attributes
+          && ({
+            JsxAttribute: checkJSXAttribute,
+          } satisfies AST.Visitor<Data>)),
+        ...(options.checksVoidReturn.inheritedMethods
+          && ({
+            ClassDeclaration: checkClassLikeOrInterfaceNode,
+            ClassExpression: checkClassLikeOrInterfaceNode,
+            InterfaceDeclaration: checkClassLikeOrInterfaceNode,
+          } satisfies AST.Visitor<Data>)),
+        ...(options.checksVoidReturn.properties
+          && ({
+            PropertyAssignment: checkPropertyAssignment,
+            ShorthandPropertyAssignment: checkShorthandPropertyAssignment,
+            MethodDeclaration: checkMethodDeclaration,
+          } satisfies AST.Visitor<Data>)),
+        ...(options.checksVoidReturn.returns
+          && ({
+            ReturnStatement: checkReturnStatement,
+          } satisfies AST.Visitor<Data>)),
+        ...(options.checksVoidReturn.variables
+          && ({
+            BinaryExpression: checkAssignment,
+            VariableDeclaration: checkVariableDeclaration,
+          } satisfies AST.Visitor<Data>)),
+      }
+    : {};
+
+  const spreadChecks: AST.Visitor<Data> = options.checksSpreads
+    ? { SpreadAssignment: checkSpread }
+    : {};
+  return defineRule({
+    name: "core/noMisusedPromises",
+    createData: () => ({ checkedNodes: new Set<ts.Node>() }),
+    visitor: {
+      ...conditionalChecks,
+      ...voidReturnChecks,
+      ...spreadChecks,
+      BinaryExpression(node, context) {
+        conditionalChecks.BinaryExpression?.(node, context);
+        voidReturnChecks.BinaryExpression?.(node, context);
       },
-    };
-  },
-);
+      CallExpression(node, context) {
+        conditionalChecks.CallExpression?.(node, context);
+        voidReturnChecks.CallExpression?.(node, context);
+      },
+    },
+  });
+}
 
 /**
  * This function analyzes the type of a node and checks if it is a Promise in a boolean conditional.

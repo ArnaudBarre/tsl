@@ -3,13 +3,12 @@ import {
   isObjectFlagSet,
   isObjectType,
   isTypeFlagSet,
-  typeParts,
+  typeConstituents,
   unionConstituents,
 } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
-import { addAwait, isTypeRecurser } from "../_utils/index.ts";
+import { addAwait, defineRule, isTypeRecurser } from "../_utils/index.ts";
 import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
-import { createRule } from "../../index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {
@@ -39,30 +38,32 @@ export const messages = {
     "Replace map spread in object with `Object.fromEntries()`",
 };
 
-export const noMisusedSpread = createRule(() => ({
-  name: "core/noMisusedSpread",
-  visitor: {
-    SpreadAssignment(node, context) {
-      checkObjectSpread(node, context);
-    },
-    JsxSpreadAttribute(node, context) {
-      checkObjectSpread(node, context);
-    },
-    SpreadElement(node, context) {
-      if (
-        node.parent.kind === SyntaxKind.CallExpression
-        || node.parent.kind === SyntaxKind.ArrayLiteralExpression
-      ) {
-        const type = context.utils.getConstrainedTypeAtLocation(
-          node.expression,
-        );
-        if (isString(type)) {
-          context.report({ node, message: messages.noStringSpread });
+export function noMisusedSpread() {
+  return defineRule({
+    name: "core/noMisusedSpread",
+    visitor: {
+      SpreadAssignment(node, context) {
+        checkObjectSpread(node, context);
+      },
+      JsxSpreadAttribute(node, context) {
+        checkObjectSpread(node, context);
+      },
+      SpreadElement(node, context) {
+        if (
+          node.parent.kind === SyntaxKind.CallExpression
+          || node.parent.kind === SyntaxKind.ArrayLiteralExpression
+        ) {
+          const type = context.utils.getConstrainedTypeAtLocation(
+            node.expression,
+          );
+          if (isString(type)) {
+            context.report({ node, message: messages.noStringSpread });
+          }
         }
-      }
+      },
     },
-  },
-}));
+  });
+}
 
 function checkObjectSpread(
   node: AST.JsxSpreadAttribute | AST.SpreadAssignment,
@@ -172,7 +173,7 @@ function checkObjectSpread(
 }
 
 function isIterable(type: ts.Type, context: Context): boolean {
-  return typeParts(type).some((t) =>
+  return typeConstituents(type).some((t) =>
     getWellKnownSymbolPropertyOfType(t, "iterator", context.rawChecker),
   );
 }

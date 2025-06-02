@@ -2,11 +2,11 @@ import { unionConstituents } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import {
   addAwait,
+  defineRule,
   isHigherPrecedenceThanUnary,
   isLogicalExpression,
 } from "../_utils/index.ts";
 import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
-import { createRule } from "../../index.ts";
 import type { AST, Checker, Context, Suggestion } from "../../types.ts";
 
 const messageBase =
@@ -56,103 +56,100 @@ export type NoFloatingPromisesOptions = {
   ignoreVoid?: boolean;
 };
 
-export const noFloatingPromises = createRule(
-  (_options?: NoFloatingPromisesOptions) => {
-    const options: ParsedOptions = {
-      allowList: [],
-      ignoreIIFE: false,
-      ignoreVoid: true,
-      ..._options,
-    };
+export function noFloatingPromises(_options?: NoFloatingPromisesOptions) {
+  const options: ParsedOptions = {
+    allowList: [],
+    ignoreIIFE: false,
+    ignoreVoid: true,
+    ..._options,
+  };
+  return defineRule({
+    name: "core/noFloatingPromises",
+    visitor: {
+      ExpressionStatement(node, context) {
+        if (options.ignoreIIFE && isAsyncIife(node)) {
+          return;
+        }
 
-    return {
-      name: "core/noFloatingPromises",
-      visitor: {
-        ExpressionStatement(node, context) {
-          if (options.ignoreIIFE && isAsyncIife(node)) {
-            return;
+        if (
+          node.expression.kind === SyntaxKind.CallExpression
+          && node.expression.expression.kind === SyntaxKind.Identifier
+          && options.allowList.includes(node.expression.expression.text)
+        ) {
+          return;
+        }
+
+        const { isUnhandled, nonFunctionHandler, promiseArray } =
+          isUnhandledPromise(
+            context.checker,
+            node.expression,
+            context,
+            options,
+          );
+
+        if (isUnhandled) {
+          if (promiseArray) {
+            context.report({
+              node,
+              message: options.ignoreVoid
+                ? messages.floatingPromiseArrayVoid
+                : messages.floatingPromiseArray,
+            });
+          } else if (options.ignoreVoid) {
+            context.report({
+              node,
+              message: nonFunctionHandler
+                ? messages.floatingUselessRejectionHandlerVoid
+                : messages.floatingVoid,
+              suggestions: [
+                {
+                  message: messages.floatingFixVoid,
+                  changes: isHigherPrecedenceThanUnary(node.expression)
+                    ? [
+                        {
+                          start: node.getStart(),
+                          length: 0,
+                          newText: "void ",
+                        },
+                      ]
+                    : [
+                        {
+                          start: node.getStart(),
+                          length: 0,
+                          newText: "void (",
+                        },
+                        {
+                          start: node.expression.getEnd(),
+                          length: 0,
+                          newText: ")",
+                        },
+                      ],
+                },
+                {
+                  message: messages.floatingFixAwait,
+                  changes: addAwaitOrReplaceVoid(node.expression, node),
+                },
+              ],
+            });
+          } else {
+            context.report({
+              node,
+              message: nonFunctionHandler
+                ? messages.floatingUselessRejectionHandler
+                : messages.floating,
+              suggestions: [
+                {
+                  message: messages.floatingFixAwait,
+                  changes: addAwaitOrReplaceVoid(node.expression, node),
+                },
+              ],
+            });
           }
-
-          if (
-            node.expression.kind === SyntaxKind.CallExpression
-            && node.expression.expression.kind === SyntaxKind.Identifier
-            && options.allowList.includes(node.expression.expression.text)
-          ) {
-            return;
-          }
-
-          const { isUnhandled, nonFunctionHandler, promiseArray } =
-            isUnhandledPromise(
-              context.checker,
-              node.expression,
-              context,
-              options,
-            );
-
-          if (isUnhandled) {
-            if (promiseArray) {
-              context.report({
-                node,
-                message: options.ignoreVoid
-                  ? messages.floatingPromiseArrayVoid
-                  : messages.floatingPromiseArray,
-              });
-            } else if (options.ignoreVoid) {
-              context.report({
-                node,
-                message: nonFunctionHandler
-                  ? messages.floatingUselessRejectionHandlerVoid
-                  : messages.floatingVoid,
-                suggestions: [
-                  {
-                    message: messages.floatingFixVoid,
-                    changes: isHigherPrecedenceThanUnary(node.expression)
-                      ? [
-                          {
-                            start: node.getStart(),
-                            length: 0,
-                            newText: "void ",
-                          },
-                        ]
-                      : [
-                          {
-                            start: node.getStart(),
-                            length: 0,
-                            newText: "void (",
-                          },
-                          {
-                            start: node.expression.getEnd(),
-                            length: 0,
-                            newText: ")",
-                          },
-                        ],
-                  },
-                  {
-                    message: messages.floatingFixAwait,
-                    changes: addAwaitOrReplaceVoid(node.expression, node),
-                  },
-                ],
-              });
-            } else {
-              context.report({
-                node,
-                message: nonFunctionHandler
-                  ? messages.floatingUselessRejectionHandler
-                  : messages.floating,
-                suggestions: [
-                  {
-                    message: messages.floatingFixAwait,
-                    changes: addAwaitOrReplaceVoid(node.expression, node),
-                  },
-                ],
-              });
-            }
-          }
-        },
+        }
       },
-    };
-  },
-);
+    },
+  });
+}
 
 function addAwaitOrReplaceVoid(
   expression: AST.Expression,

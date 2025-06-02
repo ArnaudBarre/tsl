@@ -2,19 +2,19 @@ import { rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { context } from "esbuild";
 import type * as ts from "typescript";
-import type { getPlugin } from "../src/plugin.ts";
+import type { getPlugin } from "../src/getPlugin.ts";
 
 let currentProject:
   | { ts: typeof ts; info: ts.server.PluginCreateInfo }
   | undefined;
 let plugin: Awaited<ReturnType<typeof getPlugin>> | undefined;
 
-const outfile = join(__dirname, "get-plugin.mjs");
+const outfile = join(__dirname, "getPlugin.mjs");
 rmSync(outfile, { force: true });
 
 context({
   bundle: true,
-  entryPoints: [join(__dirname, "../src/plugin.ts")],
+  entryPoints: [join(__dirname, "../src/getPlugin.ts")],
   outfile,
   platform: "node",
   format: "esm",
@@ -28,12 +28,12 @@ context({
           for (const m of result.warnings) log(m.text);
           try {
             if (plugin) plugin.cleanUp();
-            let path = "./get-plugin.mjs" + `?${Date.now()}`;
+            let path = "./getPlugin.mjs" + `?${Date.now()}`;
             const module = (await import(path)) as {
               getPlugin: typeof getPlugin;
             };
             if (!currentProject) {
-              log("get-plugin loaded before plugin start");
+              log("getPlugin loaded before plugin start");
             } else {
               plugin = await module.getPlugin(
                 currentProject.ts,

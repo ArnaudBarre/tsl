@@ -19,6 +19,7 @@ export const getPlugin = async (
 }> => {
   const watchedFiles = new Map<string, FSWatcher>();
   let lint: Awaited<ReturnType<typeof initRules>>["lint"];
+  let diagnosticCategory: Diagnostic["category"];
 
   const load = async () => {
     const start = performance.now();
@@ -38,6 +39,10 @@ export const getPlugin = async (
     }
     const result = await initRules(() => languageService.getProgram()!, config);
     lint = result.lint;
+    diagnosticCategory =
+      config.diagnosticCategory === "error"
+        ? ts.DiagnosticCategory.Error
+        : ts.DiagnosticCategory.Warning;
     log?.(
       `Config with ${result.rulesCount} rules loaded in ${(
         performance.now() - start
@@ -65,73 +70,79 @@ export const getPlugin = async (
     }
 
     lint(sourceFile as unknown as SourceFile, (report) => {
-      if (report.type === "rule") {
-        const { message, rule, suggestions } = report;
-        const start = "node" in report ? report.node.getStart() : report.start;
-        const end = "node" in report ? report.node.getEnd() : report.end;
-        diagnostics.push({
-          category: ts.DiagnosticCategory.Warning,
-          source: "type-lint",
-          code: 61_333,
-          messageText: `${message} (${rule.name})`,
-          file: sourceFile,
-          start,
-          length: end - start,
-        });
-        if (suggestions) {
-          const suggestionsArray =
-            typeof suggestions === "function" ? suggestions() : suggestions;
-          for (const suggestion of suggestionsArray) {
-            fileSuggestions.push({
-              rule: rule.name,
-              start,
-              end,
-              message: suggestion.message,
-              changes: suggestion.changes,
-            });
+      switch (report.type) {
+        case "rule": {
+          const { message, rule, suggestions } = report;
+          const start =
+            "node" in report ? report.node.getStart() : report.start;
+          const end = "node" in report ? report.node.getEnd() : report.end;
+          diagnostics.push({
+            category: diagnosticCategory,
+            source: "type-lint",
+            code: 61_333,
+            messageText: `${message} (${rule.name})`,
+            file: sourceFile,
+            start,
+            length: end - start,
+          });
+          if (suggestions) {
+            const suggestionsArray =
+              typeof suggestions === "function" ? suggestions() : suggestions;
+            for (const suggestion of suggestionsArray) {
+              fileSuggestions.push({
+                rule: rule.name,
+                start,
+                end,
+                message: suggestion.message,
+                changes: suggestion.changes,
+              });
+            }
           }
+          const lineStart = sourceFile
+            .getLineStarts()
+            .findLast((it) => it <= start)!;
+          let nbSpaces = 0;
+          while (sourceFile.text[lineStart + nbSpaces] === " ") nbSpaces++;
+          fileSuggestions.push({
+            rule: rule.name,
+            start,
+            end,
+            message: `Ignore ${rule.name} rule`,
+            changes: [
+              {
+                start: lineStart,
+                length: 0,
+                newText: `${" ".repeat(nbSpaces)}// type-lint-ignore ${
+                  rule.name
+                }\n`,
+              },
+            ],
+          });
+          break;
         }
-        const lineStart = sourceFile
-          .getLineStarts()
-          .findLast((it) => it <= start)!;
-        let nbSpaces = 0;
-        while (sourceFile.text[lineStart + nbSpaces] === " ") nbSpaces++;
-        fileSuggestions.push({
-          rule: rule.name,
-          start,
-          end,
-          message: `Ignore ${rule.name} rule`,
-          changes: [
-            {
-              start: lineStart,
-              length: 0,
-              newText: `${" ".repeat(nbSpaces)}// type-lint-ignore ${
-                rule.name
-              }\n`,
-            },
-          ],
-        });
-      } else {
-        const { message, suggestions, start, end } = report;
-        diagnostics.push({
-          category: ts.DiagnosticCategory.Warning,
-          source: "type-lint",
-          code: 61_333,
-          messageText: message,
-          file: sourceFile,
-          start,
-          length: end - start,
-        });
-        if (suggestions.length) {
-          for (const suggestion of suggestions) {
-            fileSuggestions.push({
-              rule: "ignore",
-              start,
-              end,
-              message: suggestion.message,
-              changes: suggestion.changes,
-            });
+        case "ignore": {
+          const { message, suggestions, start, end } = report;
+          diagnostics.push({
+            category: ts.DiagnosticCategory.Warning,
+            source: "type-lint",
+            code: 61_333,
+            messageText: message,
+            file: sourceFile,
+            start,
+            length: end - start,
+          });
+          if (suggestions.length) {
+            for (const suggestion of suggestions) {
+              fileSuggestions.push({
+                rule: "ignore",
+                start,
+                end,
+                message: suggestion.message,
+                changes: suggestion.changes,
+              });
+            }
           }
+          break;
         }
       }
     });

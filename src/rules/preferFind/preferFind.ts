@@ -5,7 +5,7 @@ import {
   unionConstituents,
 } from "ts-api-utils";
 import { SyntaxKind, type Type } from "typescript";
-import { createRule } from "../../index.ts";
+import { defineRule } from "../_utils/index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {
@@ -13,35 +13,38 @@ export const messages = {
   preferFindSuggestion: "Use .find(...) instead of .filter(...)[0].",
 };
 
-export const preferFind = createRule(() => ({
-  name: "core/preferFind",
-  visitor: {
-    CallExpression(node, context) {
-      // `<leftHandSide>.at(<arg>)`.
-      if (node.arguments.length !== 1) return;
-      if (node.expression.kind !== SyntaxKind.PropertyAccessExpression) return;
-      if (node.expression.name.kind !== SyntaxKind.Identifier) return;
-      if (node.expression.name.text !== "at") return;
-      checkAccess(
-        node,
-        node.expression.expression,
-        node.arguments[0],
-        node.expression.name.getFullStart() - 1,
-        context,
-      );
+export function preferFind() {
+  return defineRule({
+    name: "core/preferFind",
+    visitor: {
+      CallExpression(node, context) {
+        // `<leftHandSide>.at(<arg>)`.
+        if (node.arguments.length !== 1) return;
+        if (node.expression.kind !== SyntaxKind.PropertyAccessExpression)
+          return;
+        if (node.expression.name.kind !== SyntaxKind.Identifier) return;
+        if (node.expression.name.text !== "at") return;
+        checkAccess(
+          node,
+          node.expression.expression,
+          node.arguments[0],
+          node.expression.name.getFullStart() - 1,
+          context,
+        );
+      },
+      ElementAccessExpression(node, context) {
+        // `<leftHandSide>[<arg>]`.
+        checkAccess(
+          node,
+          node.expression,
+          node.argumentExpression,
+          node.argumentExpression.getFullStart() - 1,
+          context,
+        );
+      },
     },
-    ElementAccessExpression(node, context) {
-      // `<leftHandSide>[<arg>]`.
-      checkAccess(
-        node,
-        node.expression,
-        node.argumentExpression,
-        node.argumentExpression.getFullStart() - 1,
-        context,
-      );
-    },
-  },
-}));
+  });
+}
 
 function checkAccess(
   node: AST.Expression,

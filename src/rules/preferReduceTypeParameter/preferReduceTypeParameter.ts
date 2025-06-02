@@ -1,6 +1,6 @@
 import { intersectionConstituents, unionConstituents } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
-import { createRule } from "../../index.ts";
+import { defineRule } from "../_utils/index.ts";
 import type { Context, Suggestion } from "../../types.ts";
 
 export const messages = {
@@ -9,74 +9,76 @@ export const messages = {
   fix: "Replace with a type parameter.",
 };
 
-export const preferReduceTypeParameter = createRule(() => ({
-  name: "core/preferReduceTypeParameter",
-  visitor: {
-    CallExpression(node, context) {
-      const callee = node.expression;
+export function preferReduceTypeParameter() {
+  return defineRule({
+    name: "core/preferReduceTypeParameter",
+    visitor: {
+      CallExpression(node, context) {
+        const callee = node.expression;
 
-      if (callee.kind !== SyntaxKind.PropertyAccessExpression) return;
-      if (callee.name.text !== "reduce") return;
+        if (callee.kind !== SyntaxKind.PropertyAccessExpression) return;
+        if (callee.name.text !== "reduce") return;
 
-      const secondArg = node.arguments.at(1);
-      if (!secondArg) return;
+        const secondArg = node.arguments.at(1);
+        if (!secondArg) return;
 
-      const isAs = secondArg.kind === SyntaxKind.AsExpression;
-      const isCast = secondArg.kind === SyntaxKind.TypeAssertionExpression;
-      if (!isAs && !isCast) return;
+        const isAs = secondArg.kind === SyntaxKind.AsExpression;
+        const isCast = secondArg.kind === SyntaxKind.TypeAssertionExpression;
+        if (!isAs && !isCast) return;
 
-      const calleeObjType = context.utils.getConstrainedTypeAtLocation(
-        callee.expression,
-      );
-      if (!isArrayType(calleeObjType, context)) return;
+        const calleeObjType = context.utils.getConstrainedTypeAtLocation(
+          callee.expression,
+        );
+        if (!isArrayType(calleeObjType, context)) return;
 
-      const initializerType = context.checker.getTypeAtLocation(
-        secondArg.expression,
-      );
+        const initializerType = context.checker.getTypeAtLocation(
+          secondArg.expression,
+        );
 
-      const assertedType = context.checker.getTypeAtLocation(secondArg.type);
+        const assertedType = context.checker.getTypeAtLocation(secondArg.type);
 
-      const isAssertionNecessary = !context.checker.isTypeAssignableTo(
-        initializerType,
-        assertedType,
-      );
+        const isAssertionNecessary = !context.checker.isTypeAssignableTo(
+          initializerType,
+          assertedType,
+        );
 
-      // don't report this if the resulting fix will be a type error
-      if (isAssertionNecessary) {
-        return;
-      }
+        // don't report this if the resulting fix will be a type error
+        if (isAssertionNecessary) {
+          return;
+        }
 
-      context.report({
-        node: secondArg,
-        message: messages.preferTypeParameter,
-        suggestions: () => {
-          const changes: Suggestion["changes"] = [];
-          if (isAs) {
-            changes.push({
-              start: secondArg.expression.getEnd(),
-              end: secondArg.getEnd(),
-              newText: "",
-            });
-          } else if (isCast) {
-            changes.push({
-              start: secondArg.getStart(),
-              end: secondArg.expression.getStart(),
-              newText: "",
-            });
-          }
-          if (!node.typeArguments) {
-            changes.push({
-              start: callee.getEnd(),
-              length: 0,
-              newText: `<${secondArg.type.getText()}>`,
-            });
-          }
-          return [{ message: messages.fix, changes }];
-        },
-      });
+        context.report({
+          node: secondArg,
+          message: messages.preferTypeParameter,
+          suggestions: () => {
+            const changes: Suggestion["changes"] = [];
+            if (isAs) {
+              changes.push({
+                start: secondArg.expression.getEnd(),
+                end: secondArg.getEnd(),
+                newText: "",
+              });
+            } else if (isCast) {
+              changes.push({
+                start: secondArg.getStart(),
+                end: secondArg.expression.getStart(),
+                newText: "",
+              });
+            }
+            if (!node.typeArguments) {
+              changes.push({
+                start: callee.getEnd(),
+                length: 0,
+                newText: `<${secondArg.type.getText()}>`,
+              });
+            }
+            return [{ message: messages.fix, changes }];
+          },
+        });
+      },
     },
-  },
-}));
+  });
+}
 
 function isArrayType(type: ts.Type, context: Context): boolean {
   return unionConstituents(type).every((unionPart) =>
