@@ -28,7 +28,7 @@ bun add @arnaud-barre/type-lint
 
 ### Add a configuration
 
-Add a `type-lint.config.ts` file to your project root.
+Add a `type-lint.config.ts` file to your project root. If you don't have one, all core rules are enabled.
 
 You can either enable all core rules and disable some of them or update options if needed
 

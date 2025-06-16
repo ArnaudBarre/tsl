@@ -11,7 +11,12 @@ await build({
 
 await build({
   clean: false,
-  entry: ["src/cli-entrypoint.ts", "src/cli.ts"],
+  entry: [
+    "src/index.ts",
+    "src/ruleTester.ts",
+    "src/cli-entrypoint.ts",
+    "src/cli.ts",
+  ],
 });
 
 await build({

@@ -3,9 +3,10 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { build, type BuildResult, formatMessagesSync } from "esbuild";
 import ts from "typescript";
+import { core } from "./index.ts";
 import type { Config } from "./types.ts";
 
-const defaultConfig: Config<string> = { rules: [] };
+const defaultConfig: Config<string> = { rules: core.all() };
 
 export const loadConfig = async (
   program: ts.Program,
