@@ -17,6 +17,18 @@ if (cmd === "-v" || cmd === "--version") {
   process.exit();
 }
 
+if (cmd === "--help") {
+  console.log(`Usage: type-lint [options]
+
+Options:
+  -p, --project=path   Path to the tsconfig to lint (default: tsconfig.json)
+  -v, --version        Print the version
+  --help               Print this help message
+  --profile            Profile the linting process
+`);
+  process.exit();
+}
+
 const main = async () => {
   await import("./cli.ts");
 };

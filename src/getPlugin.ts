@@ -8,7 +8,7 @@ import type { Suggestion } from "./types.ts";
 export const getPlugin = async (
   ts: typeof import("typescript"),
   languageService: LanguageService,
-  log?: (v: string) => void,
+  log: (v: string) => void,
 ): Promise<{
   getSemanticDiagnostics(
     fileName: string,
@@ -43,8 +43,12 @@ export const getPlugin = async (
       config.diagnosticCategory === "error"
         ? ts.DiagnosticCategory.Error
         : ts.DiagnosticCategory.Warning;
-    log?.(
-      `Config with ${result.rulesCount} rules loaded in ${(
+    (ts as any).codefix.registerCodeFix({
+      errorCodes: Array.from(result.allRules),
+      getCodeActions: () => undefined,
+    });
+    log(
+      `type-lint: Config with ${result.allRules.size} rules loaded in ${(
         performance.now() - start
       ).toFixed(2)}ms`,
     );
@@ -65,7 +69,7 @@ export const getPlugin = async (
     if (fileName.includes("/node_modules/")) return result;
     const sourceFile = languageService.getProgram()?.getSourceFile(fileName);
     if (!sourceFile) {
-      log?.("No sourceFile");
+      log("type-lint: No sourceFile");
       return result;
     }
 
@@ -79,8 +83,8 @@ export const getPlugin = async (
           diagnostics.push({
             category: diagnosticCategory,
             source: "type-lint",
-            code: 61_333,
-            messageText: `${message} (${rule.name})`,
+            code: rule.name as any,
+            messageText: message,
             file: sourceFile,
             start,
             length: end - start,
@@ -112,7 +116,7 @@ export const getPlugin = async (
               {
                 start: lineStart,
                 length: 0,
-                newText: `${" ".repeat(nbSpaces)}// type-lint-ignore ${
+                newText: `${" ".repeat(nbSpaces)}/\/ type-lint-ignore ${
                   rule.name
                 }\n`,
               },
@@ -125,7 +129,7 @@ export const getPlugin = async (
           diagnostics.push({
             category: ts.DiagnosticCategory.Warning,
             source: "type-lint",
-            code: 61_333,
+            code: "unusedComment" as any,
             messageText: message,
             file: sourceFile,
             start,

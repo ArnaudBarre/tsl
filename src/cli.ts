@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { parseArgs } from "node:util";
 import ts from "typescript";
 import type { SourceFile } from "./ast.ts";
 import { initRules, showTiming } from "./initRules.ts";
@@ -19,9 +20,15 @@ const formatDiagnostics = (diagnostics: ts.Diagnostic[]) =>
     getNewLine: () => "\n",
   });
 
+const { values } = parseArgs({
+  options: {
+    project: { type: "string", short: "p" },
+  },
+});
+
 const cwd = process.cwd();
 const parsed = ts.getParsedCommandLineOfConfigFile(
-  "./tsconfig.json",
+  values.project ?? "./tsconfig.json",
   undefined,
   {
     onUnRecoverableConfigFileDiagnostic: (diag) => {
@@ -39,6 +46,7 @@ if (result.errors.length) throw new Error(formatDiagnostics(result.errors));
 
 const host = ts.createCompilerHost(result.options, true);
 const program = ts.createProgram(result.fileNames, result.options, host);
+let hasError = false;
 if (!process.argv.includes("--lint-only")) {
   const emitResult = program.emit();
   const allDiagnostics = ts
@@ -64,6 +72,7 @@ if (!process.argv.includes("--lint-only")) {
       );
     }
   });
+  hasError = allDiagnostics.length > 0;
   console.log(`Typecheck in ${(performance.now() - start).toFixed(2)}ms`);
 }
 
@@ -71,12 +80,12 @@ const configStart = performance.now();
 
 const { config } = await loadConfig(program);
 
-const { lint, rulesCount, timingMaps } = await initRules(() => program, config);
+const { lint, allRules, timingMaps } = await initRules(() => program, config);
 
 if (showTiming) {
   console.log(
-    `Config (${rulesCount} base ${
-      rulesCount === 1 ? "rule" : "rules"
+    `Config (${allRules.size} base ${
+      allRules.size === 1 ? "rule" : "rules"
     }) loaded in ${(performance.now() - configStart).toFixed(2)}ms`,
   );
 }
@@ -89,6 +98,7 @@ const displayFilename = (name: string) => name.slice(cwd.length + 1);
 
 for (const it of files) {
   lint(it as unknown as SourceFile, (report) => {
+    hasError = true;
     if (report.type === "rule") {
       const { line, character } = it.getLineAndCharacterOfPosition(
         "node" in report ? report.node.getStart() : report.start,
@@ -131,6 +141,10 @@ if (timingMaps) {
       })),
     );
   }
+}
+
+if (hasError) {
+  process.exit(1);
 }
 
 if (globalThis.__type_lint_profile_session) {

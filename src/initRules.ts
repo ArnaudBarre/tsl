@@ -59,17 +59,6 @@ export const initRules = async (
     }
   }
 
-  let ignoreComments: {
-    start: number;
-    end: number;
-    line: number;
-    ruleName: string | undefined;
-    local: boolean;
-    used: boolean;
-  }[] = [];
-  const commentsStarts = new Set<number>();
-  let lineStarts: readonly number[] = [];
-
   type RuleWithContext = { rule: UnknownRule; context: Context };
   const getRulesVisitFnCache = new Map<
     string /* overridesKey */,
@@ -163,39 +152,6 @@ export const initRules = async (
     }
 
     const visit = (node: AST.AnyNode) => {
-      const text = node.getFullText();
-      const nodeStart = node.getFullStart();
-      ts.forEachLeadingCommentRange(text, 0, (start, end, kind) => {
-        const commentStart = nodeStart + start;
-        if (commentsStarts.has(commentStart)) return;
-        commentsStarts.add(commentStart);
-        const single = kind === ts.SyntaxKind.SingleLineCommentTrivia;
-        const comment = text.slice(start + 3, single ? end : end - 2);
-        if (comment.startsWith("type-lint-ignore")) {
-          const ruleName = comment.split(" ", 2).at(1);
-          const line =
-            lineStarts.findLastIndex((lineStart) => commentStart >= lineStart)
-            + 1;
-          ignoreComments.push({
-            line,
-            start: commentStart,
-            end: nodeStart + end,
-            ruleName,
-            local: single,
-            used: false,
-          });
-        }
-      });
-
-      if (
-        node.kind === ts.SyntaxKind.SourceFile
-        && ignoreComments.some((it) => it.ruleName === undefined && !it.local)
-      ) {
-        // File is ignored
-        ignoreComments = [];
-        return;
-      }
-
       entryMap[node.kind]?.(node);
       // @ts-expect-error
       node.forEachChild(visit);
@@ -209,6 +165,7 @@ export const initRules = async (
 
   type Report = ReportDescriptor & { type: "rule"; rule: UnknownRule };
   return {
+    allRules,
     lint: (
       sourceFile: SourceFile,
       onReport: (
@@ -225,6 +182,8 @@ export const initRules = async (
     ) => {
       if (sourceFile.fileName.includes("node_modules")) return;
       if (config.ignore?.some((p) => sourceFile.fileName.includes(p))) return;
+      const { fileIgnored, ignoreComments } = getIgnoreComments(sourceFile);
+      if (fileIgnored) return;
       const { rulesWithContext, visit } = getRulesVisitFn(sourceFile.fileName);
       const start = showTiming ? performance.now() : 0;
       const reports: Report[] = [];
@@ -241,10 +200,8 @@ export const initRules = async (
           }
         }
       }
-      ignoreComments = [];
-      commentsStarts.clear();
-      lineStarts = sourceFile.getLineStarts();
       visit(sourceFile);
+      const lineStarts = sourceFile.getLineStarts();
       for (const report of reports) {
         const timingStart = showTiming ? performance.now() : 0;
         const start = "node" in report ? report.node.getStart() : report.start;
@@ -269,7 +226,7 @@ export const initRules = async (
         if (comment.used) continue;
         const lineStart = lineStarts[comment.line - 1];
         const lineEnd = lineStarts.at(comment.line);
-        const { start, length } = run(() => {
+        const fixLocation = run(() => {
           const fileText = sourceFile.getText();
           const lineText = fileText.slice(lineStart, lineEnd).trim();
           const commentText = fileText.slice(comment.start, comment.end);
@@ -289,7 +246,7 @@ export const initRules = async (
           suggestions: [
             {
               message: "Remove unused ignore comment",
-              changes: [{ start, length, newText: "" }],
+              changes: [{ ...fixLocation, newText: "" }],
             },
           ],
         });
@@ -298,9 +255,69 @@ export const initRules = async (
         filesTimingMap[sourceFile.fileName] = performance.now() - start;
       }
     },
-    rulesCount: allRules.size,
     timingMaps: showTiming
       ? { Rule: rulesTimingMap, File: filesTimingMap }
       : undefined,
   };
+};
+
+type IgnoreComment = {
+  start: number;
+  end: number;
+  line: number;
+  ruleName: string | undefined;
+  local: boolean;
+  used: boolean;
+};
+const inlineCommentRE = /\/\/ type-lint-ignore([^\n]*)/g;
+const blockCommentRE = /\/\* type-lint-ignore([^\n]*)\*\//g;
+const getIgnoreComments = (sourceFile: SourceFile) => {
+  const ignoreComments: IgnoreComment[] = [];
+  const lineStarts = sourceFile.getLineStarts();
+  const text = sourceFile.getFullText();
+  const block = text.matchAll(blockCommentRE);
+  let currentLine = 0;
+  let fileIgnored = false;
+  for (const match of block) {
+    const ruleName = match[1].trim();
+    if (!ruleName && match.index < sourceFile.getStart()) {
+      fileIgnored = true;
+      break;
+    }
+    for (let i = currentLine; i < lineStarts.length; i++) {
+      if (lineStarts[i] > match.index) {
+        currentLine = i;
+        break;
+      }
+    }
+    ignoreComments.push({
+      line: currentLine,
+      start: match.index,
+      end: match.index + match[0].length,
+      ruleName,
+      local: false,
+      used: false,
+    });
+  }
+  if (fileIgnored) return { fileIgnored, ignoreComments };
+  const inline = text.matchAll(inlineCommentRE);
+  currentLine = 0;
+  for (const match of inline) {
+    const ruleName = match[1].trim();
+    for (let i = currentLine; i < lineStarts.length; i++) {
+      if (lineStarts[i] > match.index) {
+        currentLine = i;
+        break;
+      }
+    }
+    ignoreComments.push({
+      line: currentLine,
+      start: match.index,
+      end: match.index + match[0].length,
+      ruleName,
+      local: true,
+      used: false,
+    });
+  }
+  return { fileIgnored, ignoreComments };
 };

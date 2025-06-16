@@ -4,7 +4,7 @@ Ongoing work for a modern TypeScript linter
 
 ## Features
 
-- Faster than running through ESLint
+- Run type-aware rules faster than ESLint
 - Type safe config with custom rules in TypeScript
 - No [IDE caching issue](https://typescript-eslint.io/troubleshooting/faqs/general/#changes-to-one-file-are-not-reflected-when-linting-other-files-in-my-ide)
 
@@ -50,7 +50,7 @@ export default defineConfig({
 Or pick only the rules you want to enable.
 
 ```ts
-import { allCoreRules, defineConfig } from "@arnaud-barre/type-lint";
+import { core, defineConfig } from "@arnaud-barre/type-lint";
 
 export default defineConfig({
   rules: [
@@ -145,7 +145,43 @@ defineConfig({
 
 Like the ignore option, the `files` option test for inclusion against the file path.
 
-Redeclare rules (identical name) completely replace the "base" rule, there is no merging of options.
+Redeclared rules (identical name) completely replace the "base" rule, there is no merging of options.
+
+## Custom rules
+
+Writing custom rules is part of the core value of type-lint.
+
+Rules run on the TS AST, which is less known than ESTree but allows to query type information for a given node with `context.checker.getTypeAtLocation(node)`. Use [ast-explorer.dev](https://ast-explorer.dev/#eNo9zEEKwjAQheGrxLdSKG5ctV5AcO9qNiEdQmSYCUlVpPTuTSl0+72fN0Mw4O2/voaS8oQOucH0z3xAaBBMqwlfxeKZ8GARcz8rMp4Ilztpy6xlM6lzBPEaPz7yi0tNpoTB9X23b/vtM+m48Y10wbIChCAraw==) to explore the AST.
+
+By default, the TS AST is, funny enough, poorly typed. That's why the linter ships rewritten AST types that you can import and allow for type narrowing and exhaustive switches.
+
+To help build rules, a few common utils are available on `context.utils`, and `context.checker` is overridden with some type changes. If you need to pass the checker to another library that expect the builtin TypeChecker type, like [ts-api-utils](https://github.com/JoshuaKGoldberg/ts-api-utils), you can use `context.rawChecker`.
+
+```ts
+import { type AST, core, defineConfig } from "@arnaud-barre/type-lint";
+import { SyntaxKind } from "typescript";
+
+export default defineConfig({
+  rules: [
+    ...core.all(),
+    {
+      name: "org/useLogger",
+      visitor: {
+        CallExpression(node, context) {
+          if (
+            node.expression.kind === SyntaxKind.PropertyAccessExpression
+            && node.expression.expression.kind === SyntaxKind.Identifier
+            && node.expression.expression.text === "console"
+          ) {
+            node.expression.expression satisfies AST.Identifier;
+            context.report({ message: "Use logger instead", node });
+          }
+        },
+      },
+    },
+  ],
+});
+```
 
 ## Core rules
 
@@ -210,42 +246,6 @@ Currently, the list of core rules are the type-aware lint rules I use from TS-ES
 - switch-exhaustiveness-check: ✅ Implemented, missing no default comment #10218
 - unbound-method: ❌ Not implemented, too OOP for me
 - use-unknown-in-catch-callback-variable: 🛑 Implementation not planned, you can use global types instead
-
-## Custom rules
-
-Writing custom rules is part of the core value of type-lint.
-
-Rules run on the TS AST, which is less known than ESTree but allows to query type information for a given node with `context.checker.getTypeAtLocation(node)`. Use [ast-explorer.dev](https://ast-explorer.dev/#eNo9zEEKwjAQheGrxLdSKG5ctV5AcO9qNiEdQmSYCUlVpPTuTSl0+72fN0Mw4O2/voaS8oQOucH0z3xAaBBMqwlfxeKZ8GARcz8rMp4Ilztpy6xlM6lzBPEaPz7yi0tNpoTB9X23b/vtM+m48Y10wbIChCAraw==) to explore the AST.
-
-By default, the TS AST is, funny enough, poorly typed. That's why the linter ships rewritten AST types that you can import and allow for type narrowing and exhaustive switches.
-
-To help build rules, a few common utils are available on `context.utils`, and `context.checker` is overridden with some type changes. If you need to pass the checker to another library that expect the builtin TypeChecker type, like [ts-api-utils](https://github.com/JoshuaKGoldberg/ts-api-utils), you can use `context.rawChecker`.
-
-```ts
-import { type AST, core, defineConfig } from "@arnaud-barre/type-lint";
-import { SyntaxKind } from "typescript";
-
-export default defineConfig({
-  rules: [
-    ...core.all(),
-    {
-      name: "org/useLogger",
-      visitor: {
-        CallExpression(node, context) {
-          if (
-            node.expression.kind === SyntaxKind.PropertyAccessExpression
-            && node.expression.expression.kind === SyntaxKind.Identifier
-            && node.expression.expression.text === "console"
-          ) {
-            node.expression.expression satisfies AST.Identifier;
-            context.report({ message: "Use logger instead", node });
-          }
-        },
-      },
-    },
-  ],
-});
-```
 
 ## Create sharable rules
 
