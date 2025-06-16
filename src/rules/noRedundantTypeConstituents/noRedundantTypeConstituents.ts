@@ -1,5 +1,5 @@
 import { isTypeFlagSet } from "ts-api-utils";
-import { SyntaxKind, TypeFlags } from "typescript";
+import { SyntaxKind, type Type, TypeFlags } from "typescript";
 import { defineRule } from "../_utils/index.ts";
 import type { TypeNode } from "../../ast.ts";
 import type { AST, Context } from "../../types.ts";
@@ -27,7 +27,7 @@ export function noRedundantTypeConstituents() {
           const type = context.checker.getTypeAtLocation(typeNode);
           for (const otherTypeNode of flattenNodes) {
             if (typeNode === otherTypeNode) {
-              // Using break, so we don't report both parts with duplicate
+              // Break so we don't report both parts with duplicate
               break;
             }
             const otherType = context.checker.getTypeAtLocation(otherTypeNode);
@@ -46,11 +46,13 @@ export function noRedundantTypeConstituents() {
             } else if (
               typeNode.kind === SyntaxKind.LiteralType
               && literals.includes(typeNode.literal.kind)
+              && baseTypes.includes(otherTypeNode.kind)
             ) {
               reportIntersection(context, otherTypeNode, typeNode);
             } else if (
               otherTypeNode.kind === SyntaxKind.LiteralType
               && literals.includes(otherTypeNode.literal.kind)
+              && baseTypes.includes(typeNode.kind)
             ) {
               reportIntersection(context, typeNode, otherTypeNode);
             }
@@ -68,14 +70,14 @@ export function noRedundantTypeConstituents() {
         const redundantNodes: AST.TypeNode[] = [];
         for (const typeNode of flattenNodes) {
           const type = context.checker.getTypeAtLocation(typeNode);
+          if (skipCheckForUnion(type)) continue;
           for (const otherTypeNode of flattenNodes) {
             if (typeNode === otherTypeNode) {
-              // Using break, so we don't report both parts with duplicate
+              // Break so we don't report both parts with duplicate
               break;
             }
             const otherType = context.checker.getTypeAtLocation(otherTypeNode);
-            // Generics can lead to false positive
-            if (isTypeFlagSet(otherType, TypeFlags.TypeVariable)) continue;
+            if (skipCheckForUnion(otherType)) continue;
             if (context.checker.isTypeAssignableTo(type, otherType)) {
               const [redundantNode, assignableToNode] =
                 type.flags === TypeFlags.Any
@@ -86,8 +88,8 @@ export function noRedundantTypeConstituents() {
               context.report({
                 node: redundantNode,
                 message: messages.union({
-                  type: redundantNode.getText(),
-                  assignableTo: assignableToNode.getText(),
+                  type: printNode(redundantNode),
+                  assignableTo: printNode(assignableToNode),
                 }),
               });
             } else if (context.checker.isTypeAssignableTo(otherType, type)) {
@@ -96,8 +98,8 @@ export function noRedundantTypeConstituents() {
               context.report({
                 node: otherTypeNode,
                 message: messages.union({
-                  type: otherTypeNode.getText(),
-                  assignableTo: typeNode.getText(),
+                  type: printNode(otherTypeNode),
+                  assignableTo: printNode(typeNode),
                 }),
               });
             }
@@ -134,6 +136,14 @@ const literals = [
   SyntaxKind.NullKeyword,
 ];
 
+const baseTypes = [
+  ...literals,
+  SyntaxKind.StringKeyword,
+  SyntaxKind.BooleanKeyword,
+  SyntaxKind.NumberKeyword,
+  SyntaxKind.TemplateLiteralType,
+];
+
 const reportIntersection = (
   context: Context,
   redundantNode: TypeNode,
@@ -142,8 +152,28 @@ const reportIntersection = (
   context.report({
     node: redundantNode,
     message: messages.intersection({
-      type: redundantNode.getText(),
-      overrideBy: overriddenBy.getText(),
+      type: printNode(redundantNode),
+      overrideBy: printNode(overriddenBy),
     }),
   });
 };
+
+const printNode = (node: TypeNode) => {
+  const oneLineText = node.getText().replaceAll("\s+", " ");
+  return oneLineText.length > 100
+    ? oneLineText.slice(0, 95) + "..."
+    : oneLineText;
+};
+
+const skipCheckForUnion = (type: Type) =>
+  // the Instantiable flag is currently the best way I found to avoid flaging types
+  // containing type variables, but it too wide and also matches template expressions
+  isTypeFlagSet(type, TypeFlags.Instantiable)
+  || isTypeFlagSet(type, TypeFlags.TypeVariable)
+  || isEnumAutocompleteHack(type);
+
+const isEnumAutocompleteHack = (type: Type) =>
+  type.isIntersection()
+  && type.types.length === 2
+  && type.types.some((t) => t.flags === TypeFlags.String)
+  && type.types.some((t) => t.flags === TypeFlags.Object);

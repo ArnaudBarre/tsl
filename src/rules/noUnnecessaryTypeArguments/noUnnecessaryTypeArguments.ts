@@ -1,6 +1,6 @@
 import { isIntrinsicAnyType, isSymbolFlagSet } from "ts-api-utils";
-import ts, { type NodeArray, SyntaxKind } from "typescript";
-import { defineRule } from "../_utils/index.ts";
+import ts, { type NodeArray, SyntaxKind, TypeFlags } from "typescript";
+import { defineRule, typeHasFlag } from "../_utils/index.ts";
 import type { AnyNode, TypeNode } from "../../ast.ts";
 import type { AST, Context } from "../../types.ts";
 
@@ -82,8 +82,12 @@ function checkTSArgsAndParameters(
   const param = typeParameters.at(i);
   if (!param?.default) return;
 
-  const defaultType = context.checker.getTypeAtLocation(param.default);
   const argType = context.checker.getTypeAtLocation(arg);
+  if (typeHasFlag(argType, TypeFlags.TypeVariable)) {
+    // This leads to false positives
+    return;
+  }
+  const defaultType = context.checker.getTypeAtLocation(param.default);
   const isDefaultAny = isIntrinsicAnyType(defaultType);
   const isArgAny = isIntrinsicAnyType(argType);
 

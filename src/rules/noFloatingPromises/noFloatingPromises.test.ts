@@ -561,6 +561,12 @@ declare function createMyThenable(): MyThenable;
 
 createMyThenable();
     `,
+      `
+let promise: Promise<number> | null = null;
+const fn = () => {
+  promise ??= Promise.resolve(1);
+};
+    `,
     ],
     invalid: [
       {

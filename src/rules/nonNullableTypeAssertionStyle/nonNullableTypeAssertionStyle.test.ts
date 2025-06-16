@@ -33,6 +33,7 @@ type Type = { value: string };
 declare const original: Type | number;
 const cast = original as Type;
     `,
+      `undefined as never`,
       `
 type T = string;
 declare const x: T | number;

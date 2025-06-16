@@ -142,6 +142,10 @@ type A = Map<string, string>;
 type B<T = A> = T;
 type C2 = B<Map<string, number>>;
     `,
+      `
+type A<T = string> = T;
+type B<T extends { prop: string }> = A<T["prop"]>;
+    `,
       {
         tsx: true,
         code: `

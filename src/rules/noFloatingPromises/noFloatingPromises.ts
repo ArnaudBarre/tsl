@@ -197,7 +197,8 @@ function isUnhandledPromise(
 } {
   if (
     node.kind === SyntaxKind.BinaryExpression
-    && node.operatorToken.kind === SyntaxKind.FirstAssignment
+    && (node.operatorToken.kind === SyntaxKind.EqualsToken
+      || node.operatorToken.kind === SyntaxKind.QuestionQuestionEqualsToken)
   ) {
     return { isUnhandled: false };
   }

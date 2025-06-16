@@ -33,7 +33,12 @@ const checkAssertion = (
     return;
   }
   const assertedType = context.checker.getTypeAtLocation(node.type);
-  if (isTypeFlagSet(assertedType, TypeFlags.Any | TypeFlags.Unknown)) {
+  if (
+    isTypeFlagSet(
+      assertedType,
+      TypeFlags.Any | TypeFlags.Unknown | TypeFlags.Never,
+    )
+  ) {
     return;
   }
 
