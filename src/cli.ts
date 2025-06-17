@@ -11,6 +11,8 @@ const { values } = parseArgs({
   options: {
     project: { type: "string", short: "p" },
     timing: { type: "boolean", short: "t", default: false },
+    "lint-only": { type: "boolean", default: false },
+    profile: { type: "boolean", default: false },
   },
 });
 
@@ -51,7 +53,7 @@ if (result.errors.length) throw new Error(formatDiagnostics(result.errors));
 const host = ts.createCompilerHost(result.options, true);
 const program = ts.createProgram(result.fileNames, result.options, host);
 let hasError = false;
-if (!process.argv.includes("--lint-only")) {
+if (!values["lint-only"]) {
   const emitResult = program.emit();
   const allDiagnostics = ts
     .getPreEmitDiagnostics(program)

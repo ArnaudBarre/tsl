@@ -22,6 +22,7 @@ if (cmd === "--help") {
 
 Options:
   -p, --project=path   Path to the tsconfig to lint (default: tsconfig.json)
+  --lint-only          Don't run tsc first, only lint the files (not recommended)
   -v, --version        Print the version
   -t, --timing         Print timing information
   --help               Print this help message
