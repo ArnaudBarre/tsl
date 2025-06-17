@@ -23,6 +23,7 @@ if (cmd === "--help") {
 Options:
   -p, --project=path   Path to the tsconfig to lint (default: tsconfig.json)
   -v, --version        Print the version
+  -t, --timing         Print timing information
   --help               Print this help message
   --profile            Profile the linting process
 `);

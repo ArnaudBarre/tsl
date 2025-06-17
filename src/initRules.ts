@@ -12,8 +12,6 @@ import type {
 } from "./types.ts";
 import { visitorEntries } from "./visitorEntries.ts";
 
-export const showTiming = !!process.env["TIMING"];
-
 const matchPattern = (pattern: string, fileName: string) =>
   fileName.includes(pattern);
 
@@ -22,6 +20,7 @@ const run = <T>(cb: () => T) => cb();
 export const initRules = async (
   getProgram: () => ts.Program,
   config: Config,
+  showTiming: boolean,
 ) => {
   const contextUtils = getContextUtils(getProgram);
   const rulesTimingMap: Record<string, number> = {};

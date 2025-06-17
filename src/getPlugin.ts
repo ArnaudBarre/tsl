@@ -37,7 +37,11 @@ export const getPlugin = async (
         watchedFiles.set(configFile, watch(configFile, load));
       }
     }
-    const result = await initRules(() => languageService.getProgram()!, config);
+    const result = await initRules(
+      () => languageService.getProgram()!,
+      config,
+      false,
+    );
     lint = result.lint;
     diagnosticCategory =
       config.diagnosticCategory === "error"
@@ -50,7 +54,7 @@ export const getPlugin = async (
     log(
       `type-lint: Config with ${result.allRules.size} rules loaded in ${(
         performance.now() - start
-      ).toFixed(2)}ms`,
+      ).toFixed(0)}ms`,
     );
   };
   await load();

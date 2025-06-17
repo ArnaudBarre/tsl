@@ -13,7 +13,7 @@ export type { AST };
 
 export type Config = {
   /**
-   * List of base rules. You can use core.all() as an initial list and then update it based on your needs:
+   * List of base rules. You can spread `core.all()` as an initial list and then update it based on your needs:
    *
    * @example
    * ```ts
@@ -59,6 +59,7 @@ export type Config = {
     /**
      * Additional rules to add for these files.
      * Redeclared rules (identical name) completely replace the base rules, there is no merging of options.
+     * You can turn off a rule for these files by passing `"off"` as the rule option.
      */
     rules: Rule<unknown>[];
   }[];
