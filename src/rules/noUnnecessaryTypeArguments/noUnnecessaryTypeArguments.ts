@@ -21,22 +21,20 @@ type ParameterCapableNode =
   | AST.TypeQueryNode
   | AST.TypeReferenceNode;
 
-export function noUnnecessaryTypeArguments() {
-  return defineRule({
-    name: "core/noUnnecessaryTypeArguments",
-    visitor: {
-      CallExpression: checkParameters,
-      ExpressionWithTypeArguments: checkParameters,
-      ImportType: checkParameters,
-      JsxOpeningElement: checkParameters,
-      JsxSelfClosingElement: checkParameters,
-      NewExpression: checkParameters,
-      TaggedTemplateExpression: checkParameters,
-      TypeQuery: checkParameters,
-      TypeReference: checkParameters,
-    },
-  });
-}
+export const noUnnecessaryTypeArguments = defineRule(() => ({
+  name: "core/noUnnecessaryTypeArguments",
+  visitor: {
+    CallExpression: checkParameters,
+    ExpressionWithTypeArguments: checkParameters,
+    ImportType: checkParameters,
+    JsxOpeningElement: checkParameters,
+    JsxSelfClosingElement: checkParameters,
+    NewExpression: checkParameters,
+    TaggedTemplateExpression: checkParameters,
+    TypeQuery: checkParameters,
+    TypeReference: checkParameters,
+  },
+}));
 
 function checkParameters(node: ParameterCapableNode, context: Context) {
   const typeArguments = node.typeArguments;

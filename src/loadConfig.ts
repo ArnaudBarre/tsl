@@ -6,11 +6,11 @@ import ts from "typescript";
 import { core } from "./index.ts";
 import type { Config } from "./types.ts";
 
-const defaultConfig: Config<string> = { rules: core.all() };
+const defaultConfig: Config = { rules: core.all() };
 
 export const loadConfig = async (
   program: ts.Program,
-): Promise<{ config: Config<string>; configFiles: string[] }> => {
+): Promise<{ config: Config; configFiles: string[] }> => {
   const workingDir = program.getCurrentDirectory();
   const entryPoint = join(workingDir, "type-lint.config.ts");
   const cacheDir = join(workingDir, "node_modules/.cache/type-lint");
@@ -61,7 +61,7 @@ export const loadConfig = async (
   }
 
   const module = (await import(`${output}?t=${Date.now()}`)) as {
-    default?: Config<string>;
+    default?: Config;
   };
   if (!module.default) {
     throw new Error(`${entryPoint} doesn't have a default export`);

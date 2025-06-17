@@ -17,161 +17,167 @@ export const messages = {
     `Operands of '+' operations must be a number or ${params.stringLike}. Got \`${params.left}\` + \`${params.right}\`.`,
 };
 
-export function restrictPlusOperands(_options?: {
-  /** Whether to allow `any` typed values. Defaults to `false`. */
-  allowAny?: boolean;
-  /** Whether to allow `boolean` typed values. Defaults to `true`. */
-  allowBoolean?: boolean;
-  /** Whether to allow potentially `null` or `undefined` typed values. Defaults to `false`. */
-  allowNullish?: boolean;
-  /** Whether to allow `bigint`/`number` typed values and `string` typed values to be added together. Defaults to `true`. */
-  allowNumberAndString?: boolean;
-  /** Whether to allow `regexp` typed values. Defaults to `false`. */
-  allowRegExp?: boolean;
-}) {
-  const options = {
-    allowAny: false,
-    allowBoolean: true,
-    allowNullish: false,
-    allowNumberAndString: true,
-    allowRegExp: false,
-    ..._options,
-  };
-  const stringLikes = [
-    options.allowNumberAndString && "`number`",
-    options.allowBoolean && "`boolean`",
-    options.allowRegExp && "`RegExp`",
-    options.allowNullish && "`null`",
-    options.allowNullish && "`undefined`",
-    options.allowAny && "`any`",
-  ].filter((value) => typeof value === "string");
-  const stringLike = stringLikes.length
-    ? stringLikes.length === 1
-      ? `string, allowing a string + ${stringLikes[0]}`
-      : `string, allowing a string + any of: ${stringLikes.join(", ")}`
-    : "string";
-  return defineRule({
-    name: "core/restrictPlusOperands",
-    visitor: {
-      BinaryExpression(node, context) {
-        if (
-          node.operatorToken.kind !== SyntaxKind.PlusToken
-          && node.operatorToken.kind !== SyntaxKind.PlusEqualsToken
-        ) {
-          return;
-        }
-
-        const leftType = context.utils.getConstrainedTypeAtLocation(node.left);
-        const rightType = context.utils.getConstrainedTypeAtLocation(
-          node.right,
-        );
-
-        if (
-          leftType === rightType
-          && isTypeFlagSet(
-            leftType,
-            TypeFlags.BigIntLike | TypeFlags.NumberLike | TypeFlags.StringLike,
-          )
-        ) {
-          return;
-        }
-
-        let hadIndividualComplaint = false;
-
-        for (const [baseNode, baseType, otherType] of [
-          [node.left, leftType, rightType],
-          [node.right, rightType, leftType],
-        ] as const) {
+export const restrictPlusOperands = defineRule(
+  (_options?: {
+    /** Whether to allow `any` typed values. Defaults to `false`. */
+    allowAny?: boolean;
+    /** Whether to allow `boolean` typed values. Defaults to `true`. */
+    allowBoolean?: boolean;
+    /** Whether to allow potentially `null` or `undefined` typed values. Defaults to `false`. */
+    allowNullish?: boolean;
+    /** Whether to allow `bigint`/`number` typed values and `string` typed values to be added together. Defaults to `true`. */
+    allowNumberAndString?: boolean;
+    /** Whether to allow `regexp` typed values. Defaults to `false`. */
+    allowRegExp?: boolean;
+  }) => {
+    const options = {
+      allowAny: false,
+      allowBoolean: true,
+      allowNullish: false,
+      allowNumberAndString: true,
+      allowRegExp: false,
+      ..._options,
+    };
+    const stringLikes = [
+      options.allowNumberAndString && "`number`",
+      options.allowBoolean && "`boolean`",
+      options.allowRegExp && "`RegExp`",
+      options.allowNullish && "`null`",
+      options.allowNullish && "`undefined`",
+      options.allowAny && "`any`",
+    ].filter((value) => typeof value === "string");
+    const stringLike = stringLikes.length
+      ? stringLikes.length === 1
+        ? `string, allowing a string + ${stringLikes[0]}`
+        : `string, allowing a string + any of: ${stringLikes.join(", ")}`
+      : "string";
+    return {
+      name: "core/restrictPlusOperands",
+      visitor: {
+        BinaryExpression(node, context) {
           if (
-            isTypeFlagSetInUnion(
-              baseType,
-              TypeFlags.ESSymbolLike | TypeFlags.Never | TypeFlags.Unknown,
-            )
-            || (!options.allowAny
-              && isTypeFlagSetInUnion(baseType, TypeFlags.Any))
-            || (!options.allowBoolean
-              && isTypeFlagSetInUnion(baseType, TypeFlags.BooleanLike))
-            || (!options.allowNullish
-              && typeHasFlag(baseType, TypeFlags.Null | TypeFlags.Undefined))
+            node.operatorToken.kind !== SyntaxKind.PlusToken
+            && node.operatorToken.kind !== SyntaxKind.PlusEqualsToken
           ) {
-            context.report({
-              node: baseNode,
-              message: messages.invalid({
-                type: context.checker.typeToString(baseType),
-                stringLike,
-              }),
-            });
-            hadIndividualComplaint = true;
-            continue;
+            return;
           }
 
-          // RegExps also contain TypeFlags.Any & TypeFlags.Object
-          for (const subBaseType of unionConstituents(baseType)) {
-            const typeName = getTypeName(context.rawChecker, subBaseType);
+          const leftType = context.utils.getConstrainedTypeAtLocation(
+            node.left,
+          );
+          const rightType = context.utils.getConstrainedTypeAtLocation(
+            node.right,
+          );
+
+          if (
+            leftType === rightType
+            && isTypeFlagSet(
+              leftType,
+              TypeFlags.BigIntLike
+                | TypeFlags.NumberLike
+                | TypeFlags.StringLike,
+            )
+          ) {
+            return;
+          }
+
+          let hadIndividualComplaint = false;
+
+          for (const [baseNode, baseType, otherType] of [
+            [node.left, leftType, rightType],
+            [node.right, rightType, leftType],
+          ] as const) {
             if (
-              typeName === "RegExp"
-                ? !options.allowRegExp
-                  || isTypeFlagSet(otherType, TypeFlags.NumberLike)
-                : (!options.allowAny && isIntrinsicAnyType(subBaseType))
-                  || isDeeplyObjectType(subBaseType)
+              isTypeFlagSetInUnion(
+                baseType,
+                TypeFlags.ESSymbolLike | TypeFlags.Never | TypeFlags.Unknown,
+              )
+              || (!options.allowAny
+                && isTypeFlagSetInUnion(baseType, TypeFlags.Any))
+              || (!options.allowBoolean
+                && isTypeFlagSetInUnion(baseType, TypeFlags.BooleanLike))
+              || (!options.allowNullish
+                && typeHasFlag(baseType, TypeFlags.Null | TypeFlags.Undefined))
             ) {
               context.report({
                 node: baseNode,
                 message: messages.invalid({
-                  type: context.checker.typeToString(subBaseType),
+                  type: context.checker.typeToString(baseType),
                   stringLike,
                 }),
               });
               hadIndividualComplaint = true;
+              continue;
+            }
+
+            // RegExps also contain TypeFlags.Any & TypeFlags.Object
+            for (const subBaseType of unionConstituents(baseType)) {
+              const typeName = getTypeName(context.rawChecker, subBaseType);
+              if (
+                typeName === "RegExp"
+                  ? !options.allowRegExp
+                    || isTypeFlagSet(otherType, TypeFlags.NumberLike)
+                  : (!options.allowAny && isIntrinsicAnyType(subBaseType))
+                    || isDeeplyObjectType(subBaseType)
+              ) {
+                context.report({
+                  node: baseNode,
+                  message: messages.invalid({
+                    type: context.checker.typeToString(subBaseType),
+                    stringLike,
+                  }),
+                });
+                hadIndividualComplaint = true;
+              }
             }
           }
-        }
 
-        if (hadIndividualComplaint) {
-          return;
-        }
-
-        for (const [baseType, otherType] of [
-          [leftType, rightType],
-          [rightType, leftType],
-        ] as const) {
-          if (
-            !options.allowNumberAndString
-            && isTypeFlagSetInUnion(baseType, TypeFlags.StringLike)
-            && isTypeFlagSetInUnion(
-              otherType,
-              TypeFlags.NumberLike | TypeFlags.BigIntLike,
-            )
-          ) {
-            context.report({
-              node,
-              message: messages.mismatched({
-                left: context.checker.typeToString(leftType),
-                right: context.checker.typeToString(rightType),
-                stringLike,
-              }),
-            });
+          if (hadIndividualComplaint) {
             return;
           }
 
-          if (
-            isTypeFlagSetInUnion(baseType, TypeFlags.NumberLike)
-            && isTypeFlagSetInUnion(otherType, TypeFlags.BigIntLike)
-          ) {
-            context.report({
-              node,
-              message: messages.bigintAndNumber({
-                left: context.checker.typeToString(leftType),
-                right: context.checker.typeToString(rightType),
-              }),
-            });
-            return;
+          for (const [baseType, otherType] of [
+            [leftType, rightType],
+            [rightType, leftType],
+          ] as const) {
+            if (
+              !options.allowNumberAndString
+              && isTypeFlagSetInUnion(baseType, TypeFlags.StringLike)
+              && isTypeFlagSetInUnion(
+                otherType,
+                TypeFlags.NumberLike | TypeFlags.BigIntLike,
+              )
+            ) {
+              context.report({
+                node,
+                message: messages.mismatched({
+                  left: context.checker.typeToString(leftType),
+                  right: context.checker.typeToString(rightType),
+                  stringLike,
+                }),
+              });
+              return;
+            }
+
+            if (
+              isTypeFlagSetInUnion(baseType, TypeFlags.NumberLike)
+              && isTypeFlagSetInUnion(otherType, TypeFlags.BigIntLike)
+            ) {
+              context.report({
+                node,
+                message: messages.bigintAndNumber({
+                  left: context.checker.typeToString(leftType),
+                  right: context.checker.typeToString(rightType),
+                }),
+              });
+              return;
+            }
           }
-        }
+        },
       },
-    },
-  });
-}
+    };
+  },
+);
 
 function isDeeplyObjectType(type: ts.Type): boolean {
   return type.isIntersection()

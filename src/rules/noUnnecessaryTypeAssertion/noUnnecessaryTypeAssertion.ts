@@ -25,10 +25,8 @@ export type NoUnnecessaryTypeAssertionOptions = {
   typesToIgnore?: string[];
 };
 
-export function noUnnecessaryTypeAssertion(
-  options: NoUnnecessaryTypeAssertionOptions = {},
-) {
-  return defineRule({
+export const noUnnecessaryTypeAssertion = defineRule(
+  (options: NoUnnecessaryTypeAssertionOptions = {}) => ({
     name: "core/noUnnecessaryTypeAssertion",
     visitor: {
       NonNullExpression(node, context) {
@@ -149,8 +147,8 @@ export function noUnnecessaryTypeAssertion(
         checkAssertion(node, context, options);
       },
     },
-  });
-}
+  }),
+);
 
 function checkAssertion(
   node: AST.AsExpression | AST.TypeAssertion,

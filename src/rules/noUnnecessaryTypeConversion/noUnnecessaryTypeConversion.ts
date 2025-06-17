@@ -11,211 +11,209 @@ export const messages = {
   suggestRemove: "Remove the type conversion.",
 };
 
-export function noUnnecessaryTypeConversion() {
-  return defineRule({
-    name: "core/noUnnecessaryTypeConversion",
-    visitor: {
-      BinaryExpression(node, context) {
+export const noUnnecessaryTypeConversion = defineRule(() => ({
+  name: "core/noUnnecessaryTypeConversion",
+  visitor: {
+    BinaryExpression(node, context) {
+      if (
+        node.operatorToken.kind === SyntaxKind.PlusEqualsToken
+        && node.right.kind === SyntaxKind.StringLiteral
+        && node.right.text === ""
+        && doesUnderlyingTypeMatchFlag(
+          context.checker.getTypeAtLocation(node.left),
+          TypeFlags.StringLike,
+        )
+      ) {
+        context.report({
+          node,
+          message: messages.unnecessaryTypeConversion({
+            type: "string",
+            violation: "Concatenating a string with ''",
+          }),
+          suggestions: [
+            {
+              message: messages.suggestRemove,
+              changes:
+                node.parent.kind === SyntaxKind.ExpressionStatement
+                  ? [{ node: node.parent, newText: "" }]
+                  : [
+                      {
+                        start: node.left.getEnd(),
+                        end: node.getEnd(),
+                        newText: "",
+                      },
+                    ],
+            },
+          ],
+        });
+      }
+      if (node.operatorToken.kind === SyntaxKind.PlusToken) {
         if (
-          node.operatorToken.kind === SyntaxKind.PlusEqualsToken
-          && node.right.kind === SyntaxKind.StringLiteral
+          node.right.kind === SyntaxKind.StringLiteral
           && node.right.text === ""
           && doesUnderlyingTypeMatchFlag(
             context.checker.getTypeAtLocation(node.left),
             TypeFlags.StringLike,
           )
         ) {
+          report({
+            context,
+            violation: "Concatenating a string with ''",
+            type: "string",
+            start: node.operatorToken.getStart(),
+            end: node.right.getEnd(),
+            fix: { start: node.left.getEnd() },
+          });
+        } else if (
+          node.left.kind === SyntaxKind.StringLiteral
+          && node.left.text === ""
+          && doesUnderlyingTypeMatchFlag(
+            context.checker.getTypeAtLocation(node.right),
+            TypeFlags.StringLike,
+          )
+        ) {
+          report({
+            context,
+            violation: "Concatenating '' with a string",
+            type: "string",
+            start: node.left.getStart(),
+            end: node.operatorToken.getEnd(),
+            fix: { end: node.right.getStart() },
+          });
+        }
+      }
+    },
+    CallExpression(node, context) {
+      const callee = node.expression;
+      if (callee.kind === SyntaxKind.Identifier) {
+        const typeFlag = builtInTypeFlags[callee.text];
+        if (!typeFlag) return;
+
+        if (node.arguments.length !== 1) return;
+
+        const arg = node.arguments[0];
+
+        if (!isIdentifierFromDefaultLibrary(context, callee)) {
+          // Not the built-in function
+          return;
+        }
+
+        if (
+          doesUnderlyingTypeMatchFlag(
+            context.utils.getConstrainedTypeAtLocation(arg),
+            typeFlag,
+          )
+        ) {
+          const keepParentheses =
+            getOperatorPrecedenceForNode(arg)
+            <= getOperatorPrecedenceForNode(node.parent);
           context.report({
-            node,
+            node: node.expression,
             message: messages.unnecessaryTypeConversion({
-              type: "string",
-              violation: "Concatenating a string with ''",
+              violation: `Passing a ${callee.text.toLowerCase()} to ${callee.text}()`,
+              type: callee.text.toLowerCase(),
             }),
             suggestions: [
               {
                 message: messages.suggestRemove,
-                changes:
-                  node.parent.kind === SyntaxKind.ExpressionStatement
-                    ? [{ node: node.parent, newText: "" }]
-                    : [
-                        {
-                          start: node.left.getEnd(),
-                          end: node.getEnd(),
-                          newText: "",
-                        },
-                      ],
+                changes: [
+                  {
+                    start: callee.getStart(),
+                    end: keepParentheses ? callee.getEnd() : arg.getStart(),
+                    newText: "",
+                  },
+                  {
+                    start: keepParentheses ? node.getEnd() : arg.getEnd(),
+                    end: node.getEnd(),
+                    newText: "",
+                  },
+                ],
               },
             ],
           });
         }
-        if (node.operatorToken.kind === SyntaxKind.PlusToken) {
-          if (
-            node.right.kind === SyntaxKind.StringLiteral
-            && node.right.text === ""
-            && doesUnderlyingTypeMatchFlag(
-              context.checker.getTypeAtLocation(node.left),
-              TypeFlags.StringLike,
-            )
-          ) {
-            report({
-              context,
-              violation: "Concatenating a string with ''",
+      }
+      if (
+        node.arguments.length === 0
+        && callee.kind === SyntaxKind.PropertyAccessExpression
+        && callee.name.kind === SyntaxKind.Identifier
+        && callee.name.text === "toString"
+      ) {
+        const type = context.utils.getConstrainedTypeAtLocation(
+          callee.expression,
+        );
+        if (doesUnderlyingTypeMatchFlag(type, TypeFlags.StringLike)) {
+          context.report({
+            start: callee.name.getStart(),
+            end: node.getEnd(),
+            message: messages.unnecessaryTypeConversion({
               type: "string",
-              start: node.operatorToken.getStart(),
-              end: node.right.getEnd(),
-              fix: { start: node.left.getEnd() },
-            });
-          } else if (
-            node.left.kind === SyntaxKind.StringLiteral
-            && node.left.text === ""
-            && doesUnderlyingTypeMatchFlag(
-              context.checker.getTypeAtLocation(node.right),
-              TypeFlags.StringLike,
-            )
-          ) {
-            report({
-              context,
-              violation: "Concatenating '' with a string",
-              type: "string",
-              start: node.left.getStart(),
-              end: node.operatorToken.getEnd(),
-              fix: { end: node.right.getStart() },
-            });
-          }
+              violation: "Calling a string's .toString() method",
+            }),
+            suggestions: [
+              {
+                message: messages.suggestRemove,
+                changes: [
+                  {
+                    start: callee.expression.getEnd(),
+                    end: node.getEnd(),
+                    newText: "",
+                  },
+                ],
+              },
+            ],
+          });
         }
-      },
-      CallExpression(node, context) {
-        const callee = node.expression;
-        if (callee.kind === SyntaxKind.Identifier) {
-          const typeFlag = builtInTypeFlags[callee.text];
-          if (!typeFlag) return;
-
-          if (node.arguments.length !== 1) return;
-
-          const arg = node.arguments[0];
-
-          if (!isIdentifierFromDefaultLibrary(context, callee)) {
-            // Not the built-in function
-            return;
-          }
-
-          if (
-            doesUnderlyingTypeMatchFlag(
-              context.utils.getConstrainedTypeAtLocation(arg),
-              typeFlag,
-            )
-          ) {
-            const keepParentheses =
-              getOperatorPrecedenceForNode(arg)
-              <= getOperatorPrecedenceForNode(node.parent);
-            context.report({
-              node: node.expression,
-              message: messages.unnecessaryTypeConversion({
-                violation: `Passing a ${callee.text.toLowerCase()} to ${callee.text}()`,
-                type: callee.text.toLowerCase(),
-              }),
-              suggestions: [
-                {
-                  message: messages.suggestRemove,
-                  changes: [
-                    {
-                      start: callee.getStart(),
-                      end: keepParentheses ? callee.getEnd() : arg.getStart(),
-                      newText: "",
-                    },
-                    {
-                      start: keepParentheses ? node.getEnd() : arg.getEnd(),
-                      end: node.getEnd(),
-                      newText: "",
-                    },
-                  ],
-                },
-              ],
-            });
-          }
-        }
-        if (
-          node.arguments.length === 0
-          && callee.kind === SyntaxKind.PropertyAccessExpression
-          && callee.name.kind === SyntaxKind.Identifier
-          && callee.name.text === "toString"
-        ) {
-          const type = context.utils.getConstrainedTypeAtLocation(
-            callee.expression,
-          );
-          if (doesUnderlyingTypeMatchFlag(type, TypeFlags.StringLike)) {
-            context.report({
-              start: callee.name.getStart(),
-              end: node.getEnd(),
-              message: messages.unnecessaryTypeConversion({
-                type: "string",
-                violation: "Calling a string's .toString() method",
-              }),
-              suggestions: [
-                {
-                  message: messages.suggestRemove,
-                  changes: [
-                    {
-                      start: callee.expression.getEnd(),
-                      end: node.getEnd(),
-                      newText: "",
-                    },
-                  ],
-                },
-              ],
-            });
-          }
-        }
-      },
-      PrefixUnaryExpression(node, context) {
-        if (
-          node.operator === SyntaxKind.ExclamationToken
-          && node.operand.kind === SyntaxKind.PrefixUnaryExpression
-          && node.operand.operator === SyntaxKind.ExclamationToken
-        ) {
-          const type = context.checker.getTypeAtLocation(node.operand.operand);
-          if (doesUnderlyingTypeMatchFlag(type, TypeFlags.BooleanLike)) {
-            report({
-              context,
-              violation: "Using !! on a boolean",
-              type: "boolean",
-              start: node.getStart(),
-              end: node.operand.operand.getStart(),
-            });
-          }
-        }
-        if (node.operator === SyntaxKind.PlusToken) {
-          const type = context.checker.getTypeAtLocation(node.operand);
-          if (doesUnderlyingTypeMatchFlag(type, TypeFlags.NumberLike)) {
-            report({
-              context,
-              violation: "Using the unary + operator on a number",
-              type: "number",
-              start: node.getStart(),
-              end: node.operand.getStart(),
-            });
-          }
-        }
-        if (
-          node.operator === SyntaxKind.TildeToken
-          && node.operand.kind === SyntaxKind.PrefixUnaryExpression
-          && node.operand.operator === SyntaxKind.TildeToken
-        ) {
-          const type = context.checker.getTypeAtLocation(node.operand.operand);
-          if (doesUnderlyingTypeMatchFlag(type, TypeFlags.NumberLike)) {
-            report({
-              context,
-              violation: "Using ~~ on a number",
-              type: "number",
-              start: node.getStart(),
-              end: node.operand.operand.getStart(),
-            });
-          }
-        }
-      },
+      }
     },
-  });
-}
+    PrefixUnaryExpression(node, context) {
+      if (
+        node.operator === SyntaxKind.ExclamationToken
+        && node.operand.kind === SyntaxKind.PrefixUnaryExpression
+        && node.operand.operator === SyntaxKind.ExclamationToken
+      ) {
+        const type = context.checker.getTypeAtLocation(node.operand.operand);
+        if (doesUnderlyingTypeMatchFlag(type, TypeFlags.BooleanLike)) {
+          report({
+            context,
+            violation: "Using !! on a boolean",
+            type: "boolean",
+            start: node.getStart(),
+            end: node.operand.operand.getStart(),
+          });
+        }
+      }
+      if (node.operator === SyntaxKind.PlusToken) {
+        const type = context.checker.getTypeAtLocation(node.operand);
+        if (doesUnderlyingTypeMatchFlag(type, TypeFlags.NumberLike)) {
+          report({
+            context,
+            violation: "Using the unary + operator on a number",
+            type: "number",
+            start: node.getStart(),
+            end: node.operand.getStart(),
+          });
+        }
+      }
+      if (
+        node.operator === SyntaxKind.TildeToken
+        && node.operand.kind === SyntaxKind.PrefixUnaryExpression
+        && node.operand.operator === SyntaxKind.TildeToken
+      ) {
+        const type = context.checker.getTypeAtLocation(node.operand.operand);
+        if (doesUnderlyingTypeMatchFlag(type, TypeFlags.NumberLike)) {
+          report({
+            context,
+            violation: "Using ~~ on a number",
+            type: "number",
+            start: node.getStart(),
+            end: node.operand.operand.getStart(),
+          });
+        }
+      }
+    },
+  },
+}));
 
 function doesUnderlyingTypeMatchFlag(
   type: ts.Type,

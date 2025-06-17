@@ -13,42 +13,40 @@ type FunctionNode =
   | AST.FunctionDeclaration
   | AST.FunctionExpression;
 
-export function returnAwait() {
-  return defineRule({
-    name: "core/returnAwait",
-    // Keep track of (async) function stack
-    createData: (): boolean[] => [],
-    visitor: {
-      ArrowFunction: enterFunction,
-      "ArrowFunction:exit"(node, context) {
-        context.data.pop();
-        if (
-          hasModifier(node, SyntaxKind.AsyncKeyword)
-          && node.body.kind !== SyntaxKind.Block
-        ) {
-          for (const expression of findPossiblyReturnedNodes(node.body)) {
-            checkExpression(expression, context);
-          }
-        }
-      },
-      FunctionDeclaration: enterFunction,
-      "FunctionDeclaration:exit"(_, context) {
-        context.data.pop();
-      },
-      FunctionExpression: enterFunction,
-      "FunctionExpression:exit"(_, context) {
-        context.data.pop();
-      },
-
-      ReturnStatement(node, context) {
-        if (!context.data.at(-1) || !node.expression) return;
-        for (const expression of findPossiblyReturnedNodes(node.expression)) {
+export const returnAwait = defineRule(() => ({
+  name: "core/returnAwait",
+  // Keep track of (async) function stack
+  createData: (): boolean[] => [],
+  visitor: {
+    ArrowFunction: enterFunction,
+    "ArrowFunction:exit"(node, context) {
+      context.data.pop();
+      if (
+        hasModifier(node, SyntaxKind.AsyncKeyword)
+        && node.body.kind !== SyntaxKind.Block
+      ) {
+        for (const expression of findPossiblyReturnedNodes(node.body)) {
           checkExpression(expression, context);
         }
-      },
+      }
     },
-  });
-}
+    FunctionDeclaration: enterFunction,
+    "FunctionDeclaration:exit"(_, context) {
+      context.data.pop();
+    },
+    FunctionExpression: enterFunction,
+    "FunctionExpression:exit"(_, context) {
+      context.data.pop();
+    },
+
+    ReturnStatement(node, context) {
+      if (!context.data.at(-1) || !node.expression) return;
+      for (const expression of findPossiblyReturnedNodes(node.expression)) {
+        checkExpression(expression, context);
+      }
+    },
+  },
+}));
 
 function enterFunction(node: FunctionNode, context: Context<boolean[]>): void {
   context.data.push(hasModifier(node, SyntaxKind.AsyncKeyword));

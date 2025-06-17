@@ -17,48 +17,50 @@ type ParsedOptions = {
   ignoredTypeNames: string[];
 };
 
-export function noBaseToString(_options?: { ignoredTypeNames?: string[] }) {
-  const options: ParsedOptions = {
-    ignoredTypeNames: ["Error", "RegExp", "URL", "URLSearchParams"],
-    ..._options,
-  };
-  return defineRule({
-    name: "core/noBaseToString",
-    visitor: {
-      CallExpression(node, context) {
-        if (
-          isBuiltInStringCall(context, node)
-          && node.arguments.length === 1
-          && node.arguments[0].kind !== SyntaxKind.SpreadElement
-        ) {
-          checkExpression(context, options, node.arguments[0]);
-        }
-        if (
-          node.expression.kind === SyntaxKind.PropertyAccessExpression
-          && node.expression.name.kind === SyntaxKind.Identifier
-        ) {
-          if (node.expression.name.text === "join") {
-            const type = context.utils.getConstrainedTypeAtLocation(
-              node.expression.expression,
-            );
-            checkExpressionForArrayJoin(
-              context,
-              options,
-              node.expression.expression,
-              type,
-            );
+export const noBaseToString = defineRule(
+  (_options?: { ignoredTypeNames?: string[] }) => {
+    const options: ParsedOptions = {
+      ignoredTypeNames: ["Error", "RegExp", "URL", "URLSearchParams"],
+      ..._options,
+    };
+    return {
+      name: "core/noBaseToString",
+      visitor: {
+        CallExpression(node, context) {
+          if (
+            isBuiltInStringCall(context, node)
+            && node.arguments.length === 1
+            && node.arguments[0].kind !== SyntaxKind.SpreadElement
+          ) {
+            checkExpression(context, options, node.arguments[0]);
           }
           if (
-            node.expression.name.text === "toString"
-            || node.expression.name.text === "toLocaleString"
+            node.expression.kind === SyntaxKind.PropertyAccessExpression
+            && node.expression.name.kind === SyntaxKind.Identifier
           ) {
-            checkExpression(context, options, node.expression.expression);
+            if (node.expression.name.text === "join") {
+              const type = context.utils.getConstrainedTypeAtLocation(
+                node.expression.expression,
+              );
+              checkExpressionForArrayJoin(
+                context,
+                options,
+                node.expression.expression,
+                type,
+              );
+            }
+            if (
+              node.expression.name.text === "toString"
+              || node.expression.name.text === "toLocaleString"
+            ) {
+              checkExpression(context, options, node.expression.expression);
+            }
           }
-        }
+        },
       },
-    },
-  });
-}
+    };
+  },
+);
 
 function checkExpression(
   context: Context,

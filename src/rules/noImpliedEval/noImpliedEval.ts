@@ -20,15 +20,13 @@ const EVAL_LIKE_METHODS = new Set([
   "setTimeout",
 ]);
 
-export function noImpliedEval() {
-  return defineRule({
-    name: "core/noImpliedEval",
-    visitor: {
-      CallExpression: checkImpliedEval,
-      NewExpression: checkImpliedEval,
-    },
-  });
-}
+export const noImpliedEval = defineRule(() => ({
+  name: "core/noImpliedEval",
+  visitor: {
+    CallExpression: checkImpliedEval,
+    NewExpression: checkImpliedEval,
+  },
+}));
 
 function getCalleeName(node: AST.Expression): string | null {
   if (node.kind === SyntaxKind.Identifier) {

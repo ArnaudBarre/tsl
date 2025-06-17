@@ -32,14 +32,14 @@ export type OnlyThrowErrorOptions = {
   allow?: string[];
 };
 
-export function onlyThrowError(_options?: OnlyThrowErrorOptions) {
+export const onlyThrowError = defineRule((_options?: OnlyThrowErrorOptions) => {
   const options = {
     allowThrowingAny: true,
     allowThrowingUnknown: true,
     allowRethrowing: true,
     ..._options,
   };
-  return defineRule({
+  return {
     name: "core/onlyThrowError",
     visitor: {
       ThrowStatement({ expression: node }, context) {
@@ -115,5 +115,5 @@ export function onlyThrowError(_options?: OnlyThrowErrorOptions) {
         context.report({ node, message: messages.object });
       },
     },
-  });
-}
+  };
+});

@@ -84,244 +84,260 @@ type ParsedOptions = {
   };
 };
 
-export function preferNullishCoalescing(_options?: {
-  ignoreBooleanCoercion?: boolean;
-  ignoreConditionalTests?: boolean;
-  ignoreMixedLogicalExpressions?: boolean;
-  ignoreTernaryTests?: boolean;
-  ignoreIfStatements?: boolean;
-  ignorePrimitives?:
-    | {
-        bigint?: boolean;
-        boolean?: boolean;
-        number?: boolean;
-        string?: boolean;
-      }
-    | true;
-}) {
-  const options: ParsedOptions = {
-    ignoreBooleanCoercion: false,
-    ignoreConditionalTests: true,
-    ignoreMixedLogicalExpressions: false,
-    ignoreTernaryTests: false,
-    ignoreIfStatements: false,
-    ..._options,
-    ignorePrimitives:
-      _options?.ignorePrimitives === true
-        ? { bigint: true, boolean: true, number: true, string: true }
-        : {
-            bigint: _options?.ignorePrimitives?.bigint ?? false,
-            boolean: _options?.ignorePrimitives?.boolean ?? false,
-            number: _options?.ignorePrimitives?.number ?? false,
-            string: _options?.ignorePrimitives?.string ?? false,
-          },
-  };
-  return defineRule({
-    name: "core/preferNullishCoalescing",
-    visitor: {
-      BinaryExpression(node, context) {
-        if (node.operatorToken.kind === SyntaxKind.BarBarEqualsToken) {
-          checkAssignmentOrLogicalExpression(
-            node,
-            "assignment",
-            "=",
-            context,
-            options,
-          );
+export const preferNullishCoalescing = defineRule(
+  (_options?: {
+    ignoreBooleanCoercion?: boolean;
+    ignoreConditionalTests?: boolean;
+    ignoreMixedLogicalExpressions?: boolean;
+    ignoreTernaryTests?: boolean;
+    ignoreIfStatements?: boolean;
+    ignorePrimitives?:
+      | {
+          bigint?: boolean;
+          boolean?: boolean;
+          number?: boolean;
+          string?: boolean;
         }
-        if (
-          node.operatorToken.kind === SyntaxKind.BarBarToken
-          && !(
-            options.ignoreBooleanCoercion && isBooleanConstructorContext(node)
-          )
-        ) {
-          checkAssignmentOrLogicalExpression(node, "or", "", context, options);
-        }
-      },
-      ConditionalExpression(node, context) {
-        if (options.ignoreTernaryTests) return;
-
-        // !x ? y : x
-        if (
-          node.condition.kind === SyntaxKind.PrefixUnaryExpression
-          && node.condition.operator === SyntaxKind.ExclamationToken
-          && isMemberAccessLike(node.condition.operand)
-          && isMemberAccessLike(node.whenFalse)
-          && areNodesSimilarMemberAccess(node.condition.operand, node.whenFalse)
-        ) {
-          if (
-            !truthinessEligibleForNullishCoalescing(
+      | true;
+  }) => {
+    const options: ParsedOptions = {
+      ignoreBooleanCoercion: false,
+      ignoreConditionalTests: true,
+      ignoreMixedLogicalExpressions: false,
+      ignoreTernaryTests: false,
+      ignoreIfStatements: false,
+      ..._options,
+      ignorePrimitives:
+        _options?.ignorePrimitives === true
+          ? { bigint: true, boolean: true, number: true, string: true }
+          : {
+              bigint: _options?.ignorePrimitives?.bigint ?? false,
+              boolean: _options?.ignorePrimitives?.boolean ?? false,
+              number: _options?.ignorePrimitives?.number ?? false,
+              string: _options?.ignorePrimitives?.string ?? false,
+            },
+    };
+    return {
+      name: "core/preferNullishCoalescing",
+      visitor: {
+        BinaryExpression(node, context) {
+          if (node.operatorToken.kind === SyntaxKind.BarBarEqualsToken) {
+            checkAssignmentOrLogicalExpression(
+              node,
+              "assignment",
+              "=",
               context,
               options,
+            );
+          }
+          if (
+            node.operatorToken.kind === SyntaxKind.BarBarToken
+            && !(
+              options.ignoreBooleanCoercion && isBooleanConstructorContext(node)
+            )
+          ) {
+            checkAssignmentOrLogicalExpression(
+              node,
+              "or",
+              "",
+              context,
+              options,
+            );
+          }
+        },
+        ConditionalExpression(node, context) {
+          if (options.ignoreTernaryTests) return;
+
+          // !x ? y : x
+          if (
+            node.condition.kind === SyntaxKind.PrefixUnaryExpression
+            && node.condition.operator === SyntaxKind.ExclamationToken
+            && isMemberAccessLike(node.condition.operand)
+            && isMemberAccessLike(node.whenFalse)
+            && areNodesSimilarMemberAccess(
               node.condition.operand,
+              node.whenFalse,
             )
           ) {
-            return;
-          }
-          context.report({
-            node,
-            message: messages.preferNullishOverTernary,
-            suggestions: [
-              {
-                message: messages.suggestNullish({ equals: "" }),
-                changes: [
-                  {
-                    node,
-                    newText: getNewText(node.condition.operand, node.whenTrue),
-                  },
-                ],
-              },
-            ],
-          });
-          return;
-        }
-
-        // x ? x : y
-        if (
-          isMemberAccessLike(node.condition)
-          && isMemberAccessLike(node.whenTrue)
-          && areNodesSimilarMemberAccess(node.condition, node.whenTrue)
-        ) {
-          if (
-            !truthinessEligibleForNullishCoalescing(
-              context,
-              options,
-              node.condition,
-            )
-          ) {
-            return;
-          }
-          context.report({
-            node,
-            message: messages.preferNullishOverTernary,
-            suggestions: [
-              {
-                message: messages.suggestNullish({ equals: "" }),
-                changes: [
-                  {
-                    node,
-                    newText: getNewText(node.condition, node.whenFalse),
-                  },
-                ],
-              },
-            ],
-          });
-          return;
-        }
-
-        const result = conditionEligibleForNullishCoalescing(
-          context,
-          node.condition,
-          (operator) => getBranchNodes(node, operator).nonNullishBranch,
-        );
-
-        if (!result) return;
-
-        context.report({
-          node,
-          message: messages.preferNullishOverTernary,
-          suggestions: () => {
-            return [
-              {
-                message: messages.suggestNullish({ equals: "" }),
-                changes: [
-                  {
-                    node,
-                    newText: getNewText(
-                      result.nullishCoalescingLeftNode,
-                      getBranchNodes(node, result.operator).nullishBranch,
-                    ),
-                  },
-                ],
-              },
-            ];
-          },
-        });
-      },
-      IfStatement(node, context) {
-        if (options.ignoreIfStatements) return;
-        if (node.elseStatement) return;
-
-        let assignmentExpression: AST.Expression | undefined;
-        if (
-          node.thenStatement.kind === SyntaxKind.Block
-          && node.thenStatement.statements.length === 1
-          && node.thenStatement.statements[0].kind
-            === SyntaxKind.ExpressionStatement
-        ) {
-          assignmentExpression = node.thenStatement.statements[0].expression;
-        } else if (node.thenStatement.kind === SyntaxKind.ExpressionStatement) {
-          assignmentExpression = node.thenStatement.expression;
-        }
-
-        if (!assignmentExpression) return;
-        if (
-          !(
-            assignmentExpression.kind === SyntaxKind.BinaryExpression
-            && assignmentExpression.operatorToken.kind
-              === SyntaxKind.EqualsToken
-          )
-        ) {
-          return;
-        }
-        if (!isMemberAccessLike(assignmentExpression.left)) return;
-
-        let eligible = false;
-
-        // if (!a) a = b
-        if (
-          node.expression.kind === SyntaxKind.PrefixUnaryExpression
-          && node.expression.operator === SyntaxKind.ExclamationToken
-          && isMemberAccessLike(node.expression.operand)
-          && areNodesSimilarMemberAccess(
-            node.expression.operand,
-            assignmentExpression.left,
-          )
-          && truthinessEligibleForNullishCoalescing(
-            context,
-            options,
-            node.expression.operand,
-          )
-        ) {
-          eligible = true;
-        }
-
-        const result = conditionEligibleForNullishCoalescing(
-          context,
-          node.expression,
-          () => assignmentExpression.left,
-        );
-
-        if (
-          result
-          && (result.operator === SyntaxKind.EqualsEqualsToken
-            || result.operator === SyntaxKind.EqualsEqualsEqualsToken)
-        ) {
-          // if (a == null) {...}
-          eligible = true;
-        }
-
-        if (!eligible) return;
-
-        context.report({
-          node,
-          message: messages.preferNullishOverAssignment,
-          suggestions: [
-            {
-              message: messages.suggestNullish({ equals: "=" }),
-              changes: [
+            if (
+              !truthinessEligibleForNullishCoalescing(
+                context,
+                options,
+                node.condition.operand,
+              )
+            ) {
+              return;
+            }
+            context.report({
+              node,
+              message: messages.preferNullishOverTernary,
+              suggestions: [
                 {
-                  node,
-                  newText: `${assignmentExpression.left.getText()} ??= ${assignmentExpression.right.getText()};`,
+                  message: messages.suggestNullish({ equals: "" }),
+                  changes: [
+                    {
+                      node,
+                      newText: getNewText(
+                        node.condition.operand,
+                        node.whenTrue,
+                      ),
+                    },
+                  ],
                 },
               ],
+            });
+            return;
+          }
+
+          // x ? x : y
+          if (
+            isMemberAccessLike(node.condition)
+            && isMemberAccessLike(node.whenTrue)
+            && areNodesSimilarMemberAccess(node.condition, node.whenTrue)
+          ) {
+            if (
+              !truthinessEligibleForNullishCoalescing(
+                context,
+                options,
+                node.condition,
+              )
+            ) {
+              return;
+            }
+            context.report({
+              node,
+              message: messages.preferNullishOverTernary,
+              suggestions: [
+                {
+                  message: messages.suggestNullish({ equals: "" }),
+                  changes: [
+                    {
+                      node,
+                      newText: getNewText(node.condition, node.whenFalse),
+                    },
+                  ],
+                },
+              ],
+            });
+            return;
+          }
+
+          const result = conditionEligibleForNullishCoalescing(
+            context,
+            node.condition,
+            (operator) => getBranchNodes(node, operator).nonNullishBranch,
+          );
+
+          if (!result) return;
+
+          context.report({
+            node,
+            message: messages.preferNullishOverTernary,
+            suggestions: () => {
+              return [
+                {
+                  message: messages.suggestNullish({ equals: "" }),
+                  changes: [
+                    {
+                      node,
+                      newText: getNewText(
+                        result.nullishCoalescingLeftNode,
+                        getBranchNodes(node, result.operator).nullishBranch,
+                      ),
+                    },
+                  ],
+                },
+              ];
             },
-          ],
-        });
+          });
+        },
+        IfStatement(node, context) {
+          if (options.ignoreIfStatements) return;
+          if (node.elseStatement) return;
+
+          let assignmentExpression: AST.Expression | undefined;
+          if (
+            node.thenStatement.kind === SyntaxKind.Block
+            && node.thenStatement.statements.length === 1
+            && node.thenStatement.statements[0].kind
+              === SyntaxKind.ExpressionStatement
+          ) {
+            assignmentExpression = node.thenStatement.statements[0].expression;
+          } else if (
+            node.thenStatement.kind === SyntaxKind.ExpressionStatement
+          ) {
+            assignmentExpression = node.thenStatement.expression;
+          }
+
+          if (!assignmentExpression) return;
+          if (
+            !(
+              assignmentExpression.kind === SyntaxKind.BinaryExpression
+              && assignmentExpression.operatorToken.kind
+                === SyntaxKind.EqualsToken
+            )
+          ) {
+            return;
+          }
+          if (!isMemberAccessLike(assignmentExpression.left)) return;
+
+          let eligible = false;
+
+          // if (!a) a = b
+          if (
+            node.expression.kind === SyntaxKind.PrefixUnaryExpression
+            && node.expression.operator === SyntaxKind.ExclamationToken
+            && isMemberAccessLike(node.expression.operand)
+            && areNodesSimilarMemberAccess(
+              node.expression.operand,
+              assignmentExpression.left,
+            )
+            && truthinessEligibleForNullishCoalescing(
+              context,
+              options,
+              node.expression.operand,
+            )
+          ) {
+            eligible = true;
+          }
+
+          const result = conditionEligibleForNullishCoalescing(
+            context,
+            node.expression,
+            () => assignmentExpression.left,
+          );
+
+          if (
+            result
+            && (result.operator === SyntaxKind.EqualsEqualsToken
+              || result.operator === SyntaxKind.EqualsEqualsEqualsToken)
+          ) {
+            // if (a == null) {...}
+            eligible = true;
+          }
+
+          if (!eligible) return;
+
+          context.report({
+            node,
+            message: messages.preferNullishOverAssignment,
+            suggestions: [
+              {
+                message: messages.suggestNullish({ equals: "=" }),
+                changes: [
+                  {
+                    node,
+                    newText: `${assignmentExpression.left.getText()} ??= ${assignmentExpression.right.getText()};`,
+                  },
+                ],
+              },
+            ],
+          });
+        },
       },
-    },
-  });
-}
+    };
+  },
+);
 
 function checkAssignmentOrLogicalExpression(
   node: AST.BinaryExpression,

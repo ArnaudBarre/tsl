@@ -14,8 +14,6 @@ import { visitorEntries } from "./visitorEntries.ts";
 
 export const showTiming = !!process.env["TIMING"];
 
-type UnknownRule = Rule<string, unknown>;
-
 const matchPattern = (pattern: string, fileName: string) =>
   fileName.includes(pattern);
 
@@ -23,7 +21,7 @@ const run = <T>(cb: () => T) => cb();
 
 export const initRules = async (
   getProgram: () => ts.Program,
-  config: Config<string>,
+  config: Config,
 ) => {
   const contextUtils = getContextUtils(getProgram);
   const rulesTimingMap: Record<string, number> = {};
@@ -50,16 +48,14 @@ export const initRules = async (
   }
   if (config.overrides) {
     for (const override of config.overrides) {
-      if (override.rules) {
-        for (const rule of override.rules) {
-          allRules.add(rule.name);
-          if (showTiming) rulesTimingMap[rule.name] = 0;
-        }
+      for (const rule of override.rules) {
+        allRules.add(rule.name);
+        if (showTiming) rulesTimingMap[rule.name] = 0;
       }
     }
   }
 
-  type RuleWithContext = { rule: UnknownRule; context: Context };
+  type RuleWithContext = { rule: Rule<unknown>; context: Context };
   const getRulesVisitFnCache = new Map<
     string /* overridesKey */,
     ReturnType<typeof getRulesVisitFn>
@@ -74,28 +70,20 @@ export const initRules = async (
     const cached = getRulesVisitFnCache.get(overridesKey);
     if (cached) return cached;
 
-    const rulesMaps: Record<string, UnknownRule> = {};
-    const disabledRules: string[] = [];
+    const rulesMaps: Record<string, Rule<unknown>> = {};
 
+    for (const rule of baseRules) rulesMaps[rule.name] = rule;
     for (let i = 0; i < overrides.length; i++) {
       if (overridesKey[i] === "0") continue;
       const override = overrides[i];
-      if (override.disabled) disabledRules.push(...override.disabled);
-      if (override.rules) {
-        for (const rule of override.rules) rulesMaps[rule.name] = rule;
-      }
-    }
-
-    // Add base rules if not disabled or overridden
-    for (const rule of baseRules) {
-      if (disabledRules.includes(rule.name)) continue;
-      if (!(rule.name in rulesMaps)) rulesMaps[rule.name] = rule;
+      for (const rule of override.rules) rulesMaps[rule.name] = rule;
     }
 
     const rulesWithContext: RuleWithContext[] = [];
-    for (const rule in rulesMaps) {
+    for (const ruleName in rulesMaps) {
+      const rule = rulesMaps[ruleName];
       rulesWithContext.push({
-        rule: rulesMaps[rule],
+        rule,
         context: {
           sourceFile: undefined as unknown as SourceFile,
           get program() {
@@ -163,7 +151,7 @@ export const initRules = async (
     return value;
   };
 
-  type Report = ReportDescriptor & { type: "rule"; rule: UnknownRule };
+  type Report = ReportDescriptor & { type: "rule"; rule: Rule<unknown> };
   return {
     allRules,
     lint: (

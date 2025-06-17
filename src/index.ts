@@ -42,52 +42,22 @@ export type {
 } from "./types.ts";
 export { defineRule } from "./rules/_utils/index.ts";
 
-export const defineConfig = <const BaseRuleName extends string>(
-  config: Config<BaseRuleName>,
-) => config;
+export const defineConfig = (config: Config) => config;
 
 export type RulesSet<
-  RulesFnsMap extends Record<string, (...args: any) => Rule>,
+  RulesFnsMap extends Record<string, (...args: any) => Rule<unknown>>,
 > = RulesFnsMap & {
-  all: <
-    PartialConfig extends Partial<{
-      [key in keyof RulesFnsMap]: Parameters<
-        RulesFnsMap[key]
-      >[0] extends undefined
-        ? "on" | "off"
-        : Parameters<RulesFnsMap[key]>[0] | "on" | "off";
-    }>,
-  >(
-    config?: PartialConfig,
-  ) => Array<
-    {
-      [K in keyof RulesFnsMap]: PartialConfig[K] extends "off"
-        ? never
-        : ReturnType<RulesFnsMap[K]>;
-    }[keyof RulesFnsMap]
-  >;
+  all: () => Array<Rule<unknown>>;
 };
 
 export const createRulesSet = <
-  T extends Record<string, (...args: any) => Rule>,
+  T extends Record<string, (...args: any) => Rule<unknown>>,
 >(
   rulesFunctions: T,
-) =>
-  ({
-    ...rulesFunctions,
-    all: (config) => {
-      const rules: Rule[] = [];
-      for (const key in rulesFunctions) {
-        if (config?.[key] === "off") continue;
-        rules.push(
-          rulesFunctions[key](
-            config?.[key] === "on" ? undefined : config?.[key],
-          ),
-        );
-      }
-      return rules;
-    },
-  }) as RulesSet<T>;
+): RulesSet<T> => ({
+  ...rulesFunctions,
+  all: () => Object.values(rulesFunctions).map((fn) => fn()),
+});
 
 export const core = createRulesSet({
   awaitThenable,

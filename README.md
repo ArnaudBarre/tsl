@@ -57,24 +57,23 @@ bun add @arnaud-barre/type-lint
 
 Add a `type-lint.config.ts` file to your project root. If you don't have one, all core rules are enabled.
 
-You can either enable all core rules and disable some of them or update options if needed
+You can either enable all core rules and disable some of them or update options if needed,
 
 ```ts
 import { core, defineConfig } from "@arnaud-barre/type-lint";
 
 export default defineConfig({
   rules: [
-    ...core.all({
-      noUnnecessaryBooleanLiteralCompare: "off",
-      switchExhaustivenessCheck: {
-        considerDefaultExhaustiveForUnions: true,
-      },
+    ...core.all(),
+    core.noUnnecessaryBooleanLiteralCompare("off"),
+    core.switchExhaustivenessCheck({
+      considerDefaultExhaustiveForUnions: true,
     }),
   ],
 });
 ```
 
-Or pick only the rules you want to enable.
+or pick only the rules you want to enable.
 
 ```ts
 import { core, defineConfig } from "@arnaud-barre/type-lint";
@@ -170,8 +169,8 @@ defineConfig({
   overrides: [
     {
       files: [".server.ts"],
-      disabled: ["core/dotNotation"],
       rules: [
+        core.dotNotation("off"),
         core.switchExhaustivenessCheck({ requireDefaultForNonUnion: true }),
       ],
     },

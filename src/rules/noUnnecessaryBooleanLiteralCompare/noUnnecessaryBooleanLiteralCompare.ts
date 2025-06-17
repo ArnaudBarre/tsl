@@ -25,96 +25,98 @@ type ParsedOptions = {
   allowComparingNullableBooleansToTrue: boolean;
   allowComparingNullableBooleansToFalse: boolean;
 };
-export function noUnnecessaryBooleanLiteralCompare(_options?: {
-  allowComparingNullableBooleansToFalse?: boolean;
-  allowComparingNullableBooleansToTrue?: boolean;
-}) {
-  const options: ParsedOptions = {
-    allowComparingNullableBooleansToFalse: true,
-    allowComparingNullableBooleansToTrue: true,
-    ..._options,
-  };
-  return defineRule({
-    name: "core/noUnnecessaryBooleanLiteralCompare",
-    visitor: {
-      BinaryExpression(node, context) {
-        const comparison = getBooleanComparison(node, context);
-        if (comparison === undefined) return;
+export const noUnnecessaryBooleanLiteralCompare = defineRule(
+  (_options?: {
+    allowComparingNullableBooleansToFalse?: boolean;
+    allowComparingNullableBooleansToTrue?: boolean;
+  }) => {
+    const options: ParsedOptions = {
+      allowComparingNullableBooleansToFalse: true,
+      allowComparingNullableBooleansToTrue: true,
+      ..._options,
+    };
+    return {
+      name: "core/noUnnecessaryBooleanLiteralCompare",
+      visitor: {
+        BinaryExpression(node, context) {
+          const comparison = getBooleanComparison(node, context);
+          if (comparison === undefined) return;
 
-        if (comparison.expressionIsNullableBoolean) {
-          if (
-            comparison.literalBooleanInComparison
-            && options.allowComparingNullableBooleansToTrue
-          ) {
-            return;
-          }
-          if (
-            !comparison.literalBooleanInComparison
-            && options.allowComparingNullableBooleansToFalse
-          ) {
-            return;
-          }
-        }
-
-        context.report({
-          node,
-          message: comparison.expressionIsNullableBoolean
-            ? comparison.literalBooleanInComparison
-              ? comparison.negated
-                ? messages.comparingNullableToTrueNegated
-                : messages.comparingNullableToTrueDirect
-              : messages.comparingNullableToFalse
-            : comparison.negated
-              ? messages.negated
-              : messages.direct,
-          suggestions: () => {
-            // 1. isUnaryNegation - parent negation
-            // 2. literalBooleanInComparison - is compared to literal boolean
-            // 3. negated - is expression negated
-
-            const isUnaryNegation =
-              node.parent.kind === SyntaxKind.ParenthesizedExpression
-              && node.parent.parent.kind === SyntaxKind.PrefixUnaryExpression
-              && node.parent.parent.operator === SyntaxKind.ExclamationToken;
-
-            const shouldNegate =
-              comparison.negated !== comparison.literalBooleanInComparison;
-
-            const mutatedNode = isUnaryNegation ? node.parent.parent : node;
-
-            let newText = comparison.expression.getText();
-
-            // if the expression `exp` is nullable, and we're not comparing to `true`, insert `?? true`
-            let alreadyHasParentheses = false;
+          if (comparison.expressionIsNullableBoolean) {
             if (
-              comparison.expressionIsNullableBoolean
-              && !comparison.literalBooleanInComparison
+              comparison.literalBooleanInComparison
+              && options.allowComparingNullableBooleansToTrue
             ) {
-              // provide the default `true`
-              newText = "(" + newText + " ?? true)";
-              alreadyHasParentheses = true;
+              return;
             }
+            if (
+              !comparison.literalBooleanInComparison
+              && options.allowComparingNullableBooleansToFalse
+            ) {
+              return;
+            }
+          }
 
-            if (shouldNegate === isUnaryNegation) {
-              newText =
-                !alreadyHasParentheses
-                && getOperatorPrecedenceForNode(comparison.expression)
-                  < OperatorPrecedence.Unary
-                  ? "!(" + newText + ")"
-                  : "!" + newText;
-            }
-            return [
-              {
-                message: messages.fix,
-                changes: [{ node: mutatedNode, newText }],
-              },
-            ];
-          },
-        });
+          context.report({
+            node,
+            message: comparison.expressionIsNullableBoolean
+              ? comparison.literalBooleanInComparison
+                ? comparison.negated
+                  ? messages.comparingNullableToTrueNegated
+                  : messages.comparingNullableToTrueDirect
+                : messages.comparingNullableToFalse
+              : comparison.negated
+                ? messages.negated
+                : messages.direct,
+            suggestions: () => {
+              // 1. isUnaryNegation - parent negation
+              // 2. literalBooleanInComparison - is compared to literal boolean
+              // 3. negated - is expression negated
+
+              const isUnaryNegation =
+                node.parent.kind === SyntaxKind.ParenthesizedExpression
+                && node.parent.parent.kind === SyntaxKind.PrefixUnaryExpression
+                && node.parent.parent.operator === SyntaxKind.ExclamationToken;
+
+              const shouldNegate =
+                comparison.negated !== comparison.literalBooleanInComparison;
+
+              const mutatedNode = isUnaryNegation ? node.parent.parent : node;
+
+              let newText = comparison.expression.getText();
+
+              // if the expression `exp` is nullable, and we're not comparing to `true`, insert `?? true`
+              let alreadyHasParentheses = false;
+              if (
+                comparison.expressionIsNullableBoolean
+                && !comparison.literalBooleanInComparison
+              ) {
+                // provide the default `true`
+                newText = "(" + newText + " ?? true)";
+                alreadyHasParentheses = true;
+              }
+
+              if (shouldNegate === isUnaryNegation) {
+                newText =
+                  !alreadyHasParentheses
+                  && getOperatorPrecedenceForNode(comparison.expression)
+                    < OperatorPrecedence.Unary
+                    ? "!(" + newText + ")"
+                    : "!" + newText;
+              }
+              return [
+                {
+                  message: messages.fix,
+                  changes: [{ node: mutatedNode, newText }],
+                },
+              ];
+            },
+          });
+        },
       },
-    },
-  });
-}
+    };
+  },
+);
 
 function getBooleanComparison(
   node: AST.BinaryExpression,

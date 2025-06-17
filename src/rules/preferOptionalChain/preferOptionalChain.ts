@@ -46,7 +46,7 @@ type ParsedOptions = {
   requireNullish: boolean;
 };
 
-export function preferOptionalChain(_options?: OptionsInput) {
+export const preferOptionalChain = defineRule((_options?: OptionsInput) => {
   const options = {
     checkAny: true,
     checkBigInt: true,
@@ -57,7 +57,7 @@ export function preferOptionalChain(_options?: OptionsInput) {
     requireNullish: false,
     ..._options,
   };
-  return defineRule({
+  return {
     name: "core/preferOptionalChain",
     createData: () => ({ seenLogicals: new Set<AST.BinaryExpression>() }),
     visitor: {
@@ -152,8 +152,8 @@ export function preferOptionalChain(_options?: OptionsInput) {
         }
       },
     },
-  });
-}
+  };
+});
 
 type ValidOperand = {
   type: "Valid";

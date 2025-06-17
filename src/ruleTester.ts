@@ -52,7 +52,7 @@ const transform = (value: unknown): unknown => {
 const isNode = (value: object): value is AST.AnyNode =>
   "kind" in value && typeof value.kind === "number";
 
-type CaseProps<RuleFn extends (options?: unknown) => Rule> = {
+type CaseProps<RuleFn extends (options?: unknown) => Rule<unknown>> = {
   tsx?: boolean;
   compilerOptions?: ts.CompilerOptions;
   options?: Parameters<RuleFn>[0];
@@ -66,7 +66,7 @@ type ErrorReport = {
   endColumn?: number;
   suggestions?: { message: string; output?: string }[];
 };
-type SetupCase<TRule extends (options?: unknown) => Rule> = {
+type SetupCase<TRule extends (options?: unknown) => Rule<unknown>> = {
   compilerOptionsKey: string;
   fileName: string;
   code: string;
@@ -92,27 +92,26 @@ const defaultCompilerOptions = {
 const typeFocus = process.argv[3];
 const indexFocus = process.argv[4];
 
-export type ValidTestCase<TRule extends (options?: unknown) => Rule> =
+export type ValidTestCase<TRule extends (options?: unknown) => Rule<unknown>> =
   | CaseProps<TRule>
   | string;
-export type InvalidTestCase<TRule extends (options?: unknown) => Rule> =
-  CaseProps<TRule> & {
-    error?: string;
-    errors?: (
-      | {
-          message: string;
-          line?: number;
-          column?: number;
-          endColumn?: number;
-          endLine?: number;
-          suggestions?: { message: string; output: string }[];
-        }
-      | [message: string, line?: number, column?: number]
-    )[];
-  };
-export const ruleTester = <
-  RuleFn extends (options?: any) => Rule<string, any>,
->({
+export type InvalidTestCase<
+  TRule extends (options?: unknown) => Rule<unknown>,
+> = CaseProps<TRule> & {
+  error?: string;
+  errors?: (
+    | {
+        message: string;
+        line?: number;
+        column?: number;
+        endColumn?: number;
+        endLine?: number;
+        suggestions?: { message: string; output: string }[];
+      }
+    | [message: string, line?: number, column?: number]
+  )[];
+};
+export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
   ruleFn,
   tsx,
   valid,

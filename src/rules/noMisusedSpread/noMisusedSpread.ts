@@ -38,32 +38,30 @@ export const messages = {
     "Replace map spread in object with `Object.fromEntries()`",
 };
 
-export function noMisusedSpread() {
-  return defineRule({
-    name: "core/noMisusedSpread",
-    visitor: {
-      SpreadAssignment(node, context) {
-        checkObjectSpread(node, context);
-      },
-      JsxSpreadAttribute(node, context) {
-        checkObjectSpread(node, context);
-      },
-      SpreadElement(node, context) {
-        if (
-          node.parent.kind === SyntaxKind.CallExpression
-          || node.parent.kind === SyntaxKind.ArrayLiteralExpression
-        ) {
-          const type = context.utils.getConstrainedTypeAtLocation(
-            node.expression,
-          );
-          if (isString(type)) {
-            context.report({ node, message: messages.noStringSpread });
-          }
-        }
-      },
+export const noMisusedSpread = defineRule(() => ({
+  name: "core/noMisusedSpread",
+  visitor: {
+    SpreadAssignment(node, context) {
+      checkObjectSpread(node, context);
     },
-  });
-}
+    JsxSpreadAttribute(node, context) {
+      checkObjectSpread(node, context);
+    },
+    SpreadElement(node, context) {
+      if (
+        node.parent.kind === SyntaxKind.CallExpression
+        || node.parent.kind === SyntaxKind.ArrayLiteralExpression
+      ) {
+        const type = context.utils.getConstrainedTypeAtLocation(
+          node.expression,
+        );
+        if (isString(type)) {
+          context.report({ node, message: messages.noStringSpread });
+        }
+      }
+    },
+  },
+}));
 
 function checkObjectSpread(
   node: AST.JsxSpreadAttribute | AST.SpreadAssignment,

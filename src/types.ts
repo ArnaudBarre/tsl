@@ -11,7 +11,7 @@ import type {
 import type * as AST from "./ast.ts";
 export type { AST };
 
-export type Config<BaseRuleName extends string> = {
+export type Config = {
   /**
    * List of base rules. You can use core.all() as an initial list and then update it based on your needs:
    *
@@ -21,7 +21,8 @@ export type Config<BaseRuleName extends string> = {
    *
    * defineConfig({
    *   rules: [
-   *     ...core.all({ preferOptionalChain: "off" }),
+   *     ...core.all(),
+   *     core.noUnnecessaryBooleanLiteralCompare("off"),
    *     {
    *       name: "org/my-custom-rule",
    *       visitor: {
@@ -32,7 +33,7 @@ export type Config<BaseRuleName extends string> = {
    * });
    * ```
    */
-  rules: Rule<BaseRuleName, any>[];
+  rules: Rule<unknown>[];
   /**
    * List of path parts to ignore (using string.includes)
    *
@@ -56,19 +57,15 @@ export type Config<BaseRuleName extends string> = {
      */
     files: string[];
     /**
-     * Name of the base rule to disable for these files
-     */
-    disabled?: NoInfer<BaseRuleName>[];
-    /**
      * Additional rules to add for these files.
      * Redeclared rules (identical name) completely replace the base rules, there is no merging of options.
      */
-    rules?: Rule<string, any>[];
+    rules: Rule<unknown>[];
   }[];
 };
 
-export type Rule<Name extends string = string, Data = undefined> = {
-  name: Name;
+export type Rule<Data = undefined> = {
+  name: string;
   createData?: (context: Omit<Context, "data">) => Data;
   visitor: AST.Visitor<Data>;
 };

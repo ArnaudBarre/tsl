@@ -9,20 +9,18 @@ export const messages = {
   fix: "Fix",
 };
 
-export function nonNullableTypeAssertionStyle() {
-  return defineRule({
-    name: "core/nonNullableTypeAssertionStyle",
-    visitor: {
-      AsExpression(node, context) {
-        if (isConstAssertion(node.type)) return;
-        checkAssertion(node, context);
-      },
-      TypeAssertionExpression(node, context) {
-        checkAssertion(node, context);
-      },
+export const nonNullableTypeAssertionStyle = defineRule(() => ({
+  name: "core/nonNullableTypeAssertionStyle",
+  visitor: {
+    AsExpression(node, context) {
+      if (isConstAssertion(node.type)) return;
+      checkAssertion(node, context);
     },
-  });
-}
+    TypeAssertionExpression(node, context) {
+      checkAssertion(node, context);
+    },
+  },
+}));
 
 const checkAssertion = (
   node: AST.AsExpression | AST.TypeAssertion,

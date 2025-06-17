@@ -16,10 +16,8 @@ export type NoMeaninglessVoidOperatorOptions = {
   checkNever?: boolean;
 };
 
-export function noMeaninglessVoidOperator(
-  options?: NoMeaninglessVoidOperatorOptions,
-) {
-  return defineRule({
+export const noMeaninglessVoidOperator = defineRule(
+  (options?: NoMeaninglessVoidOperatorOptions) => ({
     name: "core/noMeaninglessVoidOperator",
     visitor: {
       VoidExpression(node, context) {
@@ -50,5 +48,5 @@ export function noMeaninglessVoidOperator(
         }
       },
     },
-  });
-}
+  }),
+);

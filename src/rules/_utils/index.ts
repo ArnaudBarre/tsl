@@ -9,9 +9,19 @@ import {
 
 export const run = <T>(cb: () => T) => cb();
 
-export const defineRule = <Name extends string, Data = undefined>(
-  rule: Rule<Name, Data>,
-) => rule as Rule<Name>;
+export const defineRule =
+  <
+    Options extends Record<string, unknown> | undefined = undefined,
+    Data = undefined,
+  >(
+    fn: (options?: Options) => Rule<Data>,
+  ) =>
+  (options?: Options | "off") => {
+    if (options === "off") {
+      return { name: fn().name, visitor: {} } as Rule<unknown>;
+    }
+    return fn(options) as Rule<unknown>;
+  };
 
 const estreeLogicalOperator = [
   SyntaxKind.BarBarToken,

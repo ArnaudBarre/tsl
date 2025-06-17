@@ -87,74 +87,74 @@ const optionTesters = (
   tester,
 }));
 
-export function restrictTemplateExpressions(
-  _options?: RestrictTemplateExpressionsOptions,
-) {
-  const options = {
-    allow: ["Error", "URL", "URLSearchParams"],
-    allowAny: false,
-    allowArray: false,
-    allowNever: false,
-    allowBoolean: false,
-    allowNullish: false,
-    allowNumber: true,
-    allowRegExp: false,
-    ..._options,
-  };
+export const restrictTemplateExpressions = defineRule(
+  (_options?: RestrictTemplateExpressionsOptions) => {
+    const options = {
+      allow: ["Error", "URL", "URLSearchParams"],
+      allowAny: false,
+      allowArray: false,
+      allowNever: false,
+      allowBoolean: false,
+      allowNullish: false,
+      allowNumber: true,
+      allowRegExp: false,
+      ..._options,
+    };
 
-  const enabledOptionTesters = optionTesters.filter(
-    ({ option }) => options[option],
-  );
-
-  function recursivelyCheckType(innerType: Type, context: Context): boolean {
-    if (innerType.isUnion()) {
-      return innerType.types.every((t) => recursivelyCheckType(t, context));
-    }
-
-    if (innerType.isIntersection()) {
-      return innerType.types.some((t) => recursivelyCheckType(t, context));
-    }
-
-    return (
-      typeHasFlag(innerType, TypeFlags.StringLike)
-      || enabledOptionTesters.some(({ tester }) =>
-        tester(innerType, context, recursivelyCheckType),
-      )
+    const enabledOptionTesters = optionTesters.filter(
+      ({ option }) => options[option],
     );
-  }
-  return defineRule({
-    name: "core/restrictTemplateExpressions",
-    visitor: {
-      TemplateExpression(node, context) {
-        // don't check tagged template literals
-        if (node.parent.kind === SyntaxKind.TaggedTemplateExpression) {
-          return;
-        }
 
-        for (const span of node.templateSpans) {
-          const identifier =
-            span.expression.kind === SyntaxKind.NewExpression
-            || span.expression.kind === SyntaxKind.CallExpression
-              ? span.expression.expression
-              : span.expression;
-          if (options.allow.includes(identifier.getText())) {
+    function recursivelyCheckType(innerType: Type, context: Context): boolean {
+      if (innerType.isUnion()) {
+        return innerType.types.every((t) => recursivelyCheckType(t, context));
+      }
+
+      if (innerType.isIntersection()) {
+        return innerType.types.some((t) => recursivelyCheckType(t, context));
+      }
+
+      return (
+        typeHasFlag(innerType, TypeFlags.StringLike)
+        || enabledOptionTesters.some(({ tester }) =>
+          tester(innerType, context, recursivelyCheckType),
+        )
+      );
+    }
+    return {
+      name: "core/restrictTemplateExpressions",
+      visitor: {
+        TemplateExpression(node, context) {
+          // don't check tagged template literals
+          if (node.parent.kind === SyntaxKind.TaggedTemplateExpression) {
             return;
           }
 
-          const expressionType = context.utils.getConstrainedTypeAtLocation(
-            span.expression,
-          );
+          for (const span of node.templateSpans) {
+            const identifier =
+              span.expression.kind === SyntaxKind.NewExpression
+              || span.expression.kind === SyntaxKind.CallExpression
+                ? span.expression.expression
+                : span.expression;
+            if (options.allow.includes(identifier.getText())) {
+              return;
+            }
 
-          if (!recursivelyCheckType(expressionType, context)) {
-            context.report({
-              node: span.expression,
-              message: messages.invalidType({
-                type: context.checker.typeToString(expressionType),
-              }),
-            });
+            const expressionType = context.utils.getConstrainedTypeAtLocation(
+              span.expression,
+            );
+
+            if (!recursivelyCheckType(expressionType, context)) {
+              context.report({
+                node: span.expression,
+                message: messages.invalidType({
+                  type: context.checker.typeToString(expressionType),
+                }),
+              });
+            }
           }
-        }
+        },
       },
-    },
-  });
-}
+    };
+  },
+);
