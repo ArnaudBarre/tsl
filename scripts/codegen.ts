@@ -42,7 +42,6 @@ const typeKeywordNames = keywordType.type.types.map((t) => {
     ts.isTypeReferenceNode(t)
       && ts.isQualifiedName(t.typeName)
       && ts.isIdentifier(t.typeName.left)
-      && ts.isIdentifier(t.typeName.right)
       && t.typeName.left.text === "SyntaxKind",
   );
   return t.typeName.right.text;
@@ -209,7 +208,6 @@ const visitType = (name: string): void => {
             assert(typeRef.typeName.left.text === "SyntaxKind");
             return;
           }
-          assert(ts.isIdentifier(typeRef.typeName));
           let typeName = typeRef.typeName.text;
           if (typeName === "NodeArray") {
             assert(typeRef.typeArguments?.length === 1);

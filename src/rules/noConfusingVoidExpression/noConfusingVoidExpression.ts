@@ -333,7 +333,7 @@ export const noConfusingVoidExpression = defineRule(
 
       if (
         (parent.kind === SyntaxKind.PropertyAccessExpression
-          && parent.questionDotToken)
+          && parent.questionDotToken !== undefined)
         || parent.kind === SyntaxKind.ParenthesizedExpression
       ) {
         // e.g. console?.log('foo'), (foo ? a() : b())

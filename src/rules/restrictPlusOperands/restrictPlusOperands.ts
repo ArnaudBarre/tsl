@@ -8,6 +8,34 @@ import {
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { defineRule, getTypeName, typeHasFlag } from "../_utils/index.ts";
 
+export type RestrictPlusOperandsOptions = {
+  /**
+   * Whether to allow `any` typed values.
+   * @default false
+   */
+  allowAny?: boolean;
+  /**
+   * Whether to allow `boolean` typed values.
+   * @default true
+   */
+  allowBoolean?: boolean;
+  /**
+   * Whether to allow potentially `null` or `undefined` typed values.
+   * @default false
+   */
+  allowNullish?: boolean;
+  /**
+   * Whether to allow `bigint`/`number` typed values and `string` typed values to be added together.
+   * @default true
+   */
+  allowNumberAndString?: boolean;
+  /**
+   * Whether to allow `regexp` typed values.
+   * @default false
+   */
+  allowRegExp?: boolean;
+};
+
 export const messages = {
   bigintAndNumber: (params: { left: string; right: string }) =>
     `Numeric '+' operations must either be both bigints or both numbers. Got \`${params.left}\` + \`${params.right}\`.`,
@@ -18,18 +46,7 @@ export const messages = {
 };
 
 export const restrictPlusOperands = defineRule(
-  (_options?: {
-    /** Whether to allow `any` typed values. Defaults to `false`. */
-    allowAny?: boolean;
-    /** Whether to allow `boolean` typed values. Defaults to `true`. */
-    allowBoolean?: boolean;
-    /** Whether to allow potentially `null` or `undefined` typed values. Defaults to `false`. */
-    allowNullish?: boolean;
-    /** Whether to allow `bigint`/`number` typed values and `string` typed values to be added together. Defaults to `true`. */
-    allowNumberAndString?: boolean;
-    /** Whether to allow `regexp` typed values. Defaults to `false`. */
-    allowRegExp?: boolean;
-  }) => {
+  (_options?: RestrictPlusOperandsOptions) => {
     const options = {
       allowAny: false,
       allowBoolean: true,

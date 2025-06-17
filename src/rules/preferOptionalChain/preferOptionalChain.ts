@@ -27,13 +27,41 @@ export const messages = {
     "Prefer using an optional chain expression instead, as it's more concise and easier to read.",
 };
 
-type OptionsInput = {
+export type PreferOptionalChainOptions = {
+  /**
+   * Check operands that are typed as `any` when inspecting "loose boolean" operands.
+   * @default true
+   */
   checkAny?: boolean;
+  /**
+   * Check operands that are typed as `bigint` when inspecting "loose boolean" operands.
+   * @default true
+   */
   checkBigInt?: boolean;
+  /**
+   * Check operands that are typed as `boolean` when inspecting "loose boolean" operands.
+   * @default true
+   */
   checkBoolean?: boolean;
+  /**
+   * Check operands that are typed as `number` when inspecting "loose boolean" operands.
+   * @default true
+   */
   checkNumber?: boolean;
+  /**
+   * Check operands that are typed as `string` when inspecting "loose boolean" operands.
+   * @default true
+   */
   checkString?: boolean;
+  /**
+   * Check operands that are typed as `unknown` when inspecting "loose boolean" operands.
+   * @default true
+   */
   checkUnknown?: boolean;
+  /**
+   * Skip operands that are not typed with `null` and/or `undefined` when inspecting "loose boolean" operands.
+   * @default false
+   */
   requireNullish?: boolean;
 };
 type ParsedOptions = {
@@ -46,114 +74,116 @@ type ParsedOptions = {
   requireNullish: boolean;
 };
 
-export const preferOptionalChain = defineRule((_options?: OptionsInput) => {
-  const options = {
-    checkAny: true,
-    checkBigInt: true,
-    checkBoolean: true,
-    checkNumber: true,
-    checkString: true,
-    checkUnknown: true,
-    requireNullish: false,
-    ..._options,
-  };
-  return {
-    name: "core/preferOptionalChain",
-    createData: () => ({ seenLogicals: new Set<AST.BinaryExpression>() }),
-    visitor: {
-      BinaryExpression(node, context) {
-        if (context.data.seenLogicals.has(node)) {
-          return;
-        }
-
-        const operator = node.operatorToken.kind;
-        if (
-          operator !== SyntaxKind.QuestionQuestionToken
-          && operator !== SyntaxKind.BarBarToken
-          && operator !== SyntaxKind.AmpersandAmpersandToken
-        ) {
-          return;
-        }
-        if (operator !== SyntaxKind.QuestionQuestionToken) {
-          const { operands, newlySeenLogicals } = gatherLogicalOperands(
-            node,
-            context,
-            options,
-          );
-          for (const logical of newlySeenLogicals) {
-            context.data.seenLogicals.add(logical);
-          }
-
-          let currentChain: ValidOperand[] = [];
-          for (const operand of operands) {
-            if (operand.type === "Invalid") {
-              analyzeChain(context, options, node, operator, currentChain);
-              currentChain = [];
-            } else {
-              currentChain.push(operand);
-            }
-          }
-
-          // make sure to check whatever's left
-          if (currentChain.length > 0) {
-            analyzeChain(context, options, node, operator, currentChain);
-          }
-        }
-        if (
-          operator === SyntaxKind.BarBarToken
-          || operator === SyntaxKind.QuestionQuestionToken
-        ) {
-          const leftNode = node.left;
-          let rightNode = node.right;
-          while (rightNode.kind === SyntaxKind.ParenthesizedExpression) {
-            rightNode = rightNode.expression;
-          }
-          let parentNode: AST.LeftHandSideExpressionParent = node.parent;
-          while (parentNode.kind === SyntaxKind.ParenthesizedExpression) {
-            parentNode = parentNode.parent;
-          }
-          const isRightNodeAnEmptyObjectLiteral =
-            rightNode.kind === SyntaxKind.ObjectLiteralExpression
-            && rightNode.properties.length === 0;
-          if (
-            !isRightNodeAnEmptyObjectLiteral
-            || (parentNode.kind !== SyntaxKind.ElementAccessExpression
-              && parentNode.kind !== SyntaxKind.PropertyAccessExpression)
-            || parentNode.questionDotToken
-          ) {
+export const preferOptionalChain = defineRule(
+  (_options?: PreferOptionalChainOptions) => {
+    const options = {
+      checkAny: true,
+      checkBigInt: true,
+      checkBoolean: true,
+      checkNumber: true,
+      checkString: true,
+      checkUnknown: true,
+      requireNullish: false,
+      ..._options,
+    };
+    return {
+      name: "core/preferOptionalChain",
+      createData: () => ({ seenLogicals: new Set<AST.BinaryExpression>() }),
+      visitor: {
+        BinaryExpression(node, context) {
+          if (context.data.seenLogicals.has(node)) {
             return;
           }
 
-          checkNullishAndReport(context, options, [leftNode], {
-            node: parentNode,
-            message: messages.preferOptionalChain,
-            suggestions: () => {
-              const maybeWrappedLeftNode =
-                getOperatorPrecedence(leftNode.kind, node.operatorToken.kind)
-                < OperatorPrecedence.LeftHandSide
-                  ? `(${leftNode.getText()})`
-                  : leftNode.getText();
-              return [
-                {
-                  message: messages.optionalChainSuggest,
-                  changes: [
-                    {
-                      node: parentNode,
-                      newText:
-                        parentNode.kind === SyntaxKind.ElementAccessExpression
-                          ? `${maybeWrappedLeftNode}?.[${parentNode.argumentExpression.getText()}]`
-                          : `${maybeWrappedLeftNode}?.${parentNode.name.getText()}`,
-                    },
-                  ],
-                },
-              ];
-            },
-          });
-        }
+          const operator = node.operatorToken.kind;
+          if (
+            operator !== SyntaxKind.QuestionQuestionToken
+            && operator !== SyntaxKind.BarBarToken
+            && operator !== SyntaxKind.AmpersandAmpersandToken
+          ) {
+            return;
+          }
+          if (operator !== SyntaxKind.QuestionQuestionToken) {
+            const { operands, newlySeenLogicals } = gatherLogicalOperands(
+              node,
+              context,
+              options,
+            );
+            for (const logical of newlySeenLogicals) {
+              context.data.seenLogicals.add(logical);
+            }
+
+            let currentChain: ValidOperand[] = [];
+            for (const operand of operands) {
+              if (operand.type === "Invalid") {
+                analyzeChain(context, options, node, operator, currentChain);
+                currentChain = [];
+              } else {
+                currentChain.push(operand);
+              }
+            }
+
+            // make sure to check whatever's left
+            if (currentChain.length > 0) {
+              analyzeChain(context, options, node, operator, currentChain);
+            }
+          }
+          if (
+            operator === SyntaxKind.BarBarToken
+            || operator === SyntaxKind.QuestionQuestionToken
+          ) {
+            const leftNode = node.left;
+            let rightNode = node.right;
+            while (rightNode.kind === SyntaxKind.ParenthesizedExpression) {
+              rightNode = rightNode.expression;
+            }
+            let parentNode: AST.LeftHandSideExpressionParent = node.parent;
+            while (parentNode.kind === SyntaxKind.ParenthesizedExpression) {
+              parentNode = parentNode.parent;
+            }
+            const isRightNodeAnEmptyObjectLiteral =
+              rightNode.kind === SyntaxKind.ObjectLiteralExpression
+              && rightNode.properties.length === 0;
+            if (
+              !isRightNodeAnEmptyObjectLiteral
+              || (parentNode.kind !== SyntaxKind.ElementAccessExpression
+                && parentNode.kind !== SyntaxKind.PropertyAccessExpression)
+              || parentNode.questionDotToken
+            ) {
+              return;
+            }
+
+            checkNullishAndReport(context, options, [leftNode], {
+              node: parentNode,
+              message: messages.preferOptionalChain,
+              suggestions: () => {
+                const maybeWrappedLeftNode =
+                  getOperatorPrecedence(leftNode.kind, node.operatorToken.kind)
+                  < OperatorPrecedence.LeftHandSide
+                    ? `(${leftNode.getText()})`
+                    : leftNode.getText();
+                return [
+                  {
+                    message: messages.optionalChainSuggest,
+                    changes: [
+                      {
+                        node: parentNode,
+                        newText:
+                          parentNode.kind === SyntaxKind.ElementAccessExpression
+                            ? `${maybeWrappedLeftNode}?.[${parentNode.argumentExpression.getText()}]`
+                            : `${maybeWrappedLeftNode}?.${parentNode.name.getText()}`,
+                      },
+                    ],
+                  },
+                ];
+              },
+            });
+          }
+        },
       },
-    },
-  };
-});
+    };
+  },
+);
 
 type ValidOperand = {
   type: "Valid";

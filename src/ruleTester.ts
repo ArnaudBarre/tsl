@@ -139,7 +139,7 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
     }`;
     filesMap.set(fileName, caseProps.code);
     const compilerOptionsInput =
-      caseProps.compilerOptions || useTSX
+      caseProps.compilerOptions !== undefined || useTSX
         ? {
             ...defaultCompilerOptions,
             jsx: useTSX ? ts.JsxEmit.ReactJSX : undefined,

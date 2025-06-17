@@ -21,15 +21,25 @@ export const messages = {
   fix: "Fix",
 };
 
+export type NoUnnecessaryBooleanLiteralCompareOptions = {
+  /**
+   * Whether to allow comparisons between nullable boolean variables and `false`.
+   * @default true
+   */
+  allowComparingNullableBooleansToFalse?: boolean;
+  /**
+   * Whether to allow comparisons between nullable boolean variables and `true`.
+   * @default true
+   */
+  allowComparingNullableBooleansToTrue?: boolean;
+};
 type ParsedOptions = {
   allowComparingNullableBooleansToTrue: boolean;
   allowComparingNullableBooleansToFalse: boolean;
 };
+
 export const noUnnecessaryBooleanLiteralCompare = defineRule(
-  (_options?: {
-    allowComparingNullableBooleansToFalse?: boolean;
-    allowComparingNullableBooleansToTrue?: boolean;
-  }) => {
+  (_options?: NoUnnecessaryBooleanLiteralCompareOptions) => {
     const options: ParsedOptions = {
       allowComparingNullableBooleansToFalse: true,
       allowComparingNullableBooleansToTrue: true,

@@ -69,7 +69,6 @@ export type PreferNullishCoalescingOptions = {
     /** Ignore all primitive types. */
     | true;
 };
-
 type ParsedOptions = {
   ignoreBooleanCoercion: boolean;
   ignoreConditionalTests: boolean;
@@ -85,21 +84,7 @@ type ParsedOptions = {
 };
 
 export const preferNullishCoalescing = defineRule(
-  (_options?: {
-    ignoreBooleanCoercion?: boolean;
-    ignoreConditionalTests?: boolean;
-    ignoreMixedLogicalExpressions?: boolean;
-    ignoreTernaryTests?: boolean;
-    ignoreIfStatements?: boolean;
-    ignorePrimitives?:
-      | {
-          bigint?: boolean;
-          boolean?: boolean;
-          number?: boolean;
-          string?: boolean;
-        }
-      | true;
-  }) => {
+  (_options?: PreferNullishCoalescingOptions) => {
     const options: ParsedOptions = {
       ignoreBooleanCoercion: false,
       ignoreConditionalTests: true,

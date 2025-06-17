@@ -42,6 +42,7 @@ type SwitchMetadata = {
   missingLiteralCasesTypes: ts.Type[];
   symbolName: string | undefined;
 };
+
 export const switchExhaustivenessCheck = defineRule(
   (_options?: SwitchExhaustivenessCheckOptions) => {
     const options = {
@@ -181,7 +182,7 @@ export const switchExhaustivenessCheck = defineRule(
 
         if (
           symbolName
-          && (missingBranchName || missingBranchName === "")
+          && missingBranchName !== undefined
           && requiresQuoting(
             missingBranchName.toString(),
             context.compilerOptions.target,

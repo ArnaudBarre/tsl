@@ -61,7 +61,6 @@ export type NoUnnecessaryConditionOptions = {
    */
   checkTypePredicates?: boolean;
 };
-
 type ParsedOptions = {
   allowConstantLoopConditions: "always" | "never" | "only-allowed-literals";
   checkTypePredicates: boolean;

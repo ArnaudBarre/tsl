@@ -32,12 +32,6 @@ export const messages = {
   floatingVoid: messageBaseVoid,
 };
 
-type ParsedOptions = {
-  allowList: string[];
-  ignoreIIFE: boolean;
-  ignoreVoid: boolean;
-};
-
 export type NoFloatingPromisesOptions = {
   /**
    * Functions whose calls are safe to float.
@@ -54,6 +48,11 @@ export type NoFloatingPromisesOptions = {
    * @default true
    */
   ignoreVoid?: boolean;
+};
+type ParsedOptions = {
+  allowList: string[];
+  ignoreIIFE: boolean;
+  ignoreVoid: boolean;
 };
 
 export const noFloatingPromises = defineRule(
