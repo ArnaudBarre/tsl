@@ -52,7 +52,7 @@ context({
   ],
 }).then(
   (ctx) => ctx.watch(),
-  (e) => log(e.message),
+  (e) => log((e as Error).message),
 );
 
 const logs: string[] = [`Start at ${new Date().toISOString()}`];

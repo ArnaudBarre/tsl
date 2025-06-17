@@ -107,6 +107,20 @@ In your `tsconfig.json` add the following:
 > [!IMPORTANT]
 > If you use VS Code, you need to run the "TypeScript: Select TypeScript Version" command and choose "Use Workspace Version".
 
+### Add the patches
+
+Rules like [prefer-promise-reject-errors](https://typescript-eslint.io/rules/prefer-promise-reject-errors/) and [use-unknown-in-catch-callback-variable](https://typescript-eslint.io/rules/use-unknown-in-catch-callback-variable/) in TS-ESLint are implemented with patches to override the builtin types. To do so, add the following to your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "types": ["@arnaud-barre/type-lint/patches"]
+  }
+}
+```
+
+They can also be added individually with `@arnaud-barre/type-lint/patches/promiseRejectError` or `@arnaud-barre/type-lint/patches/unknowninCatchCallbacks`.
+
 ### Update your scripts to run the linter
 
 To avoid parsing and typechecking twice your codebase, type-lint run first tsc via the javascript API and then run rules on the TS AST.
@@ -263,7 +277,7 @@ Currently, the list of core rules are the type-aware lint rules I use from TS-ES
 - prefer-includes: ✅ Implemented, without `/baz/.test(a)`, it requires regex parsing and can be achieved without type information
 - prefer-nullish-coalescing: ✅ Implemented
 - prefer-optional-chain: ✅ Implemented
-- prefer-promise-reject-errors: 🛑 Implementation not planned, can be achieved with global types instead
+- prefer-promise-reject-errors: 🛑 See [Add the patches](#add-the-patches)
 - prefer-readonly: ❌ Not implemented, too OOP for me
 - prefer-readonly-parameter-types: 🛑 Implementation not planned, it would better to check that function parameters are never mutated instead
 - prefer-reduce-type-parameter: ✅ Implemented,
@@ -280,7 +294,7 @@ Currently, the list of core rules are the type-aware lint rules I use from TS-ES
 - strict-boolean-expressions: ❌ Not implemented
 - switch-exhaustiveness-check: ✅ Implemented, missing no default comment #10218
 - unbound-method: ❌ Not implemented, too OOP for me
-- use-unknown-in-catch-callback-variable: 🛑 Implementation not planned, you can use global types instead
+- use-unknown-in-catch-callback-variable: 🛑 See [Add the patches](#add-the-patches)
 
 ## Create sharable rules
 

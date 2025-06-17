@@ -29,7 +29,7 @@ writeFileSync(
   JSON.stringify({ name: "type-lint-plugin", main: "index.cjs" }, null, 2),
 );
 
-execSync("cp LICENSE README.md dist/");
+execSync("cp -r LICENSE README.md src/patches dist/");
 
 writeFileSync(
   "dist/package.json",
@@ -44,6 +44,8 @@ writeFileSync(
       type: "module",
       exports: {
         ".": { types: "./index.d.ts", import: "./index.js" },
+        "./patches": { types: "./patches/all.d.ts" },
+        "./patches/*": { types: "./patches/*.d.ts" },
         "./ruleTester": {
           types: "./ruleTester.d.ts",
           import: "./ruleTester.js",
