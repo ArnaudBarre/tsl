@@ -43,14 +43,84 @@ This means that editor support can be provided though a compiler plugin and that
 
 I don't think this scale well to hundreds of rules. Most lint rules don't require type information and tools written in Rust like [Oxlint](https://oxc.rs/docs/guide/usage/linter.html) or [Biome](https://biomejs.dev/) are really well suited for this.
 
-### What about tsgo?
+### What about [tsgo](https://github.com/microsoft/typescript-go)?
 
 I still have to investigate how the language service integration will work with inter-process communication. Probably most of the main rules will have to be ported to Go to be efficient, but this having them ported to the TS AST is still a necessary useful step.
+
+### What about [Biome](https://biomejs.dev/)?
+
+Biome 2 introduced a first type-aware lint rule (noFloatingPromises) without using the TypeScript compiler. While I agree that detecting if a function returns a promise doens't require full type information, various type aware rules require to know if a variable is nullable or not (restrictedTemplateExpressions, restrictedPlusOperands) and this will be hard to implement without the TypeScript compiler for web codebases where most types come from the DB and are resolved though this kind of types
+
+<details>
+
+<summary>Extract of Prisma types</summary>
+
+```ts
+export declare type GetPayloadResult<
+  Base extends Record<any, any>,
+  R extends InternalArgs["result"][string],
+> = Omit<Base, GetPayloadResultExtensionKeys<R>>
+  & GetPayloadResultExtensionObject<R>;
+
+export declare type GetPayloadResultExtensionKeys<
+  R extends InternalArgs["result"][string],
+  KR extends keyof R = string extends keyof R ? never : keyof R,
+> = KR;
+
+export declare type GetPayloadResultExtensionObject<
+  R extends InternalArgs["result"][string],
+> = {
+  [K in GetPayloadResultExtensionKeys<R>]: R[K] extends () => {
+    compute: (...args: any) => infer C;
+  }
+    ? C
+    : never;
+};
+
+export type $UserPayload<
+  ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs,
+> = {
+  name: "User";
+  objects: {
+    analytics: Prisma.$AnalyticsEventPayload<ExtArgs>[];
+  };
+  scalars: $Extensions.GetPayloadResult<
+    {
+      uuid: string;
+      createdAt: Date;
+      updatedAt: Date;
+      username: string;
+      firstName: string | null;
+      lastName: string | null;
+    },
+    ExtArgs["result"]["user"]
+  >;
+  composites: {};
+};
+
+type UserGetPayload<S extends boolean | null | undefined | UserDefaultArgs> =
+  $Result.GetResult<Prisma.$UserPayload, S>;
+
+// prettier-ignore
+export interface UserDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> {
+  [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['User'], meta: { name: 'User' } }
+  findUnique<T extends UserFindUniqueArgs>(args: SelectSubset<T, UserFindUniqueArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T,"findUnique", ClientOptions> | null, null, ExtArgs, ClientOptions>
+  findUniqueOrThrow<T extends UserFindUniqueOrThrowArgs>(args: SelectSubset<T, UserFindUniqueOrThrowArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", ClientOptions>, never, ExtArgs, ClientOptions>
+  findFirst<T extends UserFindFirstArgs>(args?: SelectSubset<T, UserFindFirstArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T,"findFirst", ClientOptions> | null, null, ExtArgs, ClientOptions>
+  findFirstOrThrow<T extends UserFindFirstOrThrowArgs>(args?: SelectSubset<T, UserFindFirstOrThrowArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findFirstOrThrow", ClientOptions>, never, ExtArgs, ClientOptions>
+  findMany<T extends UserFindManyArgs>(args?: SelectSubset<T, UserFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T,"findMany", ClientOptions>>
+  create<T extends UserCreateArgs>(args: SelectSubset<T, UserCreateArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "create", ClientOptions>, never, ExtArgs, ClientOptions>
+  createMany<T extends UserCreateManyArgs>(args?: SelectSubset<T, UserCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+  // More methods...
+}
+```
+
+</details>
 
 ## Installation
 
 ```bash
-bun add @arnaud-barre/type-lint
+bun add -D @arnaud-barre/type-lint
 ```
 
 ### Add a configuration
