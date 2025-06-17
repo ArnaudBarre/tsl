@@ -340,7 +340,6 @@ export const test = () =>
         code: "const msg = `arg = ${Promise.resolve()}`;",
       },
       "const msg = `arg = ${new Error()}`;",
-      "const msg = `arg = ${false}`;",
       {
         options: { allowNullish: true },
         code: "const msg = `arg = ${null}`;",
@@ -367,7 +366,6 @@ export const test = () =>
         ],
       },
       {
-        options: { allowBoolean: false },
         code: `
         const msg = \`arg = \${false}\`;
       `,

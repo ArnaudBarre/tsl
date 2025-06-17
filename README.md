@@ -276,7 +276,7 @@ Currently, the list of core rules are the type-aware lint rules I use from TS-ES
 - require-array-sort-compare: ❌ Not implemented
 - require-await: 🛑 Implementation not planned, type information to handle async generators, which is a niche case
 - restrict-plus-operands: ✅ Implemented with stricter defaults, always lint assignment
-- restrict-template-expressions: ✅ Implemented
+- restrict-template-expressions: ✅ Implemented, with stricter defaults
 - return-await: ✅ Implemented, only support always, remove unneeded await handled by await-thenable
 - strict-boolean-expressions: ❌ Not implemented
 - switch-exhaustiveness-check: ✅ Implemented, missing no default comment #10218

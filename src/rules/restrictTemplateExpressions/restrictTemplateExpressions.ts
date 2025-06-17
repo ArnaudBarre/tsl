@@ -93,7 +93,9 @@ export function restrictTemplateExpressions(
   const options = {
     allow: ["Error", "URL", "URLSearchParams"],
     allowAny: false,
-    allowBoolean: true,
+    allowArray: false,
+    allowNever: false,
+    allowBoolean: false,
     allowNullish: false,
     allowNumber: true,
     allowRegExp: false,
