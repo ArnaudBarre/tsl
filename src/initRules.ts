@@ -194,12 +194,11 @@ export const initRules = async (
         const start = "node" in report ? report.node.getStart() : report.start;
         const line =
           lineStarts.findLastIndex((lineStart) => start >= lineStart) + 1;
-        const ignoreComment = ignoreComments.find((comment) => {
-          if (comment.ruleName && comment.ruleName !== report.rule.name) {
-            return false;
-          }
-          return !comment.local || comment.line === line - 1;
-        });
+        const ignoreComment = ignoreComments.find(
+          (comment) =>
+            (!comment.local || comment.line === line - 1)
+            && comment.ruleNames.includes(report.rule.name),
+        );
         if (ignoreComment) {
           ignoreComment.used = true;
           continue;
@@ -252,7 +251,7 @@ type IgnoreComment = {
   start: number;
   end: number;
   line: number;
-  ruleName: string | undefined;
+  ruleNames: string[];
   local: boolean;
   used: boolean;
 };
@@ -266,8 +265,8 @@ const getIgnoreComments = (sourceFile: SourceFile) => {
   let currentLine = 0;
   let fileIgnored = false;
   for (const match of block) {
-    const ruleName = match[1].trim();
-    if (!ruleName && match.index < sourceFile.getStart()) {
+    const ruleNames = match[1].split(",").map((r) => r.trim());
+    if (ruleNames.length === 0 && match.index < sourceFile.getStart()) {
       fileIgnored = true;
       break;
     }
@@ -281,7 +280,7 @@ const getIgnoreComments = (sourceFile: SourceFile) => {
       line: currentLine,
       start: match.index,
       end: match.index + match[0].length,
-      ruleName,
+      ruleNames,
       local: false,
       used: false,
     });
@@ -290,7 +289,7 @@ const getIgnoreComments = (sourceFile: SourceFile) => {
   const inline = text.matchAll(inlineCommentRE);
   currentLine = 0;
   for (const match of inline) {
-    const ruleName = match[1].trim();
+    const ruleNames = match[1].split(",").map((r) => r.trim());
     for (let i = currentLine; i < lineStarts.length; i++) {
       if (lineStarts[i] > match.index) {
         currentLine = i;
@@ -301,7 +300,7 @@ const getIgnoreComments = (sourceFile: SourceFile) => {
       line: currentLine,
       start: match.index,
       end: match.index + match[0].length,
-      ruleName,
+      ruleNames,
       local: true,
       used: false,
     });
