@@ -2521,6 +2521,7 @@ export type AnyNode =
   | JSDocLinkPlain
   | JSDocMemberName
   | JSDocNamepathType
+  | JSDocNamespaceDeclaration
   | JSDocNonNullableType
   | JSDocNullableType
   | JSDocOptionalType
@@ -2546,6 +2547,7 @@ export type AnyNode =
   | JsxOpeningFragment
   | JsxSelfClosingElement
   | JsxSpreadAttribute
+  | JsxTagNamePropertyAccess
   | JsxText
   | LabeledStatement
   | LiteralTypeNode
@@ -2559,6 +2561,7 @@ export type AnyNode =
   | NamedExports
   | NamedImports
   | NamedTupleMember
+  | NamespaceDeclaration
   | NamespaceExport
   | NamespaceExportDeclaration
   | NamespaceImport

@@ -475,7 +475,7 @@ function conditionEligibleForNullishCoalescing(
       break;
   }
 
-  if (!operator) return;
+  if (operator === undefined) return;
 
   let nullishCoalescingLeftNode: AST.AnyNode | undefined;
   let hasUndefinedCheck = false;

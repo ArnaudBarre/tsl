@@ -293,10 +293,11 @@ const visitType = (name: string): void => {
 
 const visitEnum = (name: string) => {
   const values = interfaces
-    .filter((i) =>
-      i.heritageClauses?.some((h) =>
-        h.types.some((t) => t.expression.getText() === name),
-      ),
+    .filter(
+      (i) =>
+        i.heritageClauses?.some((h) =>
+          h.types.some((t) => t.expression.getText() === name),
+        ) ?? false,
     )
     .map((i) => i.name.text)
     .flatMap((n) => (n === "KeywordTypeNode" ? typeKeywordNames : [n]));
@@ -356,6 +357,7 @@ const getParentsWithEnums = (name: string) => [
 const nodeParts = outputParts.filter(
   (p): p is Exclude<typeof p, string> => typeof p !== "string",
 );
+nodes.sort();
 const visitorNodes = nodes
   .filter(
     (n) =>
@@ -366,7 +368,6 @@ const visitorNodes = nodes
         "JsxTagNamePropertyAccess",
       ].includes(n),
   )
-  .sort()
   .map((node) => {
     const part = nodeParts.find((p) => p.name === node)!;
     return { kind: part.kind.replace("SyntaxKind.", ""), node };
@@ -385,7 +386,7 @@ export interface NullNode extends Node {
 `);
 
 outputParts.push(`
-export type AnyNode = ${visitorNodes.map((n) => n.node).join(" | ")};
+export type AnyNode = ${nodes.join(" | ")};
 `);
 
 outputParts.push("\n/* Enums here just for factorisation */");

@@ -87,7 +87,7 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
       const callee = node.expression;
       if (callee.kind === SyntaxKind.Identifier) {
         const typeFlag = builtInTypeFlags[callee.text];
-        if (!typeFlag) return;
+        if (typeFlag === undefined) return;
 
         if (node.arguments.length !== 1) return;
 

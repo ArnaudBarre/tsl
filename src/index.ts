@@ -29,6 +29,7 @@ import { preferStringStartsEndsWith } from "./rules/preferStringStartsEndsWith/p
 import { restrictPlusOperands } from "./rules/restrictPlusOperands/restrictPlusOperands.ts";
 import { restrictTemplateExpressions } from "./rules/restrictTemplateExpressions/restrictTemplateExpressions.ts";
 import { returnAwait } from "./rules/returnAwait/returnAwait.ts";
+import { strictBooleanExpressions } from "./rules/strictBooleanExpressions/strictBooleanExpressions.ts";
 import { switchExhaustivenessCheck } from "./rules/switchExhaustivenessCheck/switchExhaustivenessCheck.ts";
 import type { Config, Rule } from "./types.ts";
 
@@ -91,5 +92,6 @@ export const core = createRulesSet({
   restrictPlusOperands,
   restrictTemplateExpressions,
   returnAwait,
+  strictBooleanExpressions,
   switchExhaustivenessCheck,
 });

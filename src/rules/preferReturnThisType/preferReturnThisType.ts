@@ -24,11 +24,10 @@ export const preferReturnThisType = defineRule(() => ({
   createData: (): Data | undefined => undefined,
   visitor: {
     ClassDeclaration(node, context) {
-      const className = node.name?.text;
-      if (!className) return;
+      if (!node.name) return;
       context.data = {
         currentClass: {
-          className,
+          className: node.name.text,
           type: context.checker.getTypeAtLocation(node) as InterfaceType,
         },
       };

@@ -135,40 +135,41 @@ export const noMisusedPromises = defineRule(
         }
       : {};
 
-    const voidReturnChecks: AST.Visitor<Data> = options.checksVoidReturn
-      ? {
-          ...(options.checksVoidReturn.arguments
-            && ({
-              CallExpression: checkArguments,
-              NewExpression: checkArguments,
-            } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.attributes
-            && ({
-              JsxAttribute: checkJSXAttribute,
-            } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.inheritedMethods
-            && ({
-              ClassDeclaration: checkClassLikeOrInterfaceNode,
-              ClassExpression: checkClassLikeOrInterfaceNode,
-              InterfaceDeclaration: checkClassLikeOrInterfaceNode,
-            } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.properties
-            && ({
-              PropertyAssignment: checkPropertyAssignment,
-              ShorthandPropertyAssignment: checkShorthandPropertyAssignment,
-              MethodDeclaration: checkMethodDeclaration,
-            } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.returns
-            && ({
-              ReturnStatement: checkReturnStatement,
-            } satisfies AST.Visitor<Data>)),
-          ...(options.checksVoidReturn.variables
-            && ({
-              BinaryExpression: checkAssignment,
-              VariableDeclaration: checkVariableDeclaration,
-            } satisfies AST.Visitor<Data>)),
-        }
-      : {};
+    const voidReturnChecks: AST.Visitor<Data> =
+      options.checksVoidReturn !== false
+        ? {
+            ...(options.checksVoidReturn.arguments
+              && ({
+                CallExpression: checkArguments,
+                NewExpression: checkArguments,
+              } satisfies AST.Visitor<Data>)),
+            ...(options.checksVoidReturn.attributes
+              && ({
+                JsxAttribute: checkJSXAttribute,
+              } satisfies AST.Visitor<Data>)),
+            ...(options.checksVoidReturn.inheritedMethods
+              && ({
+                ClassDeclaration: checkClassLikeOrInterfaceNode,
+                ClassExpression: checkClassLikeOrInterfaceNode,
+                InterfaceDeclaration: checkClassLikeOrInterfaceNode,
+              } satisfies AST.Visitor<Data>)),
+            ...(options.checksVoidReturn.properties
+              && ({
+                PropertyAssignment: checkPropertyAssignment,
+                ShorthandPropertyAssignment: checkShorthandPropertyAssignment,
+                MethodDeclaration: checkMethodDeclaration,
+              } satisfies AST.Visitor<Data>)),
+            ...(options.checksVoidReturn.returns
+              && ({
+                ReturnStatement: checkReturnStatement,
+              } satisfies AST.Visitor<Data>)),
+            ...(options.checksVoidReturn.variables
+              && ({
+                BinaryExpression: checkAssignment,
+                VariableDeclaration: checkVariableDeclaration,
+              } satisfies AST.Visitor<Data>)),
+          }
+        : {};
 
     const spreadChecks: AST.Visitor<Data> = options.checksSpreads
       ? { SpreadAssignment: checkSpread }
@@ -411,7 +412,7 @@ function checkClassLikeOrInterfaceNode(
   context: Context<Data>,
 ): void {
   const heritageTypes = getHeritageTypes(context, node);
-  if (!heritageTypes?.length) {
+  if (!heritageTypes || heritageTypes.length === 0) {
     return;
   }
 

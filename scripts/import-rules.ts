@@ -128,11 +128,13 @@ const astNodes = Object.values(kindToNodeTypeMap);
 
 const filename = `${rule}.ts`;
 const camelCaseRule = kebabCaseToCamelCase(rule);
+const optionsName = `${camelCaseRule.slice(0, 1).toUpperCase()}${camelCaseRule.slice(1)}Options`;
 const srcPath = `../typescript-eslint/packages/eslint-plugin/src/rules/${filename}`;
 const testPath = `../typescript-eslint/packages/eslint-plugin/tests/rules/${rule}.test.ts`;
 console.log(rule, {
   new: `./src/rules/${rule}/${filename}`,
   doc: `https://typescript-eslint.io/rules/${rule}`,
+  docMdx: `../typescript-eslint/packages/eslint-plugin/docs/rules/${rule}.mdx`,
   src: srcPath,
   test: testPath,
   gitHistorySrc: `https://github.com/typescript-eslint/typescript-eslint/commits/main/packages/eslint-plugin/src/rules/${rule}.ts`,
@@ -183,7 +185,6 @@ traverse(srcAST, {
     assert(decl.type === "CallExpression");
     assert(decl.callee.type === "Identifier");
     assert(decl.callee.name === "createRule");
-    decl.typeParameters = null;
     const params = decl.arguments[0];
     assert(params.type === "ObjectExpression");
     const meta = getObjectValue(params, "meta")!.value;
@@ -304,7 +305,7 @@ traverse(srcAST, {
             id: { type: "Identifier", name: exportName },
             init: {
               type: "CallExpression",
-              callee: { type: "Identifier", name: "createRule" },
+              callee: { type: "Identifier", name: "defineRule" },
               arguments: [
                 {
                   type: "ArrowFunctionExpression",
@@ -316,7 +317,13 @@ traverse(srcAST, {
                           optional: true,
                           typeAnnotation: {
                             type: "TSTypeAnnotation",
-                            typeAnnotation: options,
+                            typeAnnotation: {
+                              type: "TSTypeReference",
+                              typeName: {
+                                type: "Identifier",
+                                name: optionsName,
+                              },
+                            },
                           },
                         },
                       ]
@@ -483,7 +490,12 @@ traverse(srcAST, {
         path.node.typeAnnotation.elementTypes[0].type !== "TSNamedTupleMember",
       );
       options = path.node.typeAnnotation.elementTypes[0];
-      path.remove();
+      console.log(`${camelCaseRule}Options`);
+      path.replaceWith({
+        type: "TSTypeAliasDeclaration",
+        id: { type: "Identifier", name: optionsName },
+        typeAnnotation: path.node.typeAnnotation.elementTypes[0],
+      });
       return;
     }
     if (
@@ -501,10 +513,11 @@ traverse(srcAST, {
       && path.node.left.name === "TSESTree"
     ) {
       path.node.left.name = path.node.right.name === "Node" ? "ts" : "AST";
-      path.node.right.name = estreeToTSTree[path.node.right.name]
-        ? (kindToNodeTypeMap[estreeToTSTree[path.node.right.name]!]
-          ?? estreeToTSTree[path.node.right.name]!)
-        : path.node.right.name;
+      path.node.right.name =
+        estreeToTSTree[path.node.right.name] !== undefined
+          ? (kindToNodeTypeMap[estreeToTSTree[path.node.right.name]!]
+            ?? estreeToTSTree[path.node.right.name]!)
+          : path.node.right.name;
       return;
     }
     // ts.TypeChecker -> Checker
@@ -1006,7 +1019,7 @@ const toTemplateStrings = messages
         : value.type === "TemplateLiteral"
           ? value.quasis[0].value.raw
           : null;
-    if (!text) return [key, value] as const;
+    if (text === null) return [key, value] as const;
     if (!text.includes("{{")) {
       return [key, JSON.stringify(text)] as const;
     }
@@ -1041,7 +1054,7 @@ await Bun.write(
   `src/rules/${camelCaseRule}/${camelCaseRule}.ts`,
   await format(
     `import ts, { SyntaxKind, SymbolFlags } from "typescript";${tsApiUtilsImports}
-     import { rule } from "../_utils/index.ts";
+     import { defineRule } from "../_utils/index.ts";
      import type { AST, Checker, Context } from "../../types.ts";
      
      export const messages = ${

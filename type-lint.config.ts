@@ -17,5 +17,9 @@ export default defineConfig({
       allowConstantLoopConditions: "only-allowed-literals",
       checkTypePredicates: true,
     }),
+    core.strictBooleanExpressions({
+      allowNullableString: true,
+      allowNullableBoolean: true,
+    }),
   ],
 });

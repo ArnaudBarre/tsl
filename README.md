@@ -361,7 +361,7 @@ Currently, the list of core rules are the type-aware lint rules I use from TS-ES
 - restrict-plus-operands: ✅ Implemented with stricter defaults, always lint assignment
 - restrict-template-expressions: ✅ Implemented, with stricter defaults
 - return-await: ✅ Implemented, only support always, remove unneeded await handled by await-thenable
-- strict-boolean-expressions: ❌ Not implemented
+- strict-boolean-expressions:✅ Implemented
 - switch-exhaustiveness-check: ✅ Implemented, missing no default comment #10218
 - unbound-method: ❌ Not implemented, too OOP for me
 - use-unknown-in-catch-callback-variable: 🛑 See [Add the patches](#add-the-patches)

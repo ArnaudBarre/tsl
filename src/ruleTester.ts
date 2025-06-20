@@ -329,8 +329,8 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
               introLogged = true;
             }
             const whiteSpaceDiff =
-              expected
-              && got
+              expected !== undefined
+              && got !== undefined
               && expected.replaceAll(/ /g, "") === got.replaceAll(/ /g, "");
             /* type-lint-ignore core/restrictTemplateExpressions */
             console.log(

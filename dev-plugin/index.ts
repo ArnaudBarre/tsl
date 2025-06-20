@@ -59,7 +59,7 @@ const logs: string[] = [`Start at ${new Date().toISOString()}`];
 let logPath: string | undefined;
 const log = (v: string) => {
   logs.push(v);
-  if (logPath) writeFileSync(logPath, logs.join("\n"));
+  if (logPath !== undefined) writeFileSync(logPath, logs.join("\n"));
 };
 
 const init: ts.server.PluginModuleFactory = ({ typescript: ts }) => {
