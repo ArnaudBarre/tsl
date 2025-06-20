@@ -11,7 +11,7 @@ interface PromiseConstructor {
   new <T>(
     executor: (
       resolve: (value: T | PromiseLike<T>) => void,
-      reject: (reason?: Error) => void,
+      reject: (reason: Error) => void,
     ) => void,
   ): Promise<T>;
 }
