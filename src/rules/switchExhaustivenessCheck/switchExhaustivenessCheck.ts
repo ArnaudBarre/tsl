@@ -128,14 +128,24 @@ export const switchExhaustivenessCheck = defineRule(
       }
 
       if (missingLiteralCasesTypes.length > 0) {
+        const truncate = missingLiteralCasesTypes.length > 5;
+
         context.report({
           node: node.expression,
           message: messages.switchIsNotExhaustive({
-            missingCases: missingLiteralCasesTypes
+            missingCases: (truncate
+              ? missingLiteralCasesTypes.slice(0, 4)
+              : missingLiteralCasesTypes
+            )
               .map((missingType) =>
                 isTypeFlagSet(missingType, TypeFlags.ESSymbolLike)
                   ? `typeof ${missingType.getSymbol()?.escapedName as string}`
                   : context.checker.typeToString(missingType),
+              )
+              .concat(
+                truncate
+                  ? `(... ${missingLiteralCasesTypes.length - 4} more)`
+                  : [],
               )
               .join(" | "),
           }),

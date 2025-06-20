@@ -1595,7 +1595,7 @@ switch (day) {
           {
             message: messages.switchIsNotExhaustive({
               missingCases:
-                '"Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"',
+                '"Tuesday" | "Wednesday" | "Thursday" | "Friday" | (... 2 more)',
             }),
             line: 14,
             column: 9,
@@ -1831,7 +1831,7 @@ switch (day) {
           {
             message: messages.switchIsNotExhaustive({
               missingCases:
-                '"Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"',
+                '"Monday" | "Tuesday" | "Wednesday" | "Thursday" | (... 3 more)',
             }),
             line: 13,
             column: 9,
