@@ -5,7 +5,7 @@ const init: ts.server.PluginModuleFactory = ({ typescript: ts }) => {
   const pluginModule: ts.server.PluginModule = {
     create(info) {
       const log = (v: string) => info.project.projectService.logger.info(v);
-      log("type-lint: Starting plugin");
+      log("tsl: Starting plugin");
       const { getSemanticDiagnostics, getCodeFixesAtPosition } =
         info.languageService;
       let plugin: Awaited<ReturnType<typeof getPlugin>> | undefined;

@@ -97,7 +97,7 @@ export function getParentFunctionNode(
   | AST.MethodDeclaration
   | null {
   let current = node.parent;
-  // type-lint-ignore core/noUnnecessaryCondition, core/strictBooleanExpressions
+  // tsl-ignore core/noUnnecessaryCondition, core/strictBooleanExpressions
   while (current) {
     if (
       current.kind === SyntaxKind.ArrowFunction

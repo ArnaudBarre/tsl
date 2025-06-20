@@ -17,7 +17,7 @@ export type Config = {
    *
    * @example
    * ```ts
-   * import { core, defineConfig } from "@arnaud-barre/type-lint";
+   * import { core, defineConfig } from "tsl";
    *
    * defineConfig({
    *   rules: [
@@ -46,7 +46,7 @@ export type Config = {
    */
   ignore?: string[];
   /**
-   * To differentiate type-lint reports from TS errors, type-lint diagnostics are reported by default as warnings.
+   * To differentiate tsl reports from TS errors, tsl diagnostics are reported by default as warnings.
    * If you prefer having only red squiggles, you can set this option to `"error"`.
    * @default "warning"
    */

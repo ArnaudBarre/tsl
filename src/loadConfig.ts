@@ -12,8 +12,8 @@ export const loadConfig = async (
   program: ts.Program,
 ): Promise<{ config: Config; configFiles: string[] }> => {
   const workingDir = program.getCurrentDirectory();
-  const entryPoint = join(workingDir, "type-lint.config.ts");
-  const cacheDir = join(workingDir, "node_modules/.cache/type-lint");
+  const entryPoint = join(workingDir, "tsl.config.ts");
+  const cacheDir = join(workingDir, "node_modules/.cache/tsl");
   const output = join(cacheDir, "config.js");
   if (!existsSync(entryPoint)) {
     return { config: defaultConfig, configFiles: [entryPoint] };

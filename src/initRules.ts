@@ -255,8 +255,8 @@ type IgnoreComment = {
   local: boolean;
   used: boolean;
 };
-const inlineCommentRE = /\/\/ type-lint-ignore([^\n]*)/g;
-const blockCommentRE = /\/\* type-lint-ignore([^\n]*)\*\//g;
+const inlineCommentRE = /\/\/ tsl-ignore([^\n]*)/g;
+const blockCommentRE = /\/\* tsl-ignore([^\n]*)\*\//g;
 const getIgnoreComments = (sourceFile: SourceFile) => {
   const ignoreComments: IgnoreComment[] = [];
   const lineStarts = sourceFile.getLineStarts();

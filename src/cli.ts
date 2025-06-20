@@ -166,7 +166,7 @@ if (globalThis.__type_lint_profile_session) {
       if (err) {
         throw err;
       } else {
-        const path = "type-lint-profile.cpuprofile";
+        const path = "tsl-profile.cpuprofile";
         fs.writeFileSync(path, JSON.stringify(profile));
         console.log(`Profile save to ${path}`);
       }

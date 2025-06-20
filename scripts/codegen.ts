@@ -66,7 +66,7 @@ const outputParts: (
   | { name: string; kind: string; members?: ts.TypeElement[] }
 )[] = [
   "/* Generated */",
-  "/\* type-lint-ignore core/noRedundantTypeConstituents */",
+  "/\* tsl-ignore core/noRedundantTypeConstituents */",
   `import type { ${importedTypes.join(", ")} } from "typescript";`,
   'import type { Context } from "./types.ts";',
   "",

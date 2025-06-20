@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "@arnaud-barre/type-lint",
+      "name": "tsl",
       "dependencies": {
         "esbuild": "^0.25.4",
         "ts-api-utils": "^2.1.0",
@@ -16,13 +16,13 @@
         "@types/bun": "^1.2.13",
         "@types/react": "^19.1.4",
         "patch-package": "^8.0.0",
-        "prettier": "3.5.3",
+        "prettier": "^3.5.3",
         "publint": "^0.3.12",
         "tsdown": "^0.12.5",
-        "typescript": "5.8.3",
+        "typescript": "~5.8.3",
       },
       "peerDependencies": {
-        "typescript": "^5.8.3",
+        "typescript": "~5.8.3",
       },
     },
   },

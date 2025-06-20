@@ -26,7 +26,7 @@ await build({
 });
 writeFileSync(
   "dist/plugin/package.json",
-  JSON.stringify({ name: "type-lint-plugin", main: "index.cjs" }, null, 2),
+  JSON.stringify({ name: "tsl-plugin", main: "index.cjs" }, null, 2),
 );
 
 execSync("cp -r LICENSE README.md src/patches dist/");
@@ -40,7 +40,7 @@ writeFileSync(
       version: packageJSON.version,
       author: packageJSON.author,
       license: packageJSON.license,
-      repository: "github:ArnaudBarre/type-lint",
+      repository: "github:ArnaudBarre/tsl",
       type: "module",
       exports: {
         ".": { types: "./index.d.ts", import: "./index.js" },
@@ -51,7 +51,7 @@ writeFileSync(
           import: "./ruleTester.js",
         },
       },
-      bin: { "type-lint": "cli-entrypoint.js" },
+      bin: { tsl: "cli-entrypoint.js" },
       peerDependencies: packageJSON.peerDependencies,
       dependencies: packageJSON.dependencies,
     },

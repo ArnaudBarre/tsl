@@ -1,5 +1,5 @@
 {
-  "name": "@arnaud-barre/type-lint",
+  "name": "tsl",
   "description": "Modern TypeScript linter",
   "version": "0.0.5",
   "license": "MIT",

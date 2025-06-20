@@ -332,7 +332,7 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
               expected !== undefined
               && got !== undefined
               && expected.replaceAll(/ /g, "") === got.replaceAll(/ /g, "");
-            /* type-lint-ignore core/restrictTemplateExpressions */
+            /* tsl-ignore core/restrictTemplateExpressions */
             console.log(
               `  #${i}${prefix}: Expected: ${
                 whiteSpaceDiff ? expected.replaceAll(/ /g, "·") : expected

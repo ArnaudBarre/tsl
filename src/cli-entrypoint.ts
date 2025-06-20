@@ -18,7 +18,7 @@ if (cmd === "-v" || cmd === "--version") {
 }
 
 if (cmd === "--help") {
-  console.log(`Usage: type-lint [options]
+  console.log(`Usage: tsl [options]
 
 Options:
   -p, --project=path   Path to the tsconfig to lint (default: tsconfig.json)

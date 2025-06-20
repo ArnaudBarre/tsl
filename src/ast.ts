@@ -1,5 +1,5 @@
 /* Generated */
-/* type-lint-ignore core/noRedundantTypeConstituents */
+/* tsl-ignore core/noRedundantTypeConstituents */
 import type {
   __String,
   AmdDependency,

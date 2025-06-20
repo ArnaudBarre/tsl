@@ -52,7 +52,7 @@ export const getPlugin = async (
       getCodeActions: () => undefined,
     });
     log(
-      `type-lint: Config with ${result.allRules.size} rules loaded in ${(
+      `tsl: Config with ${result.allRules.size} rules loaded in ${(
         performance.now() - start
       ).toFixed(0)}ms`,
     );
@@ -73,7 +73,7 @@ export const getPlugin = async (
     if (fileName.includes("/node_modules/")) return result;
     const sourceFile = languageService.getProgram()?.getSourceFile(fileName);
     if (!sourceFile) {
-      log("type-lint: No sourceFile");
+      log("tsl: No sourceFile");
       return result;
     }
 
@@ -86,7 +86,7 @@ export const getPlugin = async (
           const end = "node" in report ? report.node.getEnd() : report.end;
           diagnostics.push({
             category: diagnosticCategory,
-            source: "type-lint",
+            source: "tsl",
             code: rule.name as any,
             messageText: message,
             file: sourceFile,
@@ -120,9 +120,7 @@ export const getPlugin = async (
               {
                 start: lineStart,
                 length: 0,
-                newText: `${" ".repeat(nbSpaces)}/\/ type-lint-ignore ${
-                  rule.name
-                }\n`,
+                newText: `${" ".repeat(nbSpaces)}/\/ tsl-ignore ${rule.name}\n`,
               },
             ],
           });
@@ -132,7 +130,7 @@ export const getPlugin = async (
           const { message, suggestions, start, end } = report;
           diagnostics.push({
             category: ts.DiagnosticCategory.Warning,
-            source: "type-lint",
+            source: "tsl",
             code: "unusedComment" as any,
             messageText: message,
             file: sourceFile,
@@ -178,7 +176,7 @@ export const getPlugin = async (
           || (end >= suggestion.start && end <= suggestion.end)
         ) {
           result.push({
-            fixName: `type-lint:${suggestion.rule}`,
+            fixName: `tsl:${suggestion.rule}`,
             description: suggestion.message,
             changes: [
               {
