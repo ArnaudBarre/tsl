@@ -16,6 +16,7 @@ Most lint rules only rely on the structure (AST) to detect issues. On top of tha
 async function foo() {
   try {
     doAsyncWork(); // <- Missing await
+    // ^ core/noFloatingPromises: Promises must be awaited, [...]
   } catch {
     // This will never run, even if doAsyncWork() throws
     return getDefault();
@@ -28,6 +29,7 @@ type User = { firstName: string | null };
 
 function greet(user: User) {
   console.log(`Hello ${user.firstName}`);
+  //                   ^ core/restrictTemplateExpressions: Invalid type "string | null" of template literal expression.
 }
 
 greet({ firstName: null }); // logs "Hello null"
@@ -278,7 +280,7 @@ To help build rules, a few common utils are available on `context.utils`, and `c
 
 ```ts
 import { type AST, core, defineConfig } from "tsl";
-import { SyntaxKind } from "typescript";
+import { SyntaxKind, TypeFlags } from "typescript";
 
 export default defineConfig({
   rules: [
@@ -293,7 +295,27 @@ export default defineConfig({
             && node.expression.expression.text === "console"
           ) {
             node.expression.expression satisfies AST.Identifier;
-            context.report({ message: "Use logger instead", node });
+            context.report({ node, message: "Use logger instead" });
+          }
+        },
+      },
+    },
+    {
+      name: "org/jsxNoNumberTruthiness",
+      visitor: {
+        BinaryExpression(node, context) {
+          if (
+            node.parent.kind === SyntaxKind.JsxExpression
+            && node.operatorToken.kind === SyntaxKind.AmpersandAmpersandToken
+          ) {
+            const type = context.checker.getTypeAtLocation(node.left);
+            if (context.utils.typeOrUnionHasFlag(type, TypeFlags.NumberLike)) {
+              context.report({
+                node,
+                message:
+                  "Don't use logical expression on a number inside JSX, you might render the character 0 instead of rendering nothing.",
+              });
+            }
           }
         },
       },

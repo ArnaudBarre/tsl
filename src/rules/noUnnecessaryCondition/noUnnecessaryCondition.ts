@@ -1,13 +1,11 @@
 import {
   getCallSignaturesOfType,
-  intersectionConstituents,
   isBooleanLiteralType,
   isFalseLiteralType,
   isFalsyType,
   isSymbolFlagSet,
   isTrueLiteralType,
   isTypeParameter,
-  unionConstituents,
 } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { findTruthinessAssertedArgument } from "../_utils/findTruthinessAssertedArgument.ts";
@@ -174,16 +172,16 @@ export const noUnnecessaryCondition = defineRule(
 
 function nodeIsArrayType(node: AST.Expression, context: Context): boolean {
   const nodeType = context.utils.getConstrainedTypeAtLocation(node);
-  return unionConstituents(nodeType).some((part) =>
-    context.checker.isArrayType(part),
-  );
+  return context.utils
+    .unionConstituents(nodeType)
+    .some((part) => context.checker.isArrayType(part));
 }
 
 function nodeIsTupleType(node: AST.Expression, context: Context): boolean {
   const nodeType = context.utils.getConstrainedTypeAtLocation(node);
-  return unionConstituents(nodeType).some((part) =>
-    context.checker.isTupleType(part),
-  );
+  return context.utils
+    .unionConstituents(nodeType)
+    .some((part) => context.checker.isTupleType(part));
 }
 
 function isArrayIndexExpression(
@@ -204,8 +202,11 @@ function isArrayIndexExpression(
 
 // Conditional is always necessary if it involves:
 //    `any` or `unknown` or a naked type variable
-function isConditionalAlwaysNecessary(type: ts.Type): boolean {
-  return typeHasFlag(
+function isConditionalAlwaysNecessary(
+  context: Context,
+  type: ts.Type,
+): boolean {
+  return context.utils.typeOrUnionHasFlag(
     type,
     TypeFlags.Any | TypeFlags.Unknown | TypeFlags.TypeVariable,
   );
@@ -281,14 +282,14 @@ function checkNode(
 
   const type = context.utils.getConstrainedTypeAtLocation(expression);
 
-  if (isConditionalAlwaysNecessary(type)) {
+  if (isConditionalAlwaysNecessary(context, type)) {
     return;
   }
   let message: string | null = null;
 
-  if (typeHasFlag(type, TypeFlags.Never)) {
+  if (context.utils.typeOrUnionHasFlag(type, TypeFlags.Never)) {
     message = messages.never;
-  } else if (!isPossiblyTruthy(type)) {
+  } else if (!isPossiblyTruthy(context, type)) {
     message = !isUnaryNotArgument
       ? messages.alwaysFalsy
       : messages.alwaysTruthy;
@@ -308,7 +309,7 @@ function checkNodeForNullish(node: AST.Expression, context: Context): void {
 
   // Conditional is always necessary if it involves `any`, `unknown` or a naked type parameter
   if (
-    typeHasFlag(
+    context.utils.typeOrUnionHasFlag(
       type,
       TypeFlags.Any
         | TypeFlags.Unknown
@@ -320,10 +321,10 @@ function checkNodeForNullish(node: AST.Expression, context: Context): void {
   }
 
   let message: string | null = null;
-  if (typeHasFlag(type, TypeFlags.Never)) {
+  if (context.utils.typeOrUnionHasFlag(type, TypeFlags.Never)) {
     message = messages.never;
   } else if (
-    !isPossiblyNullish(type)
+    !context.utils.typeOrUnionHasFlag(type, nullishFlag)
     && !(
       (node.kind === SyntaxKind.PropertyAccessExpression
         || node.kind === SyntaxKind.ElementAccessExpression)
@@ -343,7 +344,7 @@ function checkNodeForNullish(node: AST.Expression, context: Context): void {
     ) {
       message = messages.neverNullish;
     }
-  } else if (isAlwaysNullish(type)) {
+  } else if (isAlwaysNullish(context, type)) {
     message = messages.alwaysNullish;
   }
 
@@ -414,7 +415,7 @@ function checkIfBoolExpressionIsNecessaryConditional(
       flag |= NULL | UNDEFINED | VOID;
     }
 
-    return typeHasFlag(type, flag);
+    return context.utils.typeOrUnionHasFlag(type, flag);
   };
 
   if (
@@ -540,8 +541,8 @@ function checkCallExpression(
       // Predicate is always necessary if it involves `any` or `unknown`
       if (
         !type
-        || typeHasFlag(type, TypeFlags.Any)
-        || typeHasFlag(type, TypeFlags.Unknown)
+        || context.utils.typeOrUnionHasFlag(type, TypeFlags.Any)
+        || context.utils.typeOrUnionHasFlag(type, TypeFlags.Unknown)
       ) {
         return;
       }
@@ -550,7 +551,7 @@ function checkCallExpression(
         hasFalsyReturnTypes = true;
       }
 
-      if (isPossiblyTruthy(type)) {
+      if (isPossiblyTruthy(context, type)) {
         hasTruthyReturnTypes = true;
       }
 
@@ -667,7 +668,7 @@ function isNullablePropertyType(
       propertyType.value.toString(),
     );
     if (propType) {
-      return isNullableType(propType);
+      return isNullableType(context, propType);
     }
   }
   const typeName = getTypeName(context.rawChecker, propertyType);
@@ -676,8 +677,8 @@ function isNullablePropertyType(
     .some((info) => getTypeName(context.rawChecker, info.keyType) === typeName);
 }
 
-function isNullableType(type: ts.Type): boolean {
-  return typeHasFlag(
+function isNullableType(context: Context, type: ts.Type): boolean {
+  return context.utils.typeOrUnionHasFlag(
     type,
     TypeFlags.Any
       | TypeFlags.Unknown
@@ -744,7 +745,7 @@ function isMemberExpressionNullableOriginFromObject(
       );
 
       if (propType) {
-        return isNullableType(propType);
+        return isNullableType(context, propType);
       }
 
       const usingNoUncheckedIndexedAccess =
@@ -755,11 +756,12 @@ function isMemberExpressionNullableOriginFromObject(
           getTypeName(context.rawChecker, info.keyType) === "string";
         return (
           isStringTypeName
-          && (usingNoUncheckedIndexedAccess || isNullableType(info.type))
+          && (usingNoUncheckedIndexedAccess
+            || isNullableType(context, info.type))
         );
       });
     });
-    return !isOwnNullable && isNullableType(prevType);
+    return !isOwnNullable && isNullableType(context, prevType);
   }
   return false;
 }
@@ -773,9 +775,11 @@ function isCallExpressionNullableOriginFromCallee(
   if (prevType.isUnion()) {
     const isOwnNullable = prevType.types.some((type) => {
       const signatures = type.getCallSignatures();
-      return signatures.some((sig) => isNullableType(sig.getReturnType()));
+      return signatures.some((sig) =>
+        isNullableType(context, sig.getReturnType()),
+      );
     });
-    return !isOwnNullable && isNullableType(prevType);
+    return !isOwnNullable && isNullableType(context, prevType);
   }
 
   return false;
@@ -795,8 +799,8 @@ function isOptionableExpression(
         : true;
 
   return (
-    isConditionalAlwaysNecessary(type)
-    || (isOwnNullable && isNullableType(type))
+    isConditionalAlwaysNecessary(context, type)
+    || (isOwnNullable && isNullableType(context, type))
   );
 }
 
@@ -852,23 +856,22 @@ export function isPossiblyFalsy(type: ts.Type): boolean {
   });
 }
 
-const isPossiblyTruthy = (type: ts.Type): boolean =>
-  unionConstituents(type).some((type) =>
+const isPossiblyTruthy = (context: Context, type: ts.Type): boolean =>
+  context.utils.unionConstituents(type).some((type) =>
     // It is possible to define intersections that are always falsy,
     // like `"" & { __brand: string }`.
-    intersectionConstituents(type).every((t2) => !isFalsyType(t2)),
+    context.utils
+      .intersectionConstituents(type)
+      .every((t2) => !isFalsyType(t2)),
   );
 
 // Nullish utilities
 const nullishFlag = TypeFlags.Undefined | TypeFlags.Null;
-const isNullishType = (type: ts.Type): boolean =>
-  typeHasFlag(type, nullishFlag);
 
-const isPossiblyNullish = (type: ts.Type): boolean =>
-  unionConstituents(type).some(isNullishType);
-
-const isAlwaysNullish = (type: ts.Type): boolean =>
-  unionConstituents(type).every(isNullishType);
+const isAlwaysNullish = (context: Context, type: ts.Type): boolean =>
+  context.utils
+    .unionConstituents(type)
+    .every((type) => typeHasFlag(type, nullishFlag));
 
 function toStaticValue(
   type: ts.Type,

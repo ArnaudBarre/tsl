@@ -1,6 +1,6 @@
 import { isIntrinsicAnyType, isSymbolFlagSet } from "ts-api-utils";
 import ts, { type NodeArray, SyntaxKind, TypeFlags } from "typescript";
-import { defineRule, typeHasFlag } from "../_utils/index.ts";
+import { defineRule } from "../_utils/index.ts";
 import type { AnyNode, TypeNode } from "../../ast.ts";
 import type { AST, Context } from "../../types.ts";
 
@@ -81,7 +81,7 @@ function checkTSArgsAndParameters(
   if (!param?.default) return;
 
   const argType = context.checker.getTypeAtLocation(arg);
-  if (typeHasFlag(argType, TypeFlags.TypeVariable)) {
+  if (context.utils.typeOrUnionHasFlag(argType, TypeFlags.TypeVariable)) {
     // This leads to false positives
     return;
   }

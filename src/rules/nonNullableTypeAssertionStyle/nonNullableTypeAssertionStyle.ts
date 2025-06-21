@@ -1,6 +1,5 @@
-import { isTypeFlagSet } from "ts-api-utils";
 import { SyntaxKind, TypeFlags } from "typescript";
-import { defineRule, isConstAssertion, typeHasFlag } from "../_utils/index.ts";
+import { defineRule, isConstAssertion } from "../_utils/index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {
@@ -27,12 +26,17 @@ const checkAssertion = (
   context: Context,
 ) => {
   const originalType = context.checker.getTypeAtLocation(node.expression);
-  if (!typeHasFlag(originalType, TypeFlags.Undefined | TypeFlags.Null)) {
+  if (
+    !context.utils.typeOrUnionHasFlag(
+      originalType,
+      TypeFlags.Undefined | TypeFlags.Null,
+    )
+  ) {
     return;
   }
   const assertedType = context.checker.getTypeAtLocation(node.type);
   if (
-    isTypeFlagSet(
+    context.utils.typeHasFlag(
       assertedType,
       TypeFlags.Any | TypeFlags.Unknown | TypeFlags.Never,
     )

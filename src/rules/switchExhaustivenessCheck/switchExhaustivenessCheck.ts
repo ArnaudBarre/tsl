@@ -1,9 +1,4 @@
-import {
-  intersectionConstituents,
-  isIntrinsicUndefinedType,
-  isTypeFlagSet,
-  unionConstituents,
-} from "ts-api-utils";
+import { isIntrinsicUndefinedType } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { defineRule, requiresQuoting } from "../_utils/index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
@@ -68,8 +63,10 @@ export const switchExhaustivenessCheck = defineRule(
         | string
         | undefined;
 
-      const containsNonLiteralType =
-        doesTypeContainNonLiteralType(discriminantType);
+      const containsNonLiteralType = doesTypeContainNonLiteralType(
+        context,
+        discriminantType,
+      );
 
       const caseTypes = new Set<ts.Type>();
       for (const clause of node.caseBlock.clauses) {
@@ -83,11 +80,15 @@ export const switchExhaustivenessCheck = defineRule(
 
       const missingLiteralCasesTypes: ts.Type[] = [];
 
-      for (const unionPart of unionConstituents(discriminantType)) {
-        for (const intersectionPart of intersectionConstituents(unionPart)) {
+      for (const unionPart of context.utils.unionConstituents(
+        discriminantType,
+      )) {
+        for (const intersectionPart of context.utils.intersectionConstituents(
+          unionPart,
+        )) {
           if (
             caseTypes.has(intersectionPart)
-            || !isTypeLiteralLikeType(intersectionPart)
+            || !isTypeLiteralLikeType(context, intersectionPart)
           ) {
             continue;
           }
@@ -138,7 +139,7 @@ export const switchExhaustivenessCheck = defineRule(
               : missingLiteralCasesTypes
             )
               .map((missingType) =>
-                isTypeFlagSet(missingType, TypeFlags.ESSymbolLike)
+                context.utils.typeHasFlag(missingType, TypeFlags.ESSymbolLike)
                   ? `typeof ${missingType.getSymbol()?.escapedName as string}`
                   : context.checker.typeToString(missingType),
               )
@@ -186,7 +187,10 @@ export const switchExhaustivenessCheck = defineRule(
         }
 
         const missingBranchName = missingBranchType.getSymbol()?.escapedName;
-        let caseTest = isTypeFlagSet(missingBranchType, TypeFlags.ESSymbolLike)
+        let caseTest = context.utils.typeHasFlag(
+          missingBranchType,
+          TypeFlags.ESSymbolLike,
+        )
           ? missingBranchName!
           : context.checker.typeToString(missingBranchType);
 
@@ -307,8 +311,8 @@ export const switchExhaustivenessCheck = defineRule(
   },
 );
 
-function isTypeLiteralLikeType(type: ts.Type): boolean {
-  return isTypeFlagSet(
+function isTypeLiteralLikeType(context: Context, type: ts.Type): boolean {
+  return context.utils.typeHasFlag(
     type,
     TypeFlags.Literal
       | TypeFlags.Undefined
@@ -326,12 +330,17 @@ function isTypeLiteralLikeType(type: ts.Type): boolean {
  *
  * Default cases are never superfluous in switches with non-literal types.
  */
-function doesTypeContainNonLiteralType(type: ts.Type): boolean {
-  return unionConstituents(type).some((type) =>
-    intersectionConstituents(type).every(
-      (subType) => !isTypeLiteralLikeType(subType),
-    ),
-  );
+function doesTypeContainNonLiteralType(
+  context: Context,
+  type: ts.Type,
+): boolean {
+  return context.utils
+    .unionConstituents(type)
+    .some((type) =>
+      context.utils
+        .intersectionConstituents(type)
+        .every((subType) => !isTypeLiteralLikeType(context, subType)),
+    );
 }
 
 function getColumn(node: AST.AnyNode) {

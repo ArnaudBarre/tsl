@@ -1,9 +1,4 @@
-import {
-  isTrueLiteralType,
-  isTypeFlagSet,
-  isTypeParameter,
-  unionConstituents,
-} from "ts-api-utils";
+import { isTrueLiteralType, isTypeParameter } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { findTruthinessAssertedArgument } from "../_utils/findTruthinessAssertedArgument.ts";
 import {
@@ -215,10 +210,12 @@ export const strictBooleanExpressions = defineRule(
           return type;
         });
       const flattenTypes = [
-        ...new Set(returnTypes.flatMap((type) => unionConstituents(type))),
+        ...new Set(
+          returnTypes.flatMap((type) => context.utils.unionConstituents(type)),
+        ),
       ];
 
-      const types = inspectVariantTypes(flattenTypes);
+      const types = inspectVariantTypes(context, flattenTypes);
       const reportType = determineReportType(types);
 
       if (reportType == null) {
@@ -730,7 +727,10 @@ export const strictBooleanExpressions = defineRule(
      */
     function checkNode(node: AST.Expression, context: Context): void {
       const type = context.utils.getConstrainedTypeAtLocation(node);
-      const types = inspectVariantTypes(unionConstituents(type));
+      const types = inspectVariantTypes(
+        context,
+        context.utils.unionConstituents(type),
+      );
       const reportType = determineReportType(types);
 
       if (reportType != null) {
@@ -763,12 +763,15 @@ export const strictBooleanExpressions = defineRule(
     /**
      * Check union variants for the types we care about
      */
-    function inspectVariantTypes(types: ts.Type[]): Set<VariantType> {
+    function inspectVariantTypes(
+      context: Context,
+      types: ts.Type[],
+    ): Set<VariantType> {
       const variantTypes = new Set<VariantType>();
 
       if (
         types.some((type) =>
-          isTypeFlagSet(
+          context.utils.typeHasFlag(
             type,
             ts.TypeFlags.Null | ts.TypeFlags.Undefined | ts.TypeFlags.VoidLike,
           ),
@@ -777,13 +780,13 @@ export const strictBooleanExpressions = defineRule(
         variantTypes.add("nullish");
       }
       const booleans = types.filter((type) =>
-        isTypeFlagSet(type, ts.TypeFlags.BooleanLike),
+        context.utils.typeHasFlag(type, ts.TypeFlags.BooleanLike),
       );
 
       // If incoming type is either "true" or "false", there will be one type
       // object with intrinsicName set accordingly
       // If incoming type is boolean, there will be two type objects with
-      // intrinsicName set "true" and "false" each because of ts-api-utils.unionConstituents()
+      // intrinsicName set "true" and "false" each because of ts-api-utils.context.utils.unionConstituents()
       if (booleans.length === 1) {
         variantTypes.add(
           isTrueLiteralType(booleans[0]) ? "truthy boolean" : "boolean",
@@ -793,7 +796,7 @@ export const strictBooleanExpressions = defineRule(
       }
 
       const strings = types.filter((type) =>
-        isTypeFlagSet(type, ts.TypeFlags.StringLike),
+        context.utils.typeHasFlag(type, ts.TypeFlags.StringLike),
       );
 
       if (strings.length) {
@@ -807,7 +810,10 @@ export const strictBooleanExpressions = defineRule(
       }
 
       const numbers = types.filter((type) =>
-        isTypeFlagSet(type, ts.TypeFlags.NumberLike | ts.TypeFlags.BigIntLike),
+        context.utils.typeHasFlag(
+          type,
+          ts.TypeFlags.NumberLike | ts.TypeFlags.BigIntLike,
+        ),
       );
 
       if (numbers.length) {
@@ -820,14 +826,18 @@ export const strictBooleanExpressions = defineRule(
         }
       }
 
-      if (types.some((type) => isTypeFlagSet(type, ts.TypeFlags.EnumLike))) {
+      if (
+        types.some((type) =>
+          context.utils.typeHasFlag(type, ts.TypeFlags.EnumLike),
+        )
+      ) {
         variantTypes.add("enum");
       }
 
       if (
         types.some(
           (type) =>
-            !isTypeFlagSet(
+            !context.utils.typeHasFlag(
               type,
               ts.TypeFlags.Null
                 | ts.TypeFlags.Undefined
@@ -843,12 +853,16 @@ export const strictBooleanExpressions = defineRule(
             ),
         )
       ) {
-        variantTypes.add(types.some(isBrandedBoolean) ? "boolean" : "object");
+        variantTypes.add(
+          types.some((type) => isBrandedBoolean(context, type))
+            ? "boolean"
+            : "object",
+        );
       }
 
       if (
         types.some((type) =>
-          isTypeFlagSet(
+          context.utils.typeHasFlag(
             type,
             ts.TypeFlags.TypeParameter
               | ts.TypeFlags.Any
@@ -859,7 +873,11 @@ export const strictBooleanExpressions = defineRule(
         variantTypes.add("any");
       }
 
-      if (types.some((type) => isTypeFlagSet(type, ts.TypeFlags.Never))) {
+      if (
+        types.some((type) =>
+          context.utils.typeHasFlag(type, ts.TypeFlags.Never),
+        )
+      ) {
         variantTypes.add("never");
       }
 
@@ -926,9 +944,9 @@ function isArrayLengthExpression(
   const objectType = context.utils.getConstrainedTypeAtLocation(
     node.expression,
   );
-  return unionConstituents(objectType).every((part) =>
-    context.checker.isArrayType(part),
-  );
+  return context.utils
+    .unionConstituents(objectType)
+    .every((part) => context.checker.isArrayType(part));
 }
 
 /**
@@ -936,15 +954,15 @@ function isArrayLengthExpression(
  *
  * @param type The type checked
  */
-function isBrandedBoolean(type: ts.Type): boolean {
+function isBrandedBoolean(context: Context, type: ts.Type): boolean {
   return (
     type.isIntersection()
-    && type.types.some((childType) => isBooleanType(childType))
+    && type.types.some((childType) => isBooleanType(context, childType))
   );
 }
 
-function isBooleanType(expressionType: ts.Type): boolean {
-  return isTypeFlagSet(
+function isBooleanType(context: Context, expressionType: ts.Type): boolean {
+  return context.utils.typeHasFlag(
     expressionType,
     ts.TypeFlags.Boolean | ts.TypeFlags.BooleanLiteral,
   );

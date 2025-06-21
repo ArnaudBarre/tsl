@@ -1,8 +1,4 @@
-import {
-  getPropertyOfType,
-  isTypeFlagSet,
-  unionConstituents,
-} from "ts-api-utils";
+import { getPropertyOfType, isThenableType } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
   defineRule,
@@ -517,10 +513,10 @@ function isSometimesThenable(
 ): boolean {
   const type = context.checker.getTypeAtLocation(node);
 
-  for (const subType of unionConstituents(
+  for (const subType of context.utils.unionConstituents(
     context.checker.getApparentType(type),
   )) {
-    if (context.utils.isThenableType(node, subType)) {
+    if (isThenableType(context.rawChecker, node, subType)) {
       return true;
     }
   }
@@ -535,7 +531,7 @@ function isSometimesThenable(
 function isAlwaysThenable(context: Context<Data>, node: AST.AnyNode): boolean {
   const type = context.checker.getTypeAtLocation(node);
 
-  for (const subType of unionConstituents(
+  for (const subType of context.utils.unionConstituents(
     context.checker.getApparentType(type),
   )) {
     const thenProp = subType.getProperty("then");
@@ -551,7 +547,7 @@ function isAlwaysThenable(context: Context<Data>, node: AST.AnyNode): boolean {
     // be of the right form to consider it thenable.
     const thenType = context.checker.getTypeOfSymbolAtLocation(thenProp, node);
     let hasThenableSignature = false;
-    for (const subType of unionConstituents(thenType)) {
+    for (const subType of context.utils.unionConstituents(thenType)) {
       for (const signature of subType.getCallSignatures()) {
         if (
           signature.parameters.length !== 0
@@ -589,7 +585,7 @@ function isFunctionParam(
   const type: ts.Type | undefined = context.checker.getApparentType(
     context.checker.getTypeOfSymbolAtLocation(param, node),
   );
-  for (const subType of unionConstituents(type)) {
+  for (const subType of context.utils.unionConstituents(type)) {
     if (subType.getCallSignatures().length !== 0) {
       return true;
     }
@@ -653,7 +649,7 @@ function voidFunctionArguments(
   // We can't use checker.getResolvedSignature because it prefers an early '() => void' over a later '() => Promise<void>'
   // See https://github.com/microsoft/TypeScript/issues/48077
 
-  for (const subType of unionConstituents(type)) {
+  for (const subType of context.utils.unionConstituents(type)) {
     // Standard function calls and `new` have two different types of signatures
     const signatures = ts.isCallExpression(node)
       ? subType.getCallSignatures()
@@ -734,7 +730,7 @@ function anySignatureIsThenableType(
 ): boolean {
   for (const signature of type.getCallSignatures()) {
     const returnType = signature.getReturnType();
-    if (context.utils.isThenableType(node, returnType)) {
+    if (isThenableType(context.rawChecker, node, returnType)) {
       return true;
     }
   }
@@ -750,7 +746,7 @@ function isThenableReturningFunctionType(
   node: ts.Node,
   type: ts.Type,
 ): boolean {
-  for (const subType of unionConstituents(type)) {
+  for (const subType of context.utils.unionConstituents(type)) {
     if (anySignatureIsThenableType(context, node, subType)) {
       return true;
     }
@@ -769,17 +765,17 @@ function isVoidReturningFunctionType(
 ): boolean {
   let hadVoidReturn = false;
 
-  for (const subType of unionConstituents(type)) {
+  for (const subType of context.utils.unionConstituents(type)) {
     for (const signature of subType.getCallSignatures()) {
       const returnType = signature.getReturnType();
 
       // If a certain positional argument accepts both thenable and void returns,
       // a promise-returning function is valid
-      if (context.utils.isThenableType(node, returnType)) {
+      if (isThenableType(context.rawChecker, node, returnType)) {
         return false;
       }
 
-      hadVoidReturn ||= isTypeFlagSet(returnType, TypeFlags.Void);
+      hadVoidReturn ||= context.utils.typeHasFlag(returnType, TypeFlags.Void);
     }
   }
 
@@ -793,9 +789,9 @@ function returnsThenable(context: Context<Data>, node: ts.Node): boolean {
   const type = context.checker.getApparentType(
     context.checker.getTypeAtLocation(node),
   );
-  return unionConstituents(type).some((t) =>
-    anySignatureIsThenableType(context, node, t),
-  );
+  return context.utils
+    .unionConstituents(type)
+    .some((t) => anySignatureIsThenableType(context, node, t));
 }
 
 function getHeritageTypes(

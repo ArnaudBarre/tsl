@@ -1,7 +1,6 @@
-import { isTypeFlagSet } from "ts-api-utils";
 import ts, { TypeFlags } from "typescript";
 import { defineRule, isTypeRecurser } from "../_utils/index.ts";
-import type { Checker } from "../../types.ts";
+import type { Context } from "../../types.ts";
 
 export const messages = {
   forInViolation:
@@ -17,8 +16,7 @@ export const noForInArray = defineRule(() => ({
         isTypeRecurser(
           type,
           (t) =>
-            t.getNumberIndexType() != null
-            && hasArrayishLength(context.checker, t),
+            t.getNumberIndexType() != null && hasArrayishLength(context, t),
         )
       ) {
         context.report({
@@ -30,13 +28,13 @@ export const noForInArray = defineRule(() => ({
   },
 }));
 
-function hasArrayishLength(checker: Checker, type: ts.Type): boolean {
+function hasArrayishLength(context: Context, type: ts.Type): boolean {
   const lengthProperty = type.getProperty("length");
 
   if (lengthProperty == null) return false;
 
-  return isTypeFlagSet(
-    checker.getTypeOfSymbol(lengthProperty),
+  return context.utils.typeHasFlag(
+    context.checker.getTypeOfSymbol(lengthProperty),
     TypeFlags.NumberLike,
   );
 }

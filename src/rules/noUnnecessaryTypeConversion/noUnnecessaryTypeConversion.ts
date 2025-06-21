@@ -1,4 +1,3 @@
-import { unionConstituents } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { getOperatorPrecedenceForNode } from "../_utils/getOperatorPrecedence.ts";
 import { defineRule, typeHasFlag } from "../_utils/index.ts";
@@ -20,6 +19,7 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
         && node.right.kind === SyntaxKind.StringLiteral
         && node.right.text === ""
         && doesUnderlyingTypeMatchFlag(
+          context,
           context.checker.getTypeAtLocation(node.left),
           TypeFlags.StringLike,
         )
@@ -52,6 +52,7 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
           node.right.kind === SyntaxKind.StringLiteral
           && node.right.text === ""
           && doesUnderlyingTypeMatchFlag(
+            context,
             context.checker.getTypeAtLocation(node.left),
             TypeFlags.StringLike,
           )
@@ -68,6 +69,7 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
           node.left.kind === SyntaxKind.StringLiteral
           && node.left.text === ""
           && doesUnderlyingTypeMatchFlag(
+            context,
             context.checker.getTypeAtLocation(node.right),
             TypeFlags.StringLike,
           )
@@ -100,6 +102,7 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
 
         if (
           doesUnderlyingTypeMatchFlag(
+            context,
             context.utils.getConstrainedTypeAtLocation(arg),
             typeFlag,
           )
@@ -142,7 +145,7 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
         const type = context.utils.getConstrainedTypeAtLocation(
           callee.expression,
         );
-        if (doesUnderlyingTypeMatchFlag(type, TypeFlags.StringLike)) {
+        if (doesUnderlyingTypeMatchFlag(context, type, TypeFlags.StringLike)) {
           context.report({
             start: callee.name.getStart(),
             end: node.getEnd(),
@@ -173,7 +176,7 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
         && node.operand.operator === SyntaxKind.ExclamationToken
       ) {
         const type = context.checker.getTypeAtLocation(node.operand.operand);
-        if (doesUnderlyingTypeMatchFlag(type, TypeFlags.BooleanLike)) {
+        if (doesUnderlyingTypeMatchFlag(context, type, TypeFlags.BooleanLike)) {
           report({
             context,
             violation: "Using !! on a boolean",
@@ -185,7 +188,7 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
       }
       if (node.operator === SyntaxKind.PlusToken) {
         const type = context.checker.getTypeAtLocation(node.operand);
-        if (doesUnderlyingTypeMatchFlag(type, TypeFlags.NumberLike)) {
+        if (doesUnderlyingTypeMatchFlag(context, type, TypeFlags.NumberLike)) {
           report({
             context,
             violation: "Using the unary + operator on a number",
@@ -201,7 +204,7 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
         && node.operand.operator === SyntaxKind.TildeToken
       ) {
         const type = context.checker.getTypeAtLocation(node.operand.operand);
-        if (doesUnderlyingTypeMatchFlag(type, TypeFlags.NumberLike)) {
+        if (doesUnderlyingTypeMatchFlag(context, type, TypeFlags.NumberLike)) {
           report({
             context,
             violation: "Using ~~ on a number",
@@ -216,10 +219,13 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
 }));
 
 function doesUnderlyingTypeMatchFlag(
+  context: Context,
   type: ts.Type,
   typeFlag: TypeFlags,
 ): boolean {
-  return unionConstituents(type).every((t) => typeHasFlag(t, typeFlag));
+  return context.utils
+    .unionConstituents(type)
+    .every((t) => typeHasFlag(t, typeFlag));
 }
 
 const builtInTypeFlags: Record<string, TypeFlags | undefined> = {

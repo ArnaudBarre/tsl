@@ -1,6 +1,7 @@
 import {
   isIntrinsicAnyType,
   isIntrinsicUnknownType,
+  isThenableType,
   isTypeParameter,
 } from "ts-api-utils";
 import type * as ts from "typescript";
@@ -31,7 +32,7 @@ export function needsToBeAwaited(
   }
 
   // 'thenable' values should always be be awaited
-  if (context.utils.isThenableType(node, constrainedType)) {
+  if (isThenableType(context.rawChecker, node, constrainedType)) {
     return "Always";
   }
 

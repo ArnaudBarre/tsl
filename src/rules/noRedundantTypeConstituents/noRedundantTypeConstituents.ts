@@ -1,4 +1,3 @@
-import { isTypeFlagSet } from "ts-api-utils";
 import { SyntaxKind, type Type, TypeFlags } from "typescript";
 import { defineRule } from "../_utils/index.ts";
 import type { TypeNode } from "../../ast.ts";
@@ -69,14 +68,14 @@ export const noRedundantTypeConstituents = defineRule(() => ({
       const redundantNodes: AST.TypeNode[] = [];
       for (const typeNode of flattenNodes) {
         const type = context.checker.getTypeAtLocation(typeNode);
-        if (skipCheckForUnion(type)) continue;
+        if (skipCheckForUnion(context, type)) continue;
         for (const otherTypeNode of flattenNodes) {
           if (typeNode === otherTypeNode) {
             // Break so we don't report both parts with duplicate
             break;
           }
           const otherType = context.checker.getTypeAtLocation(otherTypeNode);
-          if (skipCheckForUnion(otherType)) continue;
+          if (skipCheckForUnion(context, otherType)) continue;
           if (context.checker.isTypeAssignableTo(type, otherType)) {
             const [redundantNode, assignableToNode] =
               type.flags === TypeFlags.Any
@@ -163,11 +162,11 @@ const printNode = (node: TypeNode) => {
     : oneLineText;
 };
 
-const skipCheckForUnion = (type: Type) =>
+const skipCheckForUnion = (context: Context, type: Type) =>
   // the Instantiable flag is currently the best way I found to avoid flaging types
   // containing type variables, but it too wide and also matches template expressions
-  isTypeFlagSet(type, TypeFlags.Instantiable)
-  || isTypeFlagSet(type, TypeFlags.TypeVariable)
+  context.utils.typeHasFlag(type, TypeFlags.Instantiable)
+  || context.utils.typeHasFlag(type, TypeFlags.TypeVariable)
   || isEnumAutocompleteHack(type);
 
 const isEnumAutocompleteHack = (type: Type) =>

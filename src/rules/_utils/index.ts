@@ -1,4 +1,3 @@
-import { intersectionConstituents, unionConstituents } from "ts-api-utils";
 import ts, { type NodeArray, SyntaxKind, TypeFlags } from "typescript";
 import type { AnyNode, BinaryOperatorToken, ModifierLike } from "../../ast.ts";
 import type { AST, Checker, Context, Rule, Suggestion } from "../../types.ts";
@@ -144,8 +143,9 @@ export function isArrayMethodCallWithPredicate(
   const type = context.utils.getConstrainedTypeAtLocation(
     node.expression.expression,
   );
-  return unionConstituents(type)
-    .flatMap((part) => intersectionConstituents(part))
+  return context.utils
+    .unionConstituents(type)
+    .flatMap((part) => context.utils.intersectionConstituents(part))
     .some(
       (t) => context.checker.isArrayType(t) || context.checker.isTupleType(t),
     );
@@ -336,6 +336,9 @@ export function requiresQuoting(
 }
 
 export function typeHasFlag(type: ts.Type, flag: TypeFlags): boolean {
+  return (type.flags & flag) !== 0;
+}
+export function typeOrUnionHasFlag(type: ts.Type, flag: TypeFlags): boolean {
   if (!type.isUnion()) return (type.flags & flag) !== 0;
   // @ts-expect-error Since typescript 5.0, this is invalid, but uses 0 as the default value of TypeFlags.
   let flags: TypeFlags = 0;
@@ -346,7 +349,7 @@ export function typeHasFlag(type: ts.Type, flag: TypeFlags): boolean {
 export function isTypeAnyArrayType(type: ts.Type, checker: Checker): boolean {
   return (
     checker.isArrayType(type)
-    && typeHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Any)
+    && typeOrUnionHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Any)
   );
 }
 
@@ -356,7 +359,7 @@ export function isTypeUnknownArrayType(
 ): boolean {
   return (
     checker.isArrayType(type)
-    && typeHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Unknown)
+    && typeOrUnionHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Unknown)
   );
 }
 

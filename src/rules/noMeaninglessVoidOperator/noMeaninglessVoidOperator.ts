@@ -1,4 +1,3 @@
-import { unionConstituents } from "ts-api-utils";
 import { TypeFlags } from "typescript";
 import { defineRule } from "../_utils/index.ts";
 
@@ -22,7 +21,7 @@ export const noMeaninglessVoidOperator = defineRule(
     visitor: {
       VoidExpression(node, context) {
         const argType = context.checker.getTypeAtLocation(node.expression);
-        const unionParts = unionConstituents(argType);
+        const unionParts = context.utils.unionConstituents(argType);
         const checkFlags = options?.checkNever
           ? TypeFlags.Void | TypeFlags.Undefined | TypeFlags.Never
           : TypeFlags.Void | TypeFlags.Undefined;

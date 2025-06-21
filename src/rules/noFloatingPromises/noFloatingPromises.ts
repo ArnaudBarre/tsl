@@ -1,4 +1,3 @@
-import { unionConstituents } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import {
   addAwait,
@@ -322,9 +321,9 @@ function isUnhandledPromise(
 
 function isPromiseArray(node: ts.Node, context: Context): boolean {
   const type = context.checker.getTypeAtLocation(node);
-  for (const ty of unionConstituents(type).map((t) =>
-    context.checker.getApparentType(t),
-  )) {
+  for (const ty of context.utils
+    .unionConstituents(type)
+    .map((t) => context.checker.getApparentType(t))) {
     if (context.checker.isArrayType(ty)) {
       const arrayType = context.checker.getTypeArguments(ty)[0];
       if (isPromiseLike(context, node, arrayType)) {
@@ -350,7 +349,9 @@ function isPromiseLike(
 ): boolean {
   type ??= context.checker.getTypeAtLocation(node);
 
-  return unionConstituents(context.checker.getApparentType(type)).some(
-    (typePart) => isBuiltinSymbolLike(context.program, typePart, "Promise"),
-  );
+  return context.utils
+    .unionConstituents(context.checker.getApparentType(type))
+    .some((typePart) =>
+      isBuiltinSymbolLike(context.program, typePart, "Promise"),
+    );
 }

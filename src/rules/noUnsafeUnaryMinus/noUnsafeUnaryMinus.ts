@@ -1,6 +1,5 @@
-import { isTypeFlagSet, unionConstituents } from "ts-api-utils";
 import { SyntaxKind, TypeFlags } from "typescript";
-import { defineRule } from "../_utils/index.ts";
+import { defineRule, typeHasFlag } from "../_utils/index.ts";
 
 export const messages = {
   unaryMinus: (params: { type: string }) =>
@@ -16,22 +15,24 @@ export const noUnsafeUnaryMinus = defineRule(() => ({
       }
       const argType = context.utils.getConstrainedTypeAtLocation(node.operand);
       if (
-        unionConstituents(argType).some(
-          (type) =>
-            !isTypeFlagSet(
-              type,
-              TypeFlags.Any
-                | TypeFlags.Never
-                | TypeFlags.BigIntLike
-                | TypeFlags.NumberLike,
-            ),
-        )
+        context.utils
+          .unionConstituents(argType)
+          .some(
+            (type) =>
+              !typeHasFlag(
+                type,
+                TypeFlags.Any
+                  | TypeFlags.Never
+                  | TypeFlags.BigIntLike
+                  | TypeFlags.NumberLike,
+              ),
+          )
       ) {
         context.report({
+          node,
           message: messages.unaryMinus({
             type: context.checker.typeToString(argType),
           }),
-          node,
         });
       }
     },

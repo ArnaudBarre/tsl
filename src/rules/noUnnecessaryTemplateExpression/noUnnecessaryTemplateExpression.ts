@@ -1,6 +1,5 @@
-import { isTypeFlagSet } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
-import { defineRule, typeHasFlag } from "../_utils/index.ts";
+import { defineRule } from "../_utils/index.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {
@@ -110,7 +109,8 @@ export const noUnnecessaryTemplateExpression = defineRule(() => ({
         const type = context.checker.getTypeAtLocation(
           node.templateSpans[0].type,
         );
-        if (typeHasFlag(type, TypeFlags.TypeParameter)) return;
+        if (context.utils.typeOrUnionHasFlag(type, TypeFlags.TypeParameter))
+          return;
         context.report({
           node: node.templateSpans[0],
           message: messages.unnecessaryTemplateString,
@@ -187,7 +187,7 @@ function isUnderlyingTypeString(
   const type = context.utils.getConstrainedTypeAtLocation(expression);
 
   const isString = (t: ts.Type): boolean => {
-    return isTypeFlagSet(t, TypeFlags.StringLike);
+    return context.utils.typeHasFlag(t, TypeFlags.StringLike);
   };
 
   if (type.isUnion()) {

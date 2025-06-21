@@ -1,6 +1,6 @@
 import { isIntrinsicAnyType, isIntrinsicNeverType } from "ts-api-utils";
 import { SyntaxKind, type Type, TypeFlags } from "typescript";
-import { defineRule, getTypeName, typeHasFlag } from "../_utils/index.ts";
+import { defineRule, getTypeName } from "../_utils/index.ts";
 import type { Context } from "../../types.ts";
 
 export const messages = {
@@ -57,11 +57,6 @@ type OptionTester = (
   recursivelyCheckType: (type: Type, context: Context) => boolean,
 ) => boolean;
 
-const testTypeFlag =
-  (flagsToCheck: TypeFlags): OptionTester =>
-  (type) =>
-    typeHasFlag(type, flagsToCheck);
-
 const optionTesters = (
   [
     ["Any", isIntrinsicAnyType],
@@ -71,9 +66,27 @@ const optionTesters = (
         (context.checker.isArrayType(type) || context.checker.isTupleType(type))
         && recursivelyCheckType(type.getNumberIndexType()!, context),
     ],
-    ["Boolean", testTypeFlag(TypeFlags.BooleanLike)],
-    ["Nullish", testTypeFlag(TypeFlags.Null | TypeFlags.Undefined)],
-    ["Number", testTypeFlag(TypeFlags.NumberLike | TypeFlags.BigIntLike)],
+    [
+      "Boolean",
+      (type, context) =>
+        context.utils.typeOrUnionHasFlag(type, TypeFlags.BooleanLike),
+    ],
+    [
+      "Nullish",
+      (type, context) =>
+        context.utils.typeOrUnionHasFlag(
+          type,
+          TypeFlags.Null | TypeFlags.Undefined,
+        ),
+    ],
+    [
+      "Number",
+      (type, context) =>
+        context.utils.typeOrUnionHasFlag(
+          type,
+          TypeFlags.NumberLike | TypeFlags.BigIntLike,
+        ),
+    ],
     [
       "RegExp",
       (type, context): boolean =>
@@ -115,7 +128,7 @@ export const restrictTemplateExpressions = defineRule(
       }
 
       return (
-        typeHasFlag(innerType, TypeFlags.StringLike)
+        context.utils.typeOrUnionHasFlag(innerType, TypeFlags.StringLike)
         || enabledOptionTesters.some(({ tester }) =>
           tester(innerType, context, recursivelyCheckType),
         )

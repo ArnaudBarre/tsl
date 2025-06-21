@@ -2,9 +2,7 @@ import {
   getWellKnownSymbolPropertyOfType,
   isObjectFlagSet,
   isObjectType,
-  isTypeFlagSet,
   typeConstituents,
-  unionConstituents,
 } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import { addAwait, defineRule, isTypeRecurser } from "../_utils/index.ts";
@@ -55,7 +53,7 @@ export const noMisusedSpread = defineRule(() => ({
         const type = context.utils.getConstrainedTypeAtLocation(
           node.expression,
         );
-        if (isString(type)) {
+        if (isString(context, type)) {
           context.report({ node, message: messages.noStringSpread });
         }
       }
@@ -90,7 +88,7 @@ function checkObjectSpread(
       node,
       message: messages.noMapSpreadInObject,
       suggestions: () => {
-        const types = unionConstituents(type);
+        const types = context.utils.unionConstituents(type);
         if (types.some((t) => !isMap(context.program, t))) {
           return [];
         }
@@ -148,7 +146,7 @@ function checkObjectSpread(
   if (
     isIterable(type, context)
     // Don't report when the type is string, since TS will flag it already
-    && !isString(type)
+    && !isString(context, type)
   ) {
     context.report({ node, message: messages.noIterableSpreadInObject });
     return;
@@ -183,8 +181,10 @@ function isArray(context: Context, type: ts.Type): boolean {
   );
 }
 
-function isString(type: ts.Type): boolean {
-  return isTypeRecurser(type, (t) => isTypeFlagSet(t, TypeFlags.StringLike));
+function isString(context: Context, type: ts.Type): boolean {
+  return isTypeRecurser(type, (t) =>
+    context.utils.typeHasFlag(t, TypeFlags.StringLike),
+  );
 }
 
 function isFunctionWithoutProps(type: ts.Type): boolean {

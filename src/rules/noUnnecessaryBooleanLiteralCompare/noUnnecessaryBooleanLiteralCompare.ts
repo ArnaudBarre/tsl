@@ -1,4 +1,4 @@
-import { isTypeFlagSet, isTypeParameter } from "ts-api-utils";
+import { isTypeParameter } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import {
   getOperatorPrecedenceForNode,
@@ -146,19 +146,19 @@ function getBooleanComparison(
     return undefined;
   }
 
-  if (isBooleanType(constraintType)) {
+  if (isBooleanType(context, constraintType)) {
     return { ...comparison, expressionIsNullableBoolean: false };
   }
 
-  if (isNullableBoolean(constraintType)) {
+  if (isNullableBoolean(context, constraintType)) {
     return { ...comparison, expressionIsNullableBoolean: true };
   }
 
   return undefined;
 }
 
-function isBooleanType(expressionType: ts.Type): boolean {
-  return isTypeFlagSet(
+function isBooleanType(context: Context, expressionType: ts.Type): boolean {
+  return context.utils.typeHasFlag(
     expressionType,
     ts.TypeFlags.Boolean | ts.TypeFlags.BooleanLiteral,
   );
@@ -170,7 +170,7 @@ function isBooleanType(expressionType: ts.Type): boolean {
  *   2) contains at least once boolean type (true or false or boolean)
  *   3) does not contain any types besides nullish and boolean types
  */
-function isNullableBoolean(expressionType: ts.Type): boolean {
+function isNullableBoolean(context: Context, expressionType: ts.Type): boolean {
   if (!expressionType.isUnion()) {
     return false;
   }
@@ -178,7 +178,11 @@ function isNullableBoolean(expressionType: ts.Type): boolean {
   const { types } = expressionType;
 
   const nonNullishTypes = types.filter(
-    (type) => !isTypeFlagSet(type, ts.TypeFlags.Undefined | ts.TypeFlags.Null),
+    (type) =>
+      !context.utils.typeHasFlag(
+        type,
+        ts.TypeFlags.Undefined | ts.TypeFlags.Null,
+      ),
   );
 
   const hasNonNullishType = nonNullishTypes.length > 0;
@@ -191,7 +195,9 @@ function isNullableBoolean(expressionType: ts.Type): boolean {
     return false;
   }
 
-  const allNonNullishTypesAreBoolean = nonNullishTypes.every(isBooleanType);
+  const allNonNullishTypesAreBoolean = nonNullishTypes.every((type) =>
+    isBooleanType(context, type),
+  );
   if (!allNonNullishTypesAreBoolean) {
     return false;
   }

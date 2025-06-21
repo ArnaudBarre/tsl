@@ -1,4 +1,4 @@
-import { isBooleanLiteralType, unionConstituents } from "ts-api-utils";
+import { isBooleanLiteralType } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
   defineRule,
@@ -63,7 +63,7 @@ export const noUnnecessaryTypeAssertion = defineRule(
         );
 
         if (
-          !typeHasFlag(
+          !context.utils.typeOrUnionHasFlag(
             type,
             TypeFlags.Null
               | TypeFlags.Undefined
@@ -90,30 +90,40 @@ export const noUnnecessaryTypeAssertion = defineRule(
           const contextualType = getContextualType(context.checker, node);
           if (contextualType) {
             if (
-              typeHasFlag(type, TypeFlags.Unknown)
-              && !typeHasFlag(contextualType, TypeFlags.Unknown)
+              context.utils.typeOrUnionHasFlag(type, TypeFlags.Unknown)
+              && !context.utils.typeOrUnionHasFlag(
+                contextualType,
+                TypeFlags.Unknown,
+              )
             ) {
               return;
             }
 
             // in strict mode you can't assign null to undefined, so we have to make sure that
             // the two types share a nullable type
-            const typeIncludesUndefined = typeHasFlag(
+            const typeIncludesUndefined = context.utils.typeOrUnionHasFlag(
               type,
               TypeFlags.Undefined,
             );
-            const typeIncludesNull = typeHasFlag(type, TypeFlags.Null);
-            const typeIncludesVoid = typeHasFlag(type, TypeFlags.Void);
-
-            const contextualTypeIncludesUndefined = typeHasFlag(
-              contextualType,
-              TypeFlags.Undefined,
+            const typeIncludesNull = context.utils.typeOrUnionHasFlag(
+              type,
+              TypeFlags.Null,
             );
-            const contextualTypeIncludesNull = typeHasFlag(
+            const typeIncludesVoid = context.utils.typeOrUnionHasFlag(
+              type,
+              TypeFlags.Void,
+            );
+
+            const contextualTypeIncludesUndefined =
+              context.utils.typeOrUnionHasFlag(
+                contextualType,
+                TypeFlags.Undefined,
+              );
+            const contextualTypeIncludesNull = context.utils.typeOrUnionHasFlag(
               contextualType,
               TypeFlags.Null,
             );
-            const contextualTypeIncludesVoid = typeHasFlag(
+            const contextualTypeIncludesVoid = context.utils.typeOrUnionHasFlag(
               contextualType,
               TypeFlags.Void,
             );
@@ -293,17 +303,17 @@ function isTypeUnchanged(
   }
 
   if (
-    typeHasFlag(uncast, TypeFlags.Undefined)
-    && typeHasFlag(cast, TypeFlags.Undefined)
+    context.utils.typeOrUnionHasFlag(uncast, TypeFlags.Undefined)
+    && context.utils.typeOrUnionHasFlag(cast, TypeFlags.Undefined)
     && context.compilerOptions.exactOptionalPropertyTypes
   ) {
-    const uncastParts = unionConstituents(uncast).filter(
-      (part) => !typeHasFlag(part, TypeFlags.Undefined),
-    );
+    const uncastParts = context.utils
+      .unionConstituents(uncast)
+      .filter((part) => !typeHasFlag(part, TypeFlags.Undefined));
 
-    const castParts = unionConstituents(cast).filter(
-      (part) => !typeHasFlag(part, TypeFlags.Undefined),
-    );
+    const castParts = context.utils
+      .unionConstituents(cast)
+      .filter((part) => !typeHasFlag(part, TypeFlags.Undefined));
 
     if (uncastParts.length !== castParts.length) {
       return false;

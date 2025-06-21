@@ -1,9 +1,4 @@
-import {
-  getCallSignaturesOfType,
-  isIntrinsicVoidType,
-  isTypeFlagSet,
-  unionConstituents,
-} from "ts-api-utils";
+import { getCallSignaturesOfType, isIntrinsicVoidType } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
   defineRule,
@@ -77,7 +72,7 @@ export const noConfusingVoidExpression = defineRule(
       context: Context,
     ): void {
       const type = context.utils.getConstrainedTypeAtLocation(node);
-      if (!isTypeFlagSet(type, TypeFlags.VoidLike)) {
+      if (!context.utils.typeHasFlag(type, TypeFlags.VoidLike)) {
         // not a void expression
         return;
       }
@@ -390,16 +385,21 @@ export const noConfusingVoidExpression = defineRule(
         node.kind === SyntaxKind.ReturnStatement ? node.expression! : node;
 
       const type = context.utils.getConstrainedTypeAtLocation(targetNode);
-      return isTypeFlagSet(type, TypeFlags.VoidLike);
+      return context.utils.typeHasFlag(type, TypeFlags.VoidLike);
     }
 
-    function isFunctionReturnTypeIncludesVoid(functionType: ts.Type): boolean {
+    function isFunctionReturnTypeIncludesVoid(
+      context: Context,
+      functionType: ts.Type,
+    ): boolean {
       const callSignatures = getCallSignaturesOfType(functionType);
 
       return callSignatures.some((signature) => {
         const returnType = signature.getReturnType();
 
-        return unionConstituents(returnType).some(isIntrinsicVoidType);
+        return context.utils
+          .unionConstituents(returnType)
+          .some(isIntrinsicVoidType);
       });
     }
 
@@ -422,7 +422,9 @@ export const noConfusingVoidExpression = defineRule(
           functionNode.type,
         );
 
-        return unionConstituents(returnType).some(isIntrinsicVoidType);
+        return context.utils
+          .unionConstituents(returnType)
+          .some(isIntrinsicVoidType);
       }
 
       if (
@@ -432,9 +434,9 @@ export const noConfusingVoidExpression = defineRule(
         const functionType = context.checker.getContextualType(functionNode);
 
         if (functionType) {
-          return unionConstituents(functionType).some(
-            isFunctionReturnTypeIncludesVoid,
-          );
+          return context.utils
+            .unionConstituents(functionType)
+            .some((type) => isFunctionReturnTypeIncludesVoid(context, type));
         }
       }
 

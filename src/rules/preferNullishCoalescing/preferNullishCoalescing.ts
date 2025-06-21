@@ -1,14 +1,9 @@
-import { intersectionConstituents, isTypeFlagSet } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
   getOperatorPrecedenceForNode,
   OperatorPrecedence,
 } from "../_utils/getOperatorPrecedence.ts";
-import {
-  defineRule,
-  isLogicalExpression,
-  typeHasFlag,
-} from "../_utils/index.ts";
+import { defineRule, isLogicalExpression } from "../_utils/index.ts";
 import type { EqualityOperator } from "../../ast.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
 
@@ -523,18 +518,23 @@ function conditionEligibleForNullishCoalescing(
 
     const type = context.checker.getTypeAtLocation(nullishCoalescingLeftNode);
 
-    if (typeHasFlag(type, TypeFlags.Any | TypeFlags.Unknown)) {
+    if (
+      context.utils.typeOrUnionHasFlag(type, TypeFlags.Any | TypeFlags.Unknown)
+    ) {
       return false;
     }
 
-    const hasNullType = typeHasFlag(type, TypeFlags.Null);
+    const hasNullType = context.utils.typeOrUnionHasFlag(type, TypeFlags.Null);
 
     // it is eligible if we check for undefined and the type is not nullable
     if (hasUndefinedCheck && !hasNullType) {
       return true;
     }
 
-    const hasUndefinedType = typeHasFlag(type, TypeFlags.Undefined);
+    const hasUndefinedType = context.utils.typeOrUnionHasFlag(
+      type,
+      TypeFlags.Undefined,
+    );
 
     // it is eligible if we check for null and the type can't be undefined
     return hasNullCheck && !hasUndefinedType;
@@ -552,7 +552,7 @@ function truthinessEligibleForNullishCoalescing(
 ): boolean {
   const type = context.checker.getTypeAtLocation(testNode);
   if (
-    !typeHasFlag(
+    !context.utils.typeOrUnionHasFlag(
       type,
       TypeFlags.Null
         | TypeFlags.Undefined
@@ -583,7 +583,7 @@ function truthinessEligibleForNullishCoalescing(
   // technically, this is true of `void` as well, however, it's a TS error
   // to test `void` for truthiness, so we don't need to bother checking for
   // it in valid code.
-  if (isTypeFlagSet(type, TypeFlags.Any | TypeFlags.Unknown)) {
+  if (context.utils.typeHasFlag(type, TypeFlags.Any | TypeFlags.Unknown)) {
     return false;
   }
 
@@ -591,7 +591,9 @@ function truthinessEligibleForNullishCoalescing(
     type.flags !== TypeFlags.Null
     && type.flags !== TypeFlags.Undefined
     && (type as ts.UnionOrIntersectionType).types.some((t) =>
-      intersectionConstituents(t).some((t) => isTypeFlagSet(t, ignorableFlags)),
+      context.utils
+        .intersectionConstituents(t)
+        .some((t) => context.utils.typeHasFlag(t, ignorableFlags)),
     )
   ) {
     return false;
