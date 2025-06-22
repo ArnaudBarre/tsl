@@ -2,6 +2,7 @@ import fs from "node:fs";
 import { parseArgs } from "node:util";
 import ts from "typescript";
 import type { SourceFile } from "./ast.ts";
+import { core } from "./index.ts";
 import { initRules } from "./initRules.ts";
 import { loadConfig } from "./loadConfig.ts";
 
@@ -88,7 +89,7 @@ const { config } = await loadConfig(program);
 
 const { lint, allRules, timingMaps } = await initRules(
   () => program,
-  config,
+  config ?? { rules: core.all() },
   values.timing,
 );
 

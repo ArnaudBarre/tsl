@@ -6,7 +6,7 @@ import packageJSON from "../package.json";
 await build({
   define: { __VERSION__: `"${packageJSON.version}"` },
   entry: ["src/index.ts", "src/ruleTester.ts"],
-  dts: true,
+  dts: { emitDtsOnly: true },
 });
 
 await build({

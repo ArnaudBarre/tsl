@@ -127,7 +127,7 @@ bun add -D tsl
 
 ### Add a configuration
 
-Add a `tsl.config.ts` file to your project root. If you don't have one, all core rules are enabled.
+Add a `tsl.config.ts` file to your project root. If you don't have one, all core rules are enabled (cli only, editor integration requires a config).
 
 You can either enable all core rules and disable some of them or update options if needed,
 
@@ -137,7 +137,7 @@ import { core, defineConfig } from "tsl";
 export default defineConfig({
   rules: [
     ...core.all(),
-    core.noUnnecessaryBooleanLiteralCompare("off"),
+    core.strictBooleanExpressions("off"),
     core.switchExhaustivenessCheck({
       considerDefaultExhaustiveForUnions: true,
     }),

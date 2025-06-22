@@ -3,20 +3,17 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { build, type BuildResult, formatMessagesSync } from "esbuild";
 import ts from "typescript";
-import { core } from "./index.ts";
 import type { Config } from "./types.ts";
-
-const defaultConfig: Config = { rules: core.all() };
 
 export const loadConfig = async (
   program: ts.Program,
-): Promise<{ config: Config; configFiles: string[] }> => {
+): Promise<{ config: Config | null; configFiles: string[] }> => {
   const workingDir = program.getCurrentDirectory();
   const entryPoint = join(workingDir, "tsl.config.ts");
   const cacheDir = join(workingDir, "node_modules/.cache/tsl");
   const output = join(cacheDir, "config.js");
   if (!existsSync(entryPoint)) {
-    return { config: defaultConfig, configFiles: [entryPoint] };
+    return { config: null, configFiles: [entryPoint] };
   }
   const cache = jsonCache<{ files: [path: string, hash: string][] }>(
     join(cacheDir, "config-hashes.json"),

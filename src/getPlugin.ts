@@ -39,12 +39,12 @@ export const getPlugin = async (
     }
     const result = await initRules(
       () => languageService.getProgram()!,
-      config,
+      config ?? { rules: [] },
       false,
     );
     lint = result.lint;
     diagnosticCategory =
-      config.diagnosticCategory === "error"
+      config?.diagnosticCategory === "error"
         ? ts.DiagnosticCategory.Error
         : ts.DiagnosticCategory.Warning;
     (ts as any).codefix.registerCodeFix({
