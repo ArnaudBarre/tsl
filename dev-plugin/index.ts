@@ -1,4 +1,4 @@
-import { rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { context } from "esbuild";
 import type * as ts from "typescript";
@@ -55,7 +55,7 @@ context({
   (e) => log((e as Error).message),
 );
 
-const logs: string[] = [`Start at ${new Date().toISOString()}`];
+const logs: string[] = [];
 let logPath: string | undefined;
 const log = (v: string) => {
   logs.push(v);
@@ -65,10 +65,13 @@ const log = (v: string) => {
 const init: ts.server.PluginModuleFactory = ({ typescript: ts }) => {
   const pluginModule: ts.server.PluginModule = {
     create(info) {
-      logPath ??= join(
+      const start = new Date().toISOString();
+      const dir = join(
         dirname(info.project.getProjectName()),
-        "plugin-logs.txt",
+        "dev-plugin/logs",
       );
+      if (!existsSync(dir)) mkdirSync(dir);
+      logPath = join(dir, `${start}.txt`);
       log(
         `Create ${info.project.getProjectName()} (${info.project.projectKind})`,
       );

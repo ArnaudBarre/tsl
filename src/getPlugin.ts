@@ -161,51 +161,62 @@ export const getPlugin = async (
       original: LanguageService["getSemanticDiagnostics"],
     ) => {
       const result = original(fileName);
-      const { diagnostics } = runLint(fileName);
-      if (!diagnostics.length) return result;
-      return [...result, ...diagnostics];
+      try {
+        const { diagnostics } = runLint(fileName);
+        if (!diagnostics.length) return result;
+        return [...result, ...diagnostics];
+      } catch (e) {
+        return result;
+      }
     },
     getCodeFixesAtPosition: (fileName, start, end) => {
-      const { fileSuggestions } = runLint(fileName);
-      const result: CodeFixAction[] = [];
-      for (const suggestion of fileSuggestions) {
-        if (
-          (suggestion.start >= start && suggestion.start <= end)
-          || (suggestion.end >= start && suggestion.end <= end)
-          || (start >= suggestion.start && start <= suggestion.end)
-          || (end >= suggestion.start && end <= suggestion.end)
-        ) {
-          result.push({
-            fixName: `tsl:${suggestion.rule}`,
-            description: suggestion.message,
-            changes: [
-              {
-                fileName,
-                textChanges: suggestion.changes.map((it) =>
-                  "node" in it
-                    ? {
-                        span: {
-                          start: it.node.getStart(),
-                          length: it.node.getEnd() - it.node.getStart(),
-                        },
-                        newText: it.newText,
-                      }
-                    : "length" in it
+      try {
+        const { fileSuggestions } = runLint(fileName);
+        const result: CodeFixAction[] = [];
+        for (const suggestion of fileSuggestions) {
+          if (
+            (suggestion.start >= start && suggestion.start <= end)
+            || (suggestion.end >= start && suggestion.end <= end)
+            || (start >= suggestion.start && start <= suggestion.end)
+            || (end >= suggestion.start && end <= suggestion.end)
+          ) {
+            result.push({
+              fixName: `tsl:${suggestion.rule}`,
+              description: suggestion.message,
+              changes: [
+                {
+                  fileName,
+                  textChanges: suggestion.changes.map((it) =>
+                    "node" in it
                       ? {
-                          span: { start: it.start, length: it.length },
+                          span: {
+                            start: it.node.getStart(),
+                            length: it.node.getEnd() - it.node.getStart(),
+                          },
                           newText: it.newText,
                         }
-                      : {
-                          span: { start: it.start, length: it.end - it.start },
-                          newText: it.newText,
-                        },
-                ),
-              },
-            ],
-          });
+                      : "length" in it
+                        ? {
+                            span: { start: it.start, length: it.length },
+                            newText: it.newText,
+                          }
+                        : {
+                            span: {
+                              start: it.start,
+                              length: it.end - it.start,
+                            },
+                            newText: it.newText,
+                          },
+                  ),
+                },
+              ],
+            });
+          }
         }
+        return result;
+      } catch {
+        return [];
       }
-      return result;
     },
     cleanUp() {
       for (const [, watcher] of watchedFiles) watcher.close();
