@@ -48,8 +48,8 @@ export const switchExhaustivenessCheck = defineRule(
     };
 
     function getSwitchMetadata(
-      node: AST.SwitchStatement,
       context: Context,
+      node: AST.SwitchStatement,
     ): SwitchMetadata {
       const defaultCase = node.caseBlock.clauses.find(
         (clause) => clause.kind === SyntaxKind.DefaultClause,
@@ -115,9 +115,9 @@ export const switchExhaustivenessCheck = defineRule(
     }
 
     function checkSwitchExhaustive(
+      context: Context,
       node: AST.SwitchStatement,
       switchMetadata: SwitchMetadata,
-      context: Context,
     ): void {
       const { defaultCase, missingLiteralCasesTypes, symbolName } =
         switchMetadata;
@@ -251,8 +251,8 @@ export const switchExhaustivenessCheck = defineRule(
     }
 
     function checkSwitchUnnecessaryDefaultCase(
-      switchMetadata: SwitchMetadata,
       context: Context,
+      switchMetadata: SwitchMetadata,
     ): void {
       if (options.allowDefaultCaseForExhaustiveSwitch) {
         return;
@@ -274,9 +274,9 @@ export const switchExhaustivenessCheck = defineRule(
     }
 
     function checkSwitchNoUnionDefaultCase(
+      context: Context,
       node: AST.SwitchStatement,
       switchMetadata: SwitchMetadata,
-      context: Context,
     ): void {
       if (!options.requireDefaultForNonUnion) {
         return;
@@ -300,11 +300,11 @@ export const switchExhaustivenessCheck = defineRule(
     return {
       name: "core/switchExhaustivenessCheck",
       visitor: {
-        SwitchStatement(node, context) {
-          const switchMetadata = getSwitchMetadata(node, context);
-          checkSwitchExhaustive(node, switchMetadata, context);
-          checkSwitchUnnecessaryDefaultCase(switchMetadata, context);
-          checkSwitchNoUnionDefaultCase(node, switchMetadata, context);
+        SwitchStatement(context, node) {
+          const switchMetadata = getSwitchMetadata(context, node);
+          checkSwitchExhaustive(context, node, switchMetadata);
+          checkSwitchUnnecessaryDefaultCase(context, switchMetadata);
+          checkSwitchNoUnionDefaultCase(context, node, switchMetadata);
         },
       },
     };

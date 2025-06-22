@@ -1,7 +1,7 @@
 import ts, { SyntaxKind } from "typescript";
 import { defineRule } from "../_utils/index.ts";
 import type { Expression } from "../../ast.ts";
-import type { Checker } from "../../types.ts";
+import type { Context } from "../../types.ts";
 
 export const messages = {
   noArrayDelete:
@@ -12,7 +12,7 @@ export const messages = {
 export const noArrayDelete = defineRule(() => ({
   name: "core/noArrayDelete",
   visitor: {
-    DeleteExpression(node, context) {
+    DeleteExpression(context, node) {
       let expression: Expression = node.expression;
       while (expression.kind === SyntaxKind.ParenthesizedExpression) {
         expression = expression.expression;
@@ -25,7 +25,7 @@ export const noArrayDelete = defineRule(() => ({
         expression.expression,
       );
 
-      if (!isUnderlyingTypeArray(type, context.checker)) {
+      if (!isUnderlyingTypeArray(context, type)) {
         return;
       }
 
@@ -52,9 +52,9 @@ export const noArrayDelete = defineRule(() => ({
   },
 }));
 
-function isUnderlyingTypeArray(type: ts.Type, checker: Checker): boolean {
+function isUnderlyingTypeArray(context: Context, type: ts.Type): boolean {
   const predicate = (t: ts.Type): boolean =>
-    checker.isArrayType(t) || checker.isTupleType(t);
+    context.checker.isArrayType(t) || context.checker.isTupleType(t);
 
   if (type.isUnion()) {
     return type.types.every(predicate);

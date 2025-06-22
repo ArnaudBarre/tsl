@@ -65,11 +65,11 @@ export const noConfusingVoidExpression = defineRule(
     };
 
     function checkVoidExpression(
+      context: Context,
       node:
         | AST.AwaitExpression
         | AST.CallExpression
         | AST.TaggedTemplateExpression,
-      context: Context,
     ): void {
       const type = context.utils.getConstrainedTypeAtLocation(node);
       if (!context.utils.typeHasFlag(type, TypeFlags.VoidLike)) {
@@ -120,7 +120,7 @@ export const noConfusingVoidExpression = defineRule(
         context.report({
           node,
           message: messages.invalidVoidExprArrow,
-          suggestions: canFix(arrowFunction, context)
+          suggestions: canFix(context, arrowFunction)
             ? [
                 {
                   message: messages.addBraces,
@@ -180,7 +180,7 @@ export const noConfusingVoidExpression = defineRule(
           context.report({
             node,
             message: messages.invalidVoidExprReturnLast,
-            suggestions: canFix(invalidAncestor, context)
+            suggestions: canFix(context, invalidAncestor)
               ? () => {
                   const returnValue = invalidAncestor.expression!;
                   const returnValueText = returnValue.getFullText().trimStart();
@@ -375,8 +375,8 @@ export const noConfusingVoidExpression = defineRule(
     }
 
     function canFix(
-      node: AST.ReturnStatement | AST.ArrowFunction,
       context: Context,
+      node: AST.ReturnStatement | AST.ArrowFunction,
     ): boolean {
       const targetNode =
         node.kind === SyntaxKind.ReturnStatement ? node.expression! : node;
@@ -442,10 +442,9 @@ export const noConfusingVoidExpression = defineRule(
     return {
       name: "core/noConfusingVoidExpression",
       visitor: {
-        AwaitExpression: (node, context) => checkVoidExpression(node, context),
-        CallExpression: (node, context) => checkVoidExpression(node, context),
-        TaggedTemplateExpression: (node, context) =>
-          checkVoidExpression(node, context),
+        AwaitExpression: checkVoidExpression,
+        CallExpression: checkVoidExpression,
+        TaggedTemplateExpression: checkVoidExpression,
       },
     };
   },

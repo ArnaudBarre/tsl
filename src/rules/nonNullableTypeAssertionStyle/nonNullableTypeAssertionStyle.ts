@@ -11,19 +11,19 @@ export const messages = {
 export const nonNullableTypeAssertionStyle = defineRule(() => ({
   name: "core/nonNullableTypeAssertionStyle",
   visitor: {
-    AsExpression(node, context) {
+    AsExpression(context, node) {
       if (isConstAssertion(node.type)) return;
-      checkAssertion(node, context);
+      checkAssertion(context, node);
     },
-    TypeAssertionExpression(node, context) {
-      checkAssertion(node, context);
+    TypeAssertionExpression(context, node) {
+      checkAssertion(context, node);
     },
   },
 }));
 
 const checkAssertion = (
-  node: AST.AsExpression | AST.TypeAssertion,
   context: Context,
+  node: AST.AsExpression | AST.TypeAssertion,
 ) => {
   const originalType = context.checker.getTypeAtLocation(node.expression);
   if (

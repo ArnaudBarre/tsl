@@ -125,8 +125,8 @@ export const initRules = async (
             for (const ruleWithOptions of rulesWithKey) {
               const start = showTiming ? performance.now() : 0;
               ruleWithOptions.rule.visitor[key]!(
-                node as any,
                 ruleWithOptions.context,
+                node as any,
               );
               if (showTiming) {
                 rulesTimingMap[ruleWithOptions.rule.name] +=

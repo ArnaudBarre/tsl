@@ -14,7 +14,7 @@ export const messages = {
 export const noUnnecessaryTemplateExpression = defineRule(() => ({
   name: "core/noUnnecessaryTemplateExpression",
   visitor: {
-    TemplateExpression(node, context) {
+    TemplateExpression(context, node) {
       if (node.parent.kind === SyntaxKind.TaggedTemplateExpression) {
         return;
       }
@@ -23,7 +23,7 @@ export const noUnnecessaryTemplateExpression = defineRule(() => ({
         node.head.text === ""
         && node.templateSpans.length === 1
         && node.templateSpans[0].literal.text === ""
-        && isUnderlyingTypeString(node.templateSpans[0].expression, context);
+        && isUnderlyingTypeString(context, node.templateSpans[0].expression);
 
       if (hasSingleStringVariable) {
         context.report({
@@ -97,7 +97,7 @@ export const noUnnecessaryTemplateExpression = defineRule(() => ({
         }
       }
     },
-    TemplateLiteralType(node, context) {
+    TemplateLiteralType(context, node) {
       const hasSingleType =
         node.head.text === ""
         && node.templateSpans.length === 1
@@ -181,8 +181,8 @@ export const noUnnecessaryTemplateExpression = defineRule(() => ({
 }));
 
 function isUnderlyingTypeString(
-  expression: AST.Expression,
   context: Context,
+  expression: AST.Expression,
 ): expression is AST.Identifier | AST.StringLiteral {
   const type = context.utils.getConstrainedTypeAtLocation(expression);
 

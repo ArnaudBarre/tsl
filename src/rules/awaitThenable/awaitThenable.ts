@@ -19,7 +19,7 @@ export const messages = {
 export const awaitThenable = defineRule(() => ({
   name: "core/awaitThenable",
   visitor: {
-    AwaitExpression(node, context) {
+    AwaitExpression(context, node) {
       const type = context.checker.getTypeAtLocation(node.expression);
       const certainty = needsToBeAwaited(context, node, type);
 
@@ -42,7 +42,7 @@ export const awaitThenable = defineRule(() => ({
         });
       }
     },
-    ForOfStatement(node, context) {
+    ForOfStatement(context, node) {
       if (node.awaitModifier) {
         const type = context.checker.getTypeAtLocation(node.expression);
         if (isIntrinsicAnyType(type)) return;
@@ -71,7 +71,7 @@ export const awaitThenable = defineRule(() => ({
         }
       }
     },
-    VariableDeclarationList(node, context) {
+    VariableDeclarationList(context, node) {
       if ((node.flags & NodeFlags.BlockScoped) === NodeFlags.AwaitUsing) {
         for (const declarator of node.declarations) {
           if (!declarator.initializer) continue;

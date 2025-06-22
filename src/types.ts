@@ -82,7 +82,7 @@ export type Rule<Data = undefined> = {
    * @example
    * ```ts
    * visitor: {
-   *    BinaryExpression(node, context) {
+   *    BinaryExpression(context, node) {
    *      // ...
    *    },
    * }

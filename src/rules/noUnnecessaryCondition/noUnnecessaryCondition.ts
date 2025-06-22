@@ -19,7 +19,7 @@ import {
   isTypeRecurser,
   typeHasFlag,
 } from "../_utils/index.ts";
-import type { AST, Checker, Context } from "../../types.ts";
+import type { AST, Context } from "../../types.ts";
 
 export const messages = {
   alwaysFalsy: "Unnecessary conditional, value is always falsy.",
@@ -75,25 +75,25 @@ export const noUnnecessaryCondition = defineRule(
     return {
       name: "core/noUnnecessaryCondition",
       visitor: {
-        BinaryExpression(node, context) {
+        BinaryExpression(context, node) {
           switch (node.operatorToken.kind) {
             case SyntaxKind.BarBarEqualsToken:
             case SyntaxKind.AmpersandAmpersandEqualsToken:
               // Similar to checkLogicalExpressionForUnnecessaryConditionals, since
               // a ||= b is equivalent to a || (a = b)
-              checkNode(node.left, context);
+              checkNode(context, node.left);
               break;
             case SyntaxKind.QuestionQuestionEqualsToken:
-              checkNodeForNullish(node.left, context);
+              checkNodeForNullish(context, node.left);
               break;
             case SyntaxKind.QuestionQuestionToken:
-              checkNodeForNullish(node.left, context);
+              checkNodeForNullish(context, node.left);
               break;
             case SyntaxKind.BarBarToken:
             case SyntaxKind.AmpersandAmpersandToken:
               // Only checks the left side, since the right side might not be "conditional" at all.
               // The right side will be checked if the LogicalExpression is used in a conditional context
-              checkNode(node.left, context);
+              checkNode(context, node.left);
               break;
             case SyntaxKind.LessThanToken:
             case SyntaxKind.GreaterThanToken:
@@ -115,34 +115,34 @@ export const noUnnecessaryCondition = defineRule(
               break;
           }
         },
-        CallExpression(node, context) {
-          checkCallExpression(node, context, options);
+        CallExpression(context, node) {
+          checkCallExpression(context, node, options);
         },
-        ConditionalExpression(node, context) {
-          checkNode(node.condition, context);
+        ConditionalExpression(context, node) {
+          checkNode(context, node.condition);
         },
-        DoStatement(node, context) {
-          checkIfLoopIsNecessaryConditional(node.expression, context, options);
+        DoStatement(context, node) {
+          checkIfLoopIsNecessaryConditional(context, options, node.expression);
         },
-        ForStatement(node, context) {
+        ForStatement(context, node) {
           if (node.condition) {
-            checkIfLoopIsNecessaryConditional(node.condition, context, options);
+            checkIfLoopIsNecessaryConditional(context, options, node.condition);
           }
         },
-        IfStatement(node, context) {
-          checkNode(node.expression, context);
+        IfStatement(context, node) {
+          checkNode(context, node.expression);
         },
-        PropertyAccessExpression(node, context) {
+        PropertyAccessExpression(context, node) {
           if (node.questionDotToken) {
-            checkOptionalChain(node, ".", context);
+            checkOptionalChain(context, node, ".");
           }
         },
-        ElementAccessExpression(node, context) {
+        ElementAccessExpression(context, node) {
           if (node.questionDotToken) {
-            checkOptionalChain(node, "", context);
+            checkOptionalChain(context, node, "");
           }
         },
-        CaseClause(node, context) {
+        CaseClause(context, node) {
           checkIfBoolExpressionIsNecessaryConditional(
             node.expression,
             node.parent.parent.expression,
@@ -151,7 +151,7 @@ export const noUnnecessaryCondition = defineRule(
             context,
           );
         },
-        WhileStatement(node, context) {
+        WhileStatement(context, node) {
           if (
             options.allowConstantLoopConditions === "only-allowed-literals"
             && (node.expression.kind === SyntaxKind.TrueKeyword
@@ -163,21 +163,21 @@ export const noUnnecessaryCondition = defineRule(
             return;
           }
 
-          checkIfLoopIsNecessaryConditional(node.expression, context, options);
+          checkIfLoopIsNecessaryConditional(context, options, node.expression);
         },
       },
     };
   },
 );
 
-function nodeIsArrayType(node: AST.Expression, context: Context): boolean {
+function nodeIsArrayType(context: Context, node: AST.Expression): boolean {
   const nodeType = context.utils.getConstrainedTypeAtLocation(node);
   return context.utils
     .unionConstituents(nodeType)
     .some((part) => context.checker.isArrayType(part));
 }
 
-function nodeIsTupleType(node: AST.Expression, context: Context): boolean {
+function nodeIsTupleType(context: Context, node: AST.Expression): boolean {
   const nodeType = context.utils.getConstrainedTypeAtLocation(node);
   return context.utils
     .unionConstituents(nodeType)
@@ -185,16 +185,16 @@ function nodeIsTupleType(node: AST.Expression, context: Context): boolean {
 }
 
 function isArrayIndexExpression(
-  node: AST.Expression,
   context: Context,
+  node: AST.Expression,
 ): boolean {
   return (
     // Is an index signature
     node.kind === SyntaxKind.ElementAccessExpression
     // ...into an array type
-    && (nodeIsArrayType(node.expression, context)
+    && (nodeIsArrayType(context, node.expression)
       // ... or a tuple type
-      || (nodeIsTupleType(node.expression, context)
+      || (nodeIsTupleType(context, node.expression)
         // Exception: literal index into a tuple - will have a sound type
         && !isLiteralKind(node.argumentExpression.kind)))
   );
@@ -213,8 +213,8 @@ function isConditionalAlwaysNecessary(
 }
 
 function isNullableMemberExpression(
-  node: AST.PropertyAccessExpression | AST.ElementAccessExpression,
   context: Context,
+  node: AST.PropertyAccessExpression | AST.ElementAccessExpression,
 ): boolean {
   const objectType = context.checker.getTypeAtLocation(node.expression);
   if (node.kind === SyntaxKind.ElementAccessExpression) {
@@ -244,14 +244,14 @@ function isNullableMemberExpression(
  * if the type of the node is always true or always false, it's not necessary.
  */
 function checkNode(
-  expression: AST.Expression,
   context: Context,
+  expression: AST.Expression,
   isUnaryNotArgument = false,
   node = expression,
 ): void {
   // Check if the node is Unary Negation expression and handle it
   if (expression.kind === SyntaxKind.PrefixUnaryExpression) {
-    checkNode(expression.operand, context, !isUnaryNotArgument, node);
+    checkNode(context, expression.operand, !isUnaryNotArgument, node);
     return;
   }
 
@@ -260,7 +260,7 @@ function checkNode(
   //  just skip the check, to avoid false positives
   if (
     !context.compilerOptions.noUncheckedIndexedAccess
-    && isArrayIndexExpression(expression, context)
+    && isArrayIndexExpression(context, expression)
   ) {
     return;
   }
@@ -276,7 +276,7 @@ function checkNode(
     && isLogicalExpression(expression.operatorToken)
     && expression.operatorToken.kind !== SyntaxKind.QuestionQuestionToken
   ) {
-    checkNode(expression.right, context);
+    checkNode(context, expression.right);
     return;
   }
 
@@ -304,7 +304,7 @@ function checkNode(
   }
 }
 
-function checkNodeForNullish(node: AST.Expression, context: Context): void {
+function checkNodeForNullish(context: Context, node: AST.Expression): void {
   const type = context.utils.getConstrainedTypeAtLocation(node);
 
   // Conditional is always necessary if it involves `any`, `unknown` or a naked type parameter
@@ -328,7 +328,7 @@ function checkNodeForNullish(node: AST.Expression, context: Context): void {
     && !(
       (node.kind === SyntaxKind.PropertyAccessExpression
         || node.kind === SyntaxKind.ElementAccessExpression)
-      && isNullableMemberExpression(node, context)
+      && isNullableMemberExpression(context, node)
     )
   ) {
     // Since typescript array index signature types don't represent the
@@ -336,10 +336,10 @@ function checkNodeForNullish(node: AST.Expression, context: Context): void {
     //  just skip the check, to avoid false positives
     if (
       context.compilerOptions.noUncheckedIndexedAccess === true
-      || (!isArrayIndexExpression(node, context)
+      || (!isArrayIndexExpression(context, node)
         && !(
           node.kind === SyntaxKind.PropertyAccessExpression
-          && optionChainContainsOptionArrayIndex(node, context)
+          && optionChainContainsOptionArrayIndex(context, node)
         ))
     ) {
       message = messages.neverNullish;
@@ -437,9 +437,9 @@ function checkIfBoolExpressionIsNecessaryConditional(
  * Checks that a testable expression of a loop is necessarily conditional, reports otherwise.
  */
 function checkIfLoopIsNecessaryConditional(
-  testNode: AST.Expression,
   context: Context,
   options: ParsedOptions,
+  testNode: AST.Expression,
 ): void {
   if (
     options.allowConstantLoopConditions === "always"
@@ -448,16 +448,16 @@ function checkIfLoopIsNecessaryConditional(
     return;
   }
 
-  checkNode(testNode, context);
+  checkNode(context, testNode);
 }
 
 function checkCallExpression(
-  node: AST.CallExpression,
   context: Context,
+  node: AST.CallExpression,
   options: ParsedOptions,
 ): void {
   if (node.questionDotToken) {
-    checkOptionalChain(node, "", context);
+    checkOptionalChain(context, node, "");
   }
 
   if (options.checkTypePredicates) {
@@ -466,7 +466,7 @@ function checkCallExpression(
       node,
     );
     if (truthinessAssertedArgument != null) {
-      checkNode(truthinessAssertedArgument, context);
+      checkNode(context, truthinessAssertedArgument);
     }
 
     const typeGuardAssertedArgument = findTypeGuardAssertedArgument(
@@ -501,7 +501,7 @@ function checkCallExpression(
       // Two special cases, where we can directly check the node that's returned:
       // () => something
       if (callback.body.kind !== SyntaxKind.Block) {
-        checkNode(callback.body, context);
+        checkNode(context, callback.body);
         return;
       }
       // () => { return something; }
@@ -511,7 +511,7 @@ function checkCallExpression(
         && callbackBody[0].kind === SyntaxKind.ReturnStatement
         && callbackBody[0].expression
       ) {
-        checkNode(callbackBody[0].expression, context);
+        checkNode(context, callbackBody[0].expression);
         return;
       }
       // Potential enhancement: could use code-path analysis to check
@@ -639,15 +639,15 @@ export function findTypeGuardAssertedArgument(
 }
 
 function optionChainContainsOptionArrayIndex(
+  context: Context,
   node:
     | AST.CallExpression
     | AST.PropertyAccessExpression
     | AST.ElementAccessExpression,
-  context: Context,
 ): boolean {
   return (
     node.questionDotToken !== undefined
-    && isArrayIndexExpression(node.expression, context)
+    && isArrayIndexExpression(context, node.expression)
   );
 }
 
@@ -663,7 +663,7 @@ function isNullablePropertyType(
   }
   if (propertyType.isNumberLiteral() || propertyType.isStringLiteral()) {
     const propType = getTypeOfPropertyOfName(
-      context.checker,
+      context,
       objType,
       propertyType.value.toString(),
     );
@@ -689,7 +689,7 @@ function isNullableType(context: Context, type: ts.Type): boolean {
 }
 
 function getTypeOfPropertyOfName(
-  checker: Checker,
+  context: Context,
   type: ts.Type,
   name: string,
   escapedName?: ts.__String,
@@ -699,7 +699,7 @@ function getTypeOfPropertyOfName(
     escapedName === undefined
     || !(escapedName.startsWith("__@") || escapedName.startsWith("__#"))
   ) {
-    return checker.getTypeOfPropertyOfType(type, name);
+    return context.checker.getTypeOfPropertyOfType(type, name);
   }
 
   // Symbolic names may differ in their escaped name compared to their human-readable name
@@ -709,7 +709,7 @@ function getTypeOfPropertyOfName(
     .find((property) => property.escapedName === escapedName);
 
   return escapedProperty
-    ? checker.getDeclaredTypeOfSymbol(escapedProperty)
+    ? context.checker.getDeclaredTypeOfSymbol(escapedProperty)
     : undefined;
 }
 
@@ -722,8 +722,8 @@ function getTypeOfPropertyOfName(
 //  foo?.bar;
 //  ```
 function isMemberExpressionNullableOriginFromObject(
-  node: AST.PropertyAccessExpression | AST.ElementAccessExpression,
   context: Context,
+  node: AST.PropertyAccessExpression | AST.ElementAccessExpression,
 ): boolean {
   const prevType = context.utils.getConstrainedTypeAtLocation(node.expression);
   const property =
@@ -738,11 +738,7 @@ function isMemberExpressionNullableOriginFromObject(
         );
         return isNullablePropertyType(context, type, propertyType);
       }
-      const propType = getTypeOfPropertyOfName(
-        context.checker,
-        type,
-        property.text,
-      );
+      const propType = getTypeOfPropertyOfName(context, type, property.text);
 
       if (propType) {
         return isNullableType(context, propType);
@@ -767,8 +763,8 @@ function isMemberExpressionNullableOriginFromObject(
 }
 
 function isCallExpressionNullableOriginFromCallee(
-  node: AST.CallExpression,
   context: Context,
+  node: AST.CallExpression,
 ): boolean {
   const prevType = context.utils.getConstrainedTypeAtLocation(node.expression);
 
@@ -786,16 +782,16 @@ function isCallExpressionNullableOriginFromCallee(
 }
 
 function isOptionableExpression(
-  node: AST.Expression,
   context: Context,
+  node: AST.Expression,
 ): boolean {
   const type = context.utils.getConstrainedTypeAtLocation(node);
   const isOwnNullable =
     node.kind === SyntaxKind.PropertyAccessExpression
     || node.kind === SyntaxKind.ElementAccessExpression
-      ? !isMemberExpressionNullableOriginFromObject(node, context)
+      ? !isMemberExpressionNullableOriginFromObject(context, node)
       : node.kind === SyntaxKind.CallExpression
-        ? !isCallExpressionNullableOriginFromCallee(node, context)
+        ? !isCallExpressionNullableOriginFromCallee(context, node)
         : true;
 
   return (
@@ -805,24 +801,24 @@ function isOptionableExpression(
 }
 
 function checkOptionalChain(
+  context: Context,
   node:
     | AST.CallExpression
     | AST.PropertyAccessExpression
     | AST.ElementAccessExpression,
   fix: "" | ".",
-  context: Context,
 ): void {
   // Since typescript array index signature types don't represent the
   //  possibility of out-of-bounds access, if we're indexing into an array
   //  just skip the check, to avoid false positives
   if (
     !context.compilerOptions.noUncheckedIndexedAccess
-    && optionChainContainsOptionArrayIndex(node, context)
+    && optionChainContainsOptionArrayIndex(context, node)
   ) {
     return;
   }
 
-  if (isOptionableExpression(node.expression, context)) {
+  if (isOptionableExpression(context, node.expression)) {
     return;
   }
 

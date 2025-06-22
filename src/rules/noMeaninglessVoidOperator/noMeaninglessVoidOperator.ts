@@ -19,7 +19,7 @@ export const noMeaninglessVoidOperator = defineRule(
   (options?: NoMeaninglessVoidOperatorOptions) => ({
     name: "core/noMeaninglessVoidOperator",
     visitor: {
-      VoidExpression(node, context) {
+      VoidExpression(context, node) {
         const argType = context.checker.getTypeAtLocation(node.expression);
         const unionParts = context.utils.unionConstituents(argType);
         const checkFlags = options?.checkNever

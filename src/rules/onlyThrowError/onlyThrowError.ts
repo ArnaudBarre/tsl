@@ -42,7 +42,7 @@ export const onlyThrowError = defineRule((_options?: OnlyThrowErrorOptions) => {
   return {
     name: "core/onlyThrowError",
     visitor: {
-      ThrowStatement({ expression: node }, context) {
+      ThrowStatement(context, { expression: node }) {
         if (
           node.kind === SyntaxKind.AwaitExpression
           || node.kind === SyntaxKind.YieldExpression

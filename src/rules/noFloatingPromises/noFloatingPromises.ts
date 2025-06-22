@@ -65,7 +65,7 @@ export const noFloatingPromises = defineRule(
     return {
       name: "core/noFloatingPromises",
       visitor: {
-        ExpressionStatement(node, context) {
+        ExpressionStatement(context, node) {
           if (options.ignoreIIFE && isAsyncIife(node)) {
             return;
           }
@@ -171,8 +171,8 @@ function isAsyncIife(node: AST.ExpressionStatement): boolean {
 }
 
 function isValidRejectionHandler(
-  rejectionHandler: ts.Node,
   context: Context,
+  rejectionHandler: ts.Node,
 ): boolean {
   return (
     context.checker.getTypeAtLocation(rejectionHandler).getCallSignatures()
@@ -221,7 +221,7 @@ function isUnhandledPromise(
   // Check the type. At this point it can't be unhandled if it isn't a promise
   // or array thereof.
 
-  if (isPromiseArray(node, context)) {
+  if (isPromiseArray(context, node)) {
     return { isUnhandled: true, promiseArray: true };
   }
 
@@ -252,7 +252,7 @@ function isUnhandledPromise(
           ? node.arguments[0]
           : undefined;
       if (catchRejectionHandler) {
-        if (isValidRejectionHandler(catchRejectionHandler, context)) {
+        if (isValidRejectionHandler(context, catchRejectionHandler)) {
           return { isUnhandled: false };
         }
         return { isUnhandled: true, nonFunctionHandler: true };
@@ -263,7 +263,7 @@ function isUnhandledPromise(
           ? node.arguments[1]
           : undefined;
       if (thenRejectionHandler) {
-        if (isValidRejectionHandler(thenRejectionHandler, context)) {
+        if (isValidRejectionHandler(context, thenRejectionHandler)) {
           return { isUnhandled: false };
         }
         return { isUnhandled: true, nonFunctionHandler: true };
@@ -307,7 +307,7 @@ function isUnhandledPromise(
   return { isUnhandled: true };
 }
 
-function isPromiseArray(node: ts.Node, context: Context): boolean {
+function isPromiseArray(context: Context, node: ts.Node): boolean {
   const type = context.checker.getTypeAtLocation(node);
   for (const ty of context.utils
     .unionConstituents(type)

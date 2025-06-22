@@ -11,7 +11,7 @@ export const messages = {
 export const preferFind = defineRule(() => ({
   name: "core/preferFind",
   visitor: {
-    CallExpression(node, context) {
+    CallExpression(context, node) {
       // `<leftHandSide>.at(<arg>)`.
       if (node.arguments.length !== 1) return;
       if (node.expression.kind !== SyntaxKind.PropertyAccessExpression) return;
@@ -25,7 +25,7 @@ export const preferFind = defineRule(() => ({
         context,
       );
     },
-    ElementAccessExpression(node, context) {
+    ElementAccessExpression(context, node) {
       // `<leftHandSide>[<arg>]`.
       checkAccess(
         node,
@@ -47,7 +47,7 @@ function checkAccess(
 ): AST.Expression | undefined {
   if (argument.kind !== SyntaxKind.NumericLiteral) return;
   if (argument.text !== "0") return;
-  const filterIdentifiers = parseArrayFilterExpressions(leftHandSide, context);
+  const filterIdentifiers = parseArrayFilterExpressions(context, leftHandSide);
   if (filterIdentifiers.length !== 0) {
     context.report({
       node,
@@ -70,27 +70,27 @@ function checkAccess(
 }
 
 function parseArrayFilterExpressions(
-  expression: AST.Expression,
   context: Context,
+  expression: AST.Expression,
 ): AST.Identifier[] {
   if (expression.kind === SyntaxKind.ParenthesizedExpression) {
-    return parseArrayFilterExpressions(expression.expression, context);
+    return parseArrayFilterExpressions(context, expression.expression);
   }
 
   // This is the only reason we're returning a list rather than a single value.
   if (expression.kind === SyntaxKind.ConditionalExpression) {
     // Both branches of the ternary _must_ return results.
     const consequentResult = parseArrayFilterExpressions(
-      expression.whenTrue,
       context,
+      expression.whenTrue,
     );
     if (consequentResult.length === 0) {
       return [];
     }
 
     const alternateResult = parseArrayFilterExpressions(
-      expression.whenFalse,
       context,
+      expression.whenFalse,
     );
     if (alternateResult.length === 0) {
       return [];
@@ -119,7 +119,7 @@ function parseArrayFilterExpressions(
 
       // As long as the object is a (possibly nullable) array,
       // this is an Array.prototype.filter expression.
-      if (isArrayish(filteredObjectType, context)) {
+      if (isArrayish(context, filteredObjectType)) {
         return [callee.name];
       }
     }
@@ -132,7 +132,7 @@ function parseArrayFilterExpressions(
 /**
  * Tells whether the type is a possibly nullable array/tuple or union thereof.
  */
-function isArrayish(type: Type, context: Context): boolean {
+function isArrayish(context: Context, type: Type): boolean {
   let isAtLeastOneArrayishComponent = false;
   for (const unionPart of context.utils.unionConstituents(type)) {
     if (isIntrinsicNullType(unionPart) || isIntrinsicUndefinedType(unionPart)) {

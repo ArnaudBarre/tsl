@@ -281,14 +281,14 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
     const visit = (node: AST.AnyNode) => {
       const nodeType = visitorEntries.find((e) => e[0] === node.kind)?.[1];
       if (nodeType) {
-        rule.visitor[nodeType]?.(node as any, context);
+        rule.visitor[nodeType]?.(context, node as any);
       }
       // @ts-expect-error
       node.forEachChild(visit);
       if (nodeType) {
         rule.visitor[`${nodeType}_exit` as keyof Visitor]?.(
-          node as any,
           context,
+          node as any,
         );
       }
     };

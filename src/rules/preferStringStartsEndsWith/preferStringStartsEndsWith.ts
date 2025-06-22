@@ -27,7 +27,7 @@ export const preferStringStartsEndsWith = defineRule(
     return {
       name: "core/preferStringStartsEndsWith",
       visitor: {
-        BinaryExpression(node, context) {
+        BinaryExpression(context, node) {
           const isEqualityComparison =
             node.operatorToken.kind === SyntaxKind.EqualsEqualsToken
             || node.operatorToken.kind === SyntaxKind.EqualsEqualsEqualsToken;
@@ -353,7 +353,7 @@ export const preferStringStartsEndsWith = defineRule(
             }
           }
         },
-        CallExpression(node, context) {
+        CallExpression(context, node) {
           // /^bar/.test(foo)
           // /bar$/.test(foo)
           if (

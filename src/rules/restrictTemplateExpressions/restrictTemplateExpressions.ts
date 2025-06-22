@@ -52,28 +52,28 @@ export type RestrictTemplateExpressionsOptions = {
 };
 
 type OptionTester = (
-  type: Type,
   context: Context,
-  recursivelyCheckType: (type: Type, context: Context) => boolean,
+  type: Type,
+  recursivelyCheckType: (context: Context, type: Type) => boolean,
 ) => boolean;
 
 const optionTesters = (
   [
-    ["Any", isIntrinsicAnyType],
+    ["Any", (_, type) => isIntrinsicAnyType(type)],
     [
       "Array",
-      (type, context, recursivelyCheckType): boolean =>
+      (context, type, recursivelyCheckType): boolean =>
         (context.checker.isArrayType(type) || context.checker.isTupleType(type))
-        && recursivelyCheckType(type.getNumberIndexType()!, context),
+        && recursivelyCheckType(context, type.getNumberIndexType()!),
     ],
     [
       "Boolean",
-      (type, context) =>
+      (context, type) =>
         context.utils.typeOrUnionHasFlag(type, TypeFlags.BooleanLike),
     ],
     [
       "Nullish",
-      (type, context) =>
+      (context, type) =>
         context.utils.typeOrUnionHasFlag(
           type,
           TypeFlags.Null | TypeFlags.Undefined,
@@ -81,7 +81,7 @@ const optionTesters = (
     ],
     [
       "Number",
-      (type, context) =>
+      (context, type) =>
         context.utils.typeOrUnionHasFlag(
           type,
           TypeFlags.NumberLike | TypeFlags.BigIntLike,
@@ -89,10 +89,10 @@ const optionTesters = (
     ],
     [
       "RegExp",
-      (type, context): boolean =>
+      (context, type): boolean =>
         getTypeName(context.rawChecker, type) === "RegExp",
     ],
-    ["Never", isIntrinsicNeverType],
+    ["Never", (_, type) => isIntrinsicNeverType(type)],
   ] as const satisfies [string, OptionTester][]
 ).map(([type, tester]) => ({
   type,
@@ -118,26 +118,26 @@ export const restrictTemplateExpressions = defineRule(
       ({ option }) => options[option],
     );
 
-    function recursivelyCheckType(innerType: Type, context: Context): boolean {
+    function recursivelyCheckType(context: Context, innerType: Type): boolean {
       if (innerType.isUnion()) {
-        return innerType.types.every((t) => recursivelyCheckType(t, context));
+        return innerType.types.every((t) => recursivelyCheckType(context, t));
       }
 
       if (innerType.isIntersection()) {
-        return innerType.types.some((t) => recursivelyCheckType(t, context));
+        return innerType.types.some((t) => recursivelyCheckType(context, t));
       }
 
       return (
         context.utils.typeOrUnionHasFlag(innerType, TypeFlags.StringLike)
         || enabledOptionTesters.some(({ tester }) =>
-          tester(innerType, context, recursivelyCheckType),
+          tester(context, innerType, recursivelyCheckType),
         )
       );
     }
     return {
       name: "core/restrictTemplateExpressions",
       visitor: {
-        TemplateExpression(node, context) {
+        TemplateExpression(context, node) {
           // don't check tagged template literals
           if (node.parent.kind === SyntaxKind.TaggedTemplateExpression) {
             return;
@@ -157,7 +157,7 @@ export const restrictTemplateExpressions = defineRule(
               span.expression,
             );
 
-            if (!recursivelyCheckType(expressionType, context)) {
+            if (!recursivelyCheckType(context, expressionType)) {
               context.report({
                 node: span.expression,
                 message: messages.invalidType({

@@ -88,7 +88,7 @@ export const preferOptionalChain = defineRule(
       name: "core/preferOptionalChain",
       createData: () => ({ seenLogicals: new Set<AST.BinaryExpression>() }),
       visitor: {
-        BinaryExpression(node, context) {
+        BinaryExpression(context, node) {
           if (context.data.seenLogicals.has(node)) {
             return;
           }
@@ -242,7 +242,7 @@ function gatherLogicalOperands(
             if (
               argument.kind === SyntaxKind.Identifier
               // typeof window === 'undefined'
-              && isReferenceToGlobalFunction(argument, context)
+              && isReferenceToGlobalFunction(context, argument)
             ) {
               result.push({ type: "Invalid" });
               continue;

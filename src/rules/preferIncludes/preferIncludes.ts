@@ -9,7 +9,7 @@ export const messages = {
 export const preferIncludes = defineRule(() => ({
   name: "core/preferIncludes",
   visitor: {
-    PropertyAccessExpression(node, context) {
+    PropertyAccessExpression(context, node) {
       if (node.name.kind !== SyntaxKind.Identifier) return;
       if (node.name.text !== "indexOf") return;
       if (node.parent.kind !== SyntaxKind.CallExpression) return;

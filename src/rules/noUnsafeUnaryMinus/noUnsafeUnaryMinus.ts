@@ -9,7 +9,7 @@ export const messages = {
 export const noUnsafeUnaryMinus = defineRule(() => ({
   name: "core/noUnsafeUnaryMinus",
   visitor: {
-    PrefixUnaryExpression(node, context) {
+    PrefixUnaryExpression(context, node) {
       if (node.operator !== SyntaxKind.MinusToken) {
         return;
       }

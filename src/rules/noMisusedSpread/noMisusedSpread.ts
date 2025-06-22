@@ -39,13 +39,9 @@ export const messages = {
 export const noMisusedSpread = defineRule(() => ({
   name: "core/noMisusedSpread",
   visitor: {
-    SpreadAssignment(node, context) {
-      checkObjectSpread(node, context);
-    },
-    JsxSpreadAttribute(node, context) {
-      checkObjectSpread(node, context);
-    },
-    SpreadElement(node, context) {
+    SpreadAssignment: checkObjectSpread,
+    JsxSpreadAttribute: checkObjectSpread,
+    SpreadElement(context, node) {
       if (
         node.parent.kind === SyntaxKind.CallExpression
         || node.parent.kind === SyntaxKind.ArrayLiteralExpression
@@ -62,8 +58,8 @@ export const noMisusedSpread = defineRule(() => ({
 }));
 
 function checkObjectSpread(
-  node: AST.JsxSpreadAttribute | AST.SpreadAssignment,
   context: Context,
+  node: AST.JsxSpreadAttribute | AST.SpreadAssignment,
 ): void {
   const type = context.utils.getConstrainedTypeAtLocation(node.expression);
 
@@ -144,7 +140,7 @@ function checkObjectSpread(
   }
 
   if (
-    isIterable(type, context)
+    isIterable(context, type)
     // Don't report when the type is string, since TS will flag it already
     && !isString(context, type)
   ) {
@@ -168,7 +164,7 @@ function checkObjectSpread(
   }
 }
 
-function isIterable(type: ts.Type, context: Context): boolean {
+function isIterable(context: Context, type: ts.Type): boolean {
   return typeConstituents(type).some((t) =>
     getWellKnownSymbolPropertyOfType(t, "iterator", context.rawChecker),
   );

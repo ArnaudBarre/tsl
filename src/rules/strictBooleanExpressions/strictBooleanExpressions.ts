@@ -148,29 +148,29 @@ export const strictBooleanExpressions = defineRule(
      * it's used for control flow and is not a condition itself.
      */
     function traverseLogicalExpression(
+      context: Context<Data>,
       node: AST.BinaryExpression,
       isCondition: boolean,
-      context: Context<Data>,
     ): void {
       // left argument is always treated as a condition
-      traverseNode(node.left, true, context);
+      traverseNode(context, node.left, true);
       // if the logical expression is used for control flow,
       // then its right argument is used for its side effects only
-      traverseNode(node.right, isCondition, context);
+      traverseNode(context, node.right, isCondition);
     }
 
     function traverseCallExpression(
-      node: AST.CallExpression,
       context: Context<Data>,
+      node: AST.CallExpression,
     ): void {
       const assertedArgument = findTruthinessAssertedArgument(context, node);
       if (assertedArgument != null) {
-        traverseNode(assertedArgument, true, context);
+        traverseNode(context, assertedArgument, true);
       }
       if (isArrayMethodCallWithPredicate(context, node)) {
         const predicate = node.arguments.at(0);
         if (predicate) {
-          checkArrayMethodCallPredicate(predicate, context);
+          checkArrayMethodCallPredicate(context, predicate);
         }
       }
     }
@@ -180,8 +180,8 @@ export const strictBooleanExpressions = defineRule(
      * arguments that don't return a boolean value.
      */
     function checkArrayMethodCallPredicate(
-      predicateNode: AST.Expression,
       context: Context,
+      predicateNode: AST.Expression,
     ): void {
       const isFunctionExpression = isFunction(predicateNode);
 
@@ -282,15 +282,15 @@ export const strictBooleanExpressions = defineRule(
      * it's assumed to be used for side effects only and is skipped.
      */
     function traverseNode(
+      context: Context<Data>,
       node: AST.Expression,
       isCondition: boolean,
-      context: Context<Data>,
     ): void {
       // prevent checking the same node multiple times
       if (context.data.checkedNodes.has(node)) return;
       context.data.checkedNodes.add(node);
       if (node.kind === SyntaxKind.ParenthesizedExpression) {
-        traverseNode(node.expression, isCondition, context);
+        traverseNode(context, node.expression, isCondition);
         return;
       }
 
@@ -300,14 +300,14 @@ export const strictBooleanExpressions = defineRule(
         && (node.operatorToken.kind === SyntaxKind.AmpersandAmpersandToken
           || node.operatorToken.kind === SyntaxKind.BarBarToken)
       ) {
-        traverseLogicalExpression(node, isCondition, context);
+        traverseLogicalExpression(context, node, isCondition);
         return;
       }
 
       // skip if node is not a condition
       if (!isCondition) return;
 
-      checkNode(node, context);
+      checkNode(context, node);
     }
 
     function determineReportType(
@@ -610,7 +610,7 @@ export const strictBooleanExpressions = defineRule(
           ];
 
         case "conditionErrorNumber":
-          if (isArrayLengthExpression(node, context)) {
+          if (isArrayLengthExpression(context, node)) {
             if (isLogicalNegationExpression(node.parent)) {
               // if (!array.length)
               return [
@@ -725,7 +725,7 @@ export const strictBooleanExpressions = defineRule(
      * This function does the actual type check on a node.
      * It analyzes the type of a node and checks if it is allowed in a boolean context.
      */
-    function checkNode(node: AST.Expression, context: Context): void {
+    function checkNode(context: Context, node: AST.Expression): void {
       const type = context.utils.getConstrainedTypeAtLocation(node);
       const types = inspectVariantTypes(
         context,
@@ -889,33 +889,33 @@ export const strictBooleanExpressions = defineRule(
       createData: () => ({ checkedNodes: new Set<ts.Node>() }),
       visitor: {
         CallExpression: traverseCallExpression,
-        ConditionalExpression(node, context) {
-          traverseNode(node.condition, true, context);
+        ConditionalExpression(context, node) {
+          traverseNode(context, node.condition, true);
         },
-        DoStatement(node, context) {
-          traverseNode(node.expression, true, context);
+        DoStatement(context, node) {
+          traverseNode(context, node.expression, true);
         },
-        ForStatement(node, context) {
+        ForStatement(context, node) {
           if (node.condition) {
-            traverseNode(node.condition, true, context);
+            traverseNode(context, node.condition, true);
           }
         },
-        IfStatement(node, context) {
-          traverseNode(node.expression, true, context);
+        IfStatement(context, node) {
+          traverseNode(context, node.expression, true);
         },
-        BinaryExpression(node, context) {
+        BinaryExpression(context, node) {
           if (
             node.operatorToken.kind === SyntaxKind.AmpersandAmpersandToken
             || node.operatorToken.kind === SyntaxKind.BarBarToken
           ) {
-            traverseLogicalExpression(node, false, context);
+            traverseLogicalExpression(context, node, false);
           }
         },
-        PrefixUnaryExpression(node, context) {
-          traverseNode(node.operand, true, context);
+        PrefixUnaryExpression(context, node) {
+          traverseNode(context, node.operand, true);
         },
-        WhileStatement(node, context) {
-          traverseNode(node.expression, true, context);
+        WhileStatement(context, node) {
+          traverseNode(context, node.expression, true);
         },
       },
     };
@@ -932,8 +932,8 @@ function isLogicalNegationExpression(
 }
 
 function isArrayLengthExpression(
-  node: AST.Expression,
   context: Context,
+  node: AST.Expression,
 ): node is AST.PropertyAccessExpression {
   if (node.kind !== SyntaxKind.PropertyAccessExpression) {
     return false;

@@ -21,9 +21,5 @@ export default defineConfig({
       allowNullableString: true,
       allowNullableBoolean: true,
     }),
-    {
-      name: "core/returnAwait",
-      visitor: {},
-    },
   ],
 });

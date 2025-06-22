@@ -66,7 +66,7 @@ export const restrictPlusOperands = defineRule(
     return {
       name: "core/restrictPlusOperands",
       visitor: {
-        BinaryExpression(node, context) {
+        BinaryExpression(context, node) {
           if (
             node.operatorToken.kind !== SyntaxKind.PlusToken
             && node.operatorToken.kind !== SyntaxKind.PlusEqualsToken

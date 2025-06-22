@@ -32,7 +32,7 @@ export const noBaseToString = defineRule((_options?: NoBaseToStringOptions) => {
   return {
     name: "core/noBaseToString",
     visitor: {
-      CallExpression(node, context) {
+      CallExpression(context, node) {
         if (
           isBuiltInStringCall(context, node)
           && node.arguments.length === 1

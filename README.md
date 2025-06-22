@@ -288,7 +288,7 @@ export default defineConfig({
     {
       name: "org/useLogger",
       visitor: {
-        CallExpression(node, context) {
+        CallExpression(context, node) {
           if (
             node.expression.kind === SyntaxKind.PropertyAccessExpression
             && node.expression.expression.kind === SyntaxKind.Identifier
@@ -303,7 +303,7 @@ export default defineConfig({
     {
       name: "org/jsxNoNumberTruthiness",
       visitor: {
-        BinaryExpression(node, context) {
+        BinaryExpression(context, node) {
           if (
             node.parent.kind === SyntaxKind.JsxExpression
             && node.operatorToken.kind === SyntaxKind.AmpersandAmpersandToken

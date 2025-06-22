@@ -48,8 +48,8 @@ export const noUnnecessaryBooleanLiteralCompare = defineRule(
     return {
       name: "core/noUnnecessaryBooleanLiteralCompare",
       visitor: {
-        BinaryExpression(node, context) {
-          const comparison = getBooleanComparison(node, context);
+        BinaryExpression(context, node) {
+          const comparison = getBooleanComparison(context, node);
           if (comparison === undefined) return;
 
           if (comparison.expressionIsNullableBoolean) {
@@ -129,8 +129,8 @@ export const noUnnecessaryBooleanLiteralCompare = defineRule(
 );
 
 function getBooleanComparison(
-  node: AST.BinaryExpression,
   context: Context,
+  node: AST.BinaryExpression,
 ): (BooleanComparison & { expressionIsNullableBoolean: boolean }) | undefined {
   const comparison = deconstructComparison(node);
   if (!comparison) {

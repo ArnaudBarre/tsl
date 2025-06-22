@@ -13,7 +13,7 @@ export const messages = {
 export const noUnnecessaryTypeConversion = defineRule(() => ({
   name: "core/noUnnecessaryTypeConversion",
   visitor: {
-    BinaryExpression(node, context) {
+    BinaryExpression(context, node) {
       if (
         node.operatorToken.kind === SyntaxKind.PlusEqualsToken
         && node.right.kind === SyntaxKind.StringLiteral
@@ -85,7 +85,7 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
         }
       }
     },
-    CallExpression(node, context) {
+    CallExpression(context, node) {
       const callee = node.expression;
       if (callee.kind === SyntaxKind.Identifier) {
         const typeFlag = builtInTypeFlags[callee.text];
@@ -169,7 +169,7 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
         }
       }
     },
-    PrefixUnaryExpression(node, context) {
+    PrefixUnaryExpression(context, node) {
       if (
         node.operator === SyntaxKind.ExclamationToken
         && node.operand.kind === SyntaxKind.PrefixUnaryExpression

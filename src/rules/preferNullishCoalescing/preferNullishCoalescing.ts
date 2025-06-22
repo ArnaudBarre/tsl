@@ -100,7 +100,7 @@ export const preferNullishCoalescing = defineRule(
     return {
       name: "core/preferNullishCoalescing",
       visitor: {
-        BinaryExpression(node, context) {
+        BinaryExpression(context, node) {
           if (node.operatorToken.kind === SyntaxKind.BarBarEqualsToken) {
             checkAssignmentOrLogicalExpression(
               node,
@@ -125,7 +125,7 @@ export const preferNullishCoalescing = defineRule(
             );
           }
         },
-        ConditionalExpression(node, context) {
+        ConditionalExpression(context, node) {
           if (options.ignoreTernaryTests) return;
 
           // !x ? y : x
@@ -231,7 +231,7 @@ export const preferNullishCoalescing = defineRule(
             },
           });
         },
-        IfStatement(node, context) {
+        IfStatement(context, node) {
           if (options.ignoreIfStatements) return;
           if (node.elseStatement) return;
 

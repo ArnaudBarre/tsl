@@ -100,33 +100,33 @@ export const noMisusedPromises = defineRule(
 
     const conditionalChecks: AST.Visitor<Data> = options.checksConditionals
       ? {
-          CallExpression(node, context) {
+          CallExpression(context, node) {
             if (node.expression.kind === SyntaxKind.PropertyAccessExpression) {
               checkArrayPredicates(context, node.expression);
             }
           },
-          ConditionalExpression(node, context) {
-            checkConditional(node.condition, true, context);
+          ConditionalExpression(context, node) {
+            checkConditional(context, node.condition, true);
           },
-          DoStatement(node, context) {
-            checkConditional(node.expression, true, context);
+          DoStatement(context, node) {
+            checkConditional(context, node.expression, true);
           },
-          ForStatement(node, context) {
-            if (node.condition) checkConditional(node.condition, true, context);
+          ForStatement(context, node) {
+            if (node.condition) checkConditional(context, node.condition, true);
           },
-          IfStatement(node, context) {
-            checkConditional(node.expression, true, context);
+          IfStatement(context, node) {
+            checkConditional(context, node.expression, true);
           },
-          BinaryExpression(node, context) {
+          BinaryExpression(context, node) {
             if (isLogicalExpression(node.operatorToken)) {
-              checkConditional(node, false, context);
+              checkConditional(context, node, false);
             }
           },
-          PrefixUnaryExpression(node, context) {
-            checkConditional(node.operand, true, context);
+          PrefixUnaryExpression(context, node) {
+            checkConditional(context, node.operand, true);
           },
-          WhileStatement(node, context) {
-            checkConditional(node.expression, true, context);
+          WhileStatement(context, node) {
+            checkConditional(context, node.expression, true);
           },
         }
       : {};
@@ -177,13 +177,13 @@ export const noMisusedPromises = defineRule(
         ...conditionalChecks,
         ...voidReturnChecks,
         ...spreadChecks,
-        BinaryExpression(node, context) {
-          conditionalChecks.BinaryExpression?.(node, context);
-          voidReturnChecks.BinaryExpression?.(node, context);
+        BinaryExpression(context, node) {
+          conditionalChecks.BinaryExpression?.(context, node);
+          voidReturnChecks.BinaryExpression?.(context, node);
         },
-        CallExpression(node, context) {
-          conditionalChecks.CallExpression?.(node, context);
-          voidReturnChecks.CallExpression?.(node, context);
+        CallExpression(context, node) {
+          conditionalChecks.CallExpression?.(context, node);
+          voidReturnChecks.CallExpression?.(context, node);
         },
       },
     };
@@ -198,9 +198,9 @@ export const noMisusedPromises = defineRule(
  * @param context The context object.
  */
 function checkConditional(
+  context: Context<Data>,
   node: AST.Expression,
   isTestExpr: boolean,
-  context: Context<Data>,
 ): void {
   if (
     node.kind === SyntaxKind.BinaryExpression
@@ -211,11 +211,11 @@ function checkConditional(
       node.operatorToken.kind !== SyntaxKind.QuestionQuestionToken
       || isTestExpr
     ) {
-      checkConditional(node.left, isTestExpr, context);
+      checkConditional(context, node.left, isTestExpr);
     }
     // we ignore the right operand when not in a context of a test expression
     if (isTestExpr) {
-      checkConditional(node.right, isTestExpr, context);
+      checkConditional(context, node.right, isTestExpr);
     }
     return;
   }
@@ -240,8 +240,8 @@ function checkArrayPredicates(
 }
 
 function checkArguments(
-  node: AST.CallExpression | AST.NewExpression,
   context: Context<Data>,
+  node: AST.CallExpression | AST.NewExpression,
 ): void {
   const voidArgs = voidFunctionArguments(context, node);
   if (voidArgs.size === 0) {
@@ -262,8 +262,8 @@ function checkArguments(
 }
 
 function checkAssignment(
-  node: AST.BinaryExpression,
   context: Context<Data>,
+  node: AST.BinaryExpression,
 ): void {
   if (!isAssignmentExpression(node.operatorToken)) return;
   const varType = context.checker.getTypeAtLocation(node.left);
@@ -277,8 +277,8 @@ function checkAssignment(
 }
 
 function checkVariableDeclaration(
-  node: AST.VariableDeclaration,
   context: Context<Data>,
+  node: AST.VariableDeclaration,
 ): void {
   if (node.initializer === undefined) {
     return;
@@ -298,8 +298,8 @@ function checkVariableDeclaration(
 }
 
 export function checkPropertyAssignment(
-  node: AST.PropertyAssignment,
   context: Context<Data>,
+  node: AST.PropertyAssignment,
 ) {
   const contextualType = context.checker.getContextualType(node.initializer);
   if (
@@ -321,8 +321,8 @@ export function checkPropertyAssignment(
 }
 
 export function checkShorthandPropertyAssignment(
-  node: AST.ShorthandPropertyAssignment,
   context: Context<Data>,
+  node: AST.ShorthandPropertyAssignment,
 ) {
   const contextualType = context.checker.getContextualType(node.name);
   if (
@@ -335,8 +335,8 @@ export function checkShorthandPropertyAssignment(
 }
 
 export function checkMethodDeclaration(
-  node: AST.MethodDeclaration,
   context: Context<Data>,
+  node: AST.MethodDeclaration,
 ) {
   if (node.name.kind === SyntaxKind.ComputedPropertyName) {
     return;
@@ -386,8 +386,8 @@ export function checkMethodDeclaration(
 }
 
 function checkReturnStatement(
-  node: AST.ReturnStatement,
   context: Context<Data>,
+  node: AST.ReturnStatement,
 ): void {
   if (!node.expression) return;
   const contextualType = context.checker.getContextualType(node.expression);
@@ -404,8 +404,8 @@ function checkReturnStatement(
 }
 
 function checkClassLikeOrInterfaceNode(
-  node: AST.ClassDeclaration | AST.ClassExpression | AST.InterfaceDeclaration,
   context: Context<Data>,
+  node: AST.ClassDeclaration | AST.ClassExpression | AST.InterfaceDeclaration,
 ): void {
   const heritageTypes = getHeritageTypes(context, node);
   if (!heritageTypes || heritageTypes.length === 0) {
@@ -474,8 +474,8 @@ function checkHeritageTypeForMemberReturningVoid(
 }
 
 function checkJSXAttribute(
-  node: AST.JsxAttribute,
   context: Context<Data>,
+  node: AST.JsxAttribute,
 ): void {
   if (
     node.initializer == null
@@ -498,7 +498,7 @@ function checkJSXAttribute(
   }
 }
 
-function checkSpread(node: AST.SpreadAssignment, context: Context<Data>): void {
+function checkSpread(context: Context<Data>, node: AST.SpreadAssignment): void {
   if (isSometimesThenable(context, node.expression)) {
     context.report({
       node: node.expression,

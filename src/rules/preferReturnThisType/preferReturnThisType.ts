@@ -23,7 +23,7 @@ export const preferReturnThisType = defineRule(() => ({
   name: "core/preferReturnThisType",
   createData: (): Data | undefined => undefined,
   visitor: {
-    ClassDeclaration(node, context) {
+    ClassDeclaration(context, node) {
       if (!node.name) return;
       context.data = {
         currentClass: {
@@ -32,18 +32,18 @@ export const preferReturnThisType = defineRule(() => ({
         },
       };
     },
-    ClassDeclaration_exit(_, context) {
+    ClassDeclaration_exit(context) {
       context.data = undefined;
     },
-    MethodDeclaration(node, context) {
+    MethodDeclaration(context, node) {
       functionEnter(context, node);
     },
-    MethodDeclaration_exit(_, context) {
+    MethodDeclaration_exit(context) {
       if (!context.data) return;
       functionExit(context);
       context.data.currentMethod = undefined;
     },
-    PropertyDeclaration(node, context) {
+    PropertyDeclaration(context, node) {
       if (
         node.initializer?.kind === SyntaxKind.FunctionExpression
         || node.initializer?.kind === SyntaxKind.ArrowFunction
@@ -57,12 +57,12 @@ export const preferReturnThisType = defineRule(() => ({
         }
       }
     },
-    PropertyDeclaration_exit(_, context) {
+    PropertyDeclaration_exit(context) {
       if (!context.data) return;
       functionExit(context);
       context.data.currentMethod = undefined;
     },
-    ReturnStatement(node, context) {
+    ReturnStatement(context, node) {
       if (!node.expression) return;
       checkReturnExpression(context, node.expression);
     },

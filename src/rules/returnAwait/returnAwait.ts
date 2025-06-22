@@ -19,36 +19,36 @@ export const returnAwait = defineRule(() => ({
   createData: (): boolean[] => [],
   visitor: {
     ArrowFunction: enterFunction,
-    ArrowFunction_exit(node, context) {
+    ArrowFunction_exit(context, node) {
       context.data.pop();
       if (
         hasModifier(node, SyntaxKind.AsyncKeyword)
         && node.body.kind !== SyntaxKind.Block
       ) {
         for (const expression of findPossiblyReturnedNodes(node.body)) {
-          checkExpression(expression, context);
+          checkExpression(context, expression);
         }
       }
     },
     FunctionDeclaration: enterFunction,
-    FunctionDeclaration_exit(_, context) {
+    FunctionDeclaration_exit(context) {
       context.data.pop();
     },
     FunctionExpression: enterFunction,
-    FunctionExpression_exit(_, context) {
+    FunctionExpression_exit(context) {
       context.data.pop();
     },
 
-    ReturnStatement(node, context) {
+    ReturnStatement(context, node) {
       if (!context.data.at(-1) || !node.expression) return;
       for (const expression of findPossiblyReturnedNodes(node.expression)) {
-        checkExpression(expression, context);
+        checkExpression(context, expression);
       }
     },
   },
 }));
 
-function enterFunction(node: FunctionNode, context: Context<boolean[]>): void {
+function enterFunction(context: Context<boolean[]>, node: FunctionNode): void {
   context.data.push(hasModifier(node, SyntaxKind.AsyncKeyword));
 }
 
@@ -65,7 +65,7 @@ function findPossiblyReturnedNodes(node: AST.Expression): AST.Expression[] {
   return [node];
 }
 
-function checkExpression(node: AST.Expression, context: Context): void {
+function checkExpression(context: Context, node: AST.Expression): void {
   if (node.kind === SyntaxKind.AwaitExpression) return;
   const type = context.checker.getTypeAtLocation(node);
   if (needsToBeAwaited(context, node, type) !== "Always") return;

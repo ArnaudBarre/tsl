@@ -10,7 +10,7 @@ export const messages = {
 export const noForInArray = defineRule(() => ({
   name: "core/noForInArray",
   visitor: {
-    ForInStatement(node, context) {
+    ForInStatement(context, node) {
       const type = context.utils.getConstrainedTypeAtLocation(node.expression);
       if (
         isTypeRecurser(

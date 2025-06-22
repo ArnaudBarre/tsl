@@ -1,6 +1,6 @@
 import ts, { type NodeArray, SyntaxKind, TypeFlags } from "typescript";
 import type { AnyNode, BinaryOperatorToken, ModifierLike } from "../../ast.ts";
-import type { AST, Checker, Context, Rule, Suggestion } from "../../types.ts";
+import type { AST, Context, Rule, Suggestion } from "../../types.ts";
 import {
   getOperatorPrecedence,
   OperatorPrecedence,
@@ -233,7 +233,7 @@ export function isConstAssertion(node: AST.TypeNode): boolean {
  * i.e. the type of a called function's parameter, or the defined type of a variable declaration
  */
 export function getContextualType(
-  checker: Checker,
+  context: Context,
   node: AST.Expression,
 ): ts.Type | undefined {
   const parent = node.parent;
@@ -251,21 +251,23 @@ export function getContextualType(
     || parent.kind === SyntaxKind.PropertyDeclaration
     || parent.kind === SyntaxKind.Parameter
   ) {
-    return parent.type ? checker.getTypeFromTypeNode(parent.type) : undefined;
+    return parent.type
+      ? context.checker.getTypeFromTypeNode(parent.type)
+      : undefined;
   } else if (parent.kind === SyntaxKind.JsxExpression) {
-    return checker.getContextualType(parent);
+    return context.checker.getContextualType(parent);
   } else if (
     parent.kind === SyntaxKind.PropertyAssignment
     && node.kind === SyntaxKind.Identifier
   ) {
-    return checker.getContextualType(node);
+    return context.checker.getContextualType(node);
   } else if (
     parent.kind === SyntaxKind.BinaryExpression
     && parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
     && parent.right === node
   ) {
     // is RHS of assignment
-    return checker.getTypeAtLocation(parent.left);
+    return context.checker.getTypeAtLocation(parent.left);
   } else if (
     ![ts.SyntaxKind.TemplateSpan, ts.SyntaxKind.JsxExpression].includes(
       parent.kind,
@@ -276,12 +278,12 @@ export function getContextualType(
   }
   // TODO - support return statement checking
 
-  return checker.getContextualType(node);
+  return context.checker.getContextualType(node);
 }
 
 export function isReferenceToGlobalFunction(
-  node: AnyNode,
   context: Context,
+  node: AnyNode,
 ): boolean {
   const symbol = context.checker.getSymbolAtLocation(node);
 
@@ -344,23 +346,6 @@ export function typeOrUnionHasFlag(type: ts.Type, flag: TypeFlags): boolean {
   let flags: TypeFlags = 0;
   for (const t of type.types) flags |= t.flags;
   return (flags & flag) !== 0;
-}
-
-export function isTypeAnyArrayType(type: ts.Type, checker: Checker): boolean {
-  return (
-    checker.isArrayType(type)
-    && typeOrUnionHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Any)
-  );
-}
-
-export function isTypeUnknownArrayType(
-  type: ts.Type,
-  checker: Checker,
-): boolean {
-  return (
-    checker.isArrayType(type)
-    && typeOrUnionHasFlag(checker.getTypeArguments(type)[0], TypeFlags.Unknown)
-  );
 }
 
 export function isTypeRecurser(

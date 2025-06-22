@@ -29,7 +29,7 @@ export const noUnnecessaryTypeAssertion = defineRule(
   (options: NoUnnecessaryTypeAssertionOptions = {}) => ({
     name: "core/noUnnecessaryTypeAssertion",
     visitor: {
-      NonNullExpression(node, context) {
+      NonNullExpression(context, node) {
         const suggestion: Suggestion = {
           message: messages.removeAssertion,
           changes: [
@@ -73,7 +73,7 @@ export const noUnnecessaryTypeAssertion = defineRule(
         ) {
           if (
             node.expression.kind === SyntaxKind.Identifier
-            && isPossiblyUsedBeforeAssigned(node.expression, context)
+            && isPossiblyUsedBeforeAssigned(context, node.expression)
           ) {
             return;
           }
@@ -87,7 +87,7 @@ export const noUnnecessaryTypeAssertion = defineRule(
           // we know it's a nullable type
           // so figure out if the variable is used in a place that accepts nullable types
 
-          const contextualType = getContextualType(context.checker, node);
+          const contextualType = getContextualType(context, node);
           if (contextualType) {
             if (
               context.utils.typeOrUnionHasFlag(type, TypeFlags.Unknown)
@@ -150,20 +150,20 @@ export const noUnnecessaryTypeAssertion = defineRule(
           }
         }
       },
-      AsExpression(node, context) {
-        checkAssertion(node, context, options);
+      AsExpression(context, node) {
+        checkAssertion(context, options, node);
       },
-      TypeAssertionExpression(node, context) {
-        checkAssertion(node, context, options);
+      TypeAssertionExpression(context, node) {
+        checkAssertion(context, options, node);
       },
     },
   }),
 );
 
 function checkAssertion(
-  node: AST.AsExpression | AST.TypeAssertion,
   context: Context,
   options: NoUnnecessaryTypeAssertionOptions,
+  node: AST.AsExpression | AST.TypeAssertion,
 ) {
   if (options.typesToIgnore?.includes(node.type.getText())) {
     return;
@@ -180,7 +180,7 @@ function checkAssertion(
   }
 
   const uncastType = context.checker.getTypeAtLocation(node.expression);
-  const typeIsUnchanged = isTypeUnchanged(uncastType, castType, context);
+  const typeIsUnchanged = isTypeUnchanged(context, uncastType, castType);
   const wouldSameTypeBeInferred = castTypeIsLiteral
     ? isImplicitlyNarrowedLiteralDeclaration(node)
     : !typeAnnotationIsConstAssertion;
@@ -221,8 +221,8 @@ function isTypeLiteral(type: ts.Type) {
  * Returns true if there's a chance the variable has been used before a value has been assigned to it
  */
 function isPossiblyUsedBeforeAssigned(
-  node: AST.Expression,
   context: Context,
+  node: AST.Expression,
 ): boolean {
   const symbol = context.checker.getSymbolAtLocation(node);
   const tsDecl = symbol?.getDeclarations()?.at(0) ?? null;
@@ -294,9 +294,9 @@ function isImplicitlyNarrowedLiteralDeclaration(
 }
 
 function isTypeUnchanged(
+  context: Context,
   uncast: ts.Type,
   cast: ts.Type,
-  context: Context,
 ): boolean {
   if (uncast === cast) {
     return true;

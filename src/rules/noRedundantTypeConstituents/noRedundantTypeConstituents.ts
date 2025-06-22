@@ -13,7 +13,7 @@ export const messages = {
 export const noRedundantTypeConstituents = defineRule(() => ({
   name: "core/noRedundantTypeConstituents",
   visitor: {
-    IntersectionType(node, context): void {
+    IntersectionType(context, node): void {
       if (
         node.parent.kind === SyntaxKind.ParenthesizedType
         && node.parent.parent.kind === SyntaxKind.IntersectionType
@@ -57,7 +57,7 @@ export const noRedundantTypeConstituents = defineRule(() => ({
         }
       }
     },
-    UnionType(node, context): void {
+    UnionType(context, node): void {
       if (
         node.parent.kind === SyntaxKind.ParenthesizedType
         && node.parent.parent.kind === SyntaxKind.UnionType

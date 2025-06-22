@@ -11,7 +11,7 @@ export const messages = {
 export const preferReduceTypeParameter = defineRule(() => ({
   name: "core/preferReduceTypeParameter",
   visitor: {
-    CallExpression(node, context) {
+    CallExpression(context, node) {
       const callee = node.expression;
 
       if (callee.kind !== SyntaxKind.PropertyAccessExpression) return;
@@ -27,7 +27,7 @@ export const preferReduceTypeParameter = defineRule(() => ({
       const calleeObjType = context.utils.getConstrainedTypeAtLocation(
         callee.expression,
       );
-      if (!isArrayType(calleeObjType, context)) return;
+      if (!isArrayType(context, calleeObjType)) return;
 
       const initializerType = context.checker.getTypeAtLocation(
         secondArg.expression,
@@ -77,7 +77,7 @@ export const preferReduceTypeParameter = defineRule(() => ({
   },
 }));
 
-function isArrayType(type: ts.Type, context: Context): boolean {
+function isArrayType(context: Context, type: ts.Type): boolean {
   return context.utils
     .unionConstituents(type)
     .every((unionPart) =>

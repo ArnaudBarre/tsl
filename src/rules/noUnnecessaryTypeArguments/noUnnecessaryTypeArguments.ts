@@ -36,24 +36,24 @@ export const noUnnecessaryTypeArguments = defineRule(() => ({
   },
 }));
 
-function checkParameters(node: ParameterCapableNode, context: Context) {
+function checkParameters(context: Context, node: ParameterCapableNode) {
   const typeArguments = node.typeArguments;
   if (!typeArguments) return;
-  const typeParameters = getTypeParametersFromNode(node, context);
+  const typeParameters = getTypeParametersFromNode(context, node);
   if (!typeParameters) return;
-  checkTSArgsAndParameters(typeArguments, typeParameters, context);
+  checkTSArgsAndParameters(context, typeArguments, typeParameters);
 }
 
 function getTypeParametersFromNode(
-  node: ParameterCapableNode,
   context: Context,
+  node: ParameterCapableNode,
 ): readonly AST.TypeParameterDeclaration[] | undefined {
   if (node.kind === SyntaxKind.ExpressionWithTypeArguments) {
-    return getTypeParametersFromType(node.expression, context);
+    return getTypeParametersFromType(context, node.expression);
   }
 
   if (node.kind === SyntaxKind.TypeReference) {
-    return getTypeParametersFromType(node.typeName, context);
+    return getTypeParametersFromType(context, node.typeName);
   }
 
   if (
@@ -63,16 +63,16 @@ function getTypeParametersFromNode(
     || node.kind === SyntaxKind.NewExpression
     || node.kind === SyntaxKind.TaggedTemplateExpression
   ) {
-    return getTypeParametersFromCall(node, context);
+    return getTypeParametersFromCall(context, node);
   }
 
   return undefined;
 }
 
 function checkTSArgsAndParameters(
+  context: Context,
   typeArguments: NodeArray<TypeNode>,
   typeParameters: readonly AST.TypeParameterDeclaration[],
-  context: Context,
 ): void {
   // Just check the last one. Must specify previous type parameters if the last one is specified.
   const i = typeArguments.length - 1;
@@ -118,13 +118,13 @@ function checkTSArgsAndParameters(
 }
 
 function getTypeParametersFromType(
-  type: AST.ClassDeclaration | AST.EntityName | AST.Expression,
   context: Context,
+  type: AST.ClassDeclaration | AST.EntityName | AST.Expression,
 ) {
   const symAtLocation = context.checker.getSymbolAtLocation(type);
   if (!symAtLocation) return;
 
-  const sym = getAliasedSymbol(symAtLocation, context);
+  const sym = getAliasedSymbol(context, symAtLocation);
   const declarations = sym.getDeclarations() as AnyNode[] | undefined;
 
   if (!declarations) return;
@@ -166,26 +166,26 @@ function getTypeParametersFromType(
 }
 
 function getTypeParametersFromCall(
+  context: Context,
   node:
     | AST.CallExpression
     | AST.JsxOpeningElement
     | AST.JsxSelfClosingElement
     | AST.NewExpression
     | AST.TaggedTemplateExpression,
-  context: Context,
 ): readonly AST.TypeParameterDeclaration[] | undefined {
   const sig = context.checker.getResolvedSignature(node);
   const sigDecl = sig?.getDeclaration();
   if (!sigDecl) {
     return ts.isNewExpression(node)
-      ? getTypeParametersFromType(node.expression, context)
+      ? getTypeParametersFromType(context, node.expression)
       : undefined;
   }
 
   return sigDecl.typeParameters as AST.TypeParameterDeclaration[] | undefined;
 }
 
-function getAliasedSymbol(symbol: ts.Symbol, context: Context): ts.Symbol {
+function getAliasedSymbol(context: Context, symbol: ts.Symbol): ts.Symbol {
   return isSymbolFlagSet(symbol, ts.SymbolFlags.Alias)
     ? context.checker.getAliasedSymbol(symbol)
     : symbol;

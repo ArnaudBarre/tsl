@@ -54,7 +54,7 @@ function getCalleeName(node: AST.Expression): string | null {
   return null;
 }
 
-function isFunctionType(node: AnyNode, context: Context): boolean {
+function isFunctionType(context: Context, node: AnyNode): boolean {
   const type = context.checker.getTypeAtLocation(node);
   const symbol = type.getSymbol();
 
@@ -83,7 +83,7 @@ function isBind(node: AnyNode): boolean {
     : node.kind === SyntaxKind.Identifier && node.text === "bind";
 }
 
-function isFunction(node: AnyNode, context: Context): boolean {
+function isFunction(context: Context, node: AnyNode): boolean {
   switch (node.kind) {
     case SyntaxKind.ArrowFunction:
     case SyntaxKind.FunctionDeclaration:
@@ -98,16 +98,16 @@ function isFunction(node: AnyNode, context: Context): boolean {
       return false;
 
     case SyntaxKind.CallExpression:
-      return isBind(node.expression) || isFunctionType(node, context);
+      return isBind(node.expression) || isFunctionType(context, node);
 
     default:
-      return isFunctionType(node, context);
+      return isFunctionType(context, node);
   }
 }
 
 function checkImpliedEval(
-  node: AST.CallExpression | AST.NewExpression,
   context: Context,
+  node: AST.CallExpression | AST.NewExpression,
 ): void {
   const calleeName = getCalleeName(node.expression);
   if (calleeName == null) {
@@ -135,8 +135,8 @@ function checkImpliedEval(
   const [handler] = node.arguments;
   if (
     EVAL_LIKE_METHODS.has(calleeName)
-    && !isFunction(handler, context)
-    && isReferenceToGlobalFunction(node.expression, context)
+    && !isFunction(context, handler)
+    && isReferenceToGlobalFunction(context, node.expression)
   ) {
     context.report({ node: handler, message: messages.noImpliedEvalError });
   }
