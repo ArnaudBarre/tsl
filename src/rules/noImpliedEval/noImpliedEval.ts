@@ -77,9 +77,9 @@ function isFunctionType(node: AnyNode, context: Context): boolean {
   return signatures.length > 0;
 }
 
-function isBind(node: AnyNode, context: Context): boolean {
+function isBind(node: AnyNode): boolean {
   return node.kind === SyntaxKind.PropertyAccessExpression
-    ? isBind(node.name, context)
+    ? isBind(node.name)
     : node.kind === SyntaxKind.Identifier && node.text === "bind";
 }
 
@@ -98,7 +98,7 @@ function isFunction(node: AnyNode, context: Context): boolean {
       return false;
 
     case SyntaxKind.CallExpression:
-      return isBind(node.expression, context) || isFunctionType(node, context);
+      return isBind(node.expression) || isFunctionType(node, context);
 
     default:
       return isFunctionType(node, context);

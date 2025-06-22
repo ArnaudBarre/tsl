@@ -6,7 +6,7 @@ import {
   isLogicalExpression,
 } from "../_utils/index.ts";
 import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
-import type { AST, Checker, Context, Suggestion } from "../../types.ts";
+import type { AST, Context, Suggestion } from "../../types.ts";
 
 const messageBase =
   "Promises must be awaited, end with a call to .catch, or end with a call to .then with a rejection handler.";
@@ -79,12 +79,7 @@ export const noFloatingPromises = defineRule(
           }
 
           const { isUnhandled, nonFunctionHandler, promiseArray } =
-            isUnhandledPromise(
-              context.checker,
-              node.expression,
-              context,
-              options,
-            );
+            isUnhandledPromise(context, node.expression, options);
 
           if (isUnhandled) {
             if (promiseArray) {
@@ -186,9 +181,8 @@ function isValidRejectionHandler(
 }
 
 function isUnhandledPromise(
-  checker: Checker,
-  node: AST.Expression,
   context: Context,
+  node: AST.Expression,
   options: ParsedOptions,
 ): {
   isUnhandled: boolean;
@@ -211,17 +205,17 @@ function isUnhandledPromise(
     // Any child in a comma expression could return a potentially unhandled
     // promise, so we check them all regardless of whether the final returned
     // value is promise-like.
-    const leftResult = isUnhandledPromise(checker, node.left, context, options);
+    const leftResult = isUnhandledPromise(context, node.left, options);
     if (leftResult.isUnhandled) {
       return leftResult;
     }
-    return isUnhandledPromise(checker, node.right, context, options);
+    return isUnhandledPromise(context, node.right, options);
   }
 
   if (!options.ignoreVoid && node.kind === SyntaxKind.VoidExpression) {
     // Similarly, a `void` expression always returns undefined, so we need to
     // see what's inside it without checking the type of the overall expression.
-    return isUnhandledPromise(checker, node.expression, context, options);
+    return isUnhandledPromise(context, node.expression, options);
   }
 
   // Check the type. At this point it can't be unhandled if it isn't a promise
@@ -280,12 +274,7 @@ function isUnhandledPromise(
       const promiseFinallyObject =
         methodName === "finally" ? node.expression.expression : undefined;
       if (promiseFinallyObject) {
-        return isUnhandledPromise(
-          checker,
-          promiseFinallyObject,
-          context,
-          options,
-        );
+        return isUnhandledPromise(context, promiseFinallyObject, options);
       }
     }
 
@@ -295,24 +284,23 @@ function isUnhandledPromise(
     // We must be getting the promise-like value from one of the branches of the
     // ternary. Check them directly.
     const alternateResult = isUnhandledPromise(
-      checker,
-      node.whenFalse,
       context,
+      node.whenFalse,
       options,
     );
     if (alternateResult.isUnhandled) {
       return alternateResult;
     }
-    return isUnhandledPromise(checker, node.whenTrue, context, options);
+    return isUnhandledPromise(context, node.whenTrue, options);
   } else if (
     node.kind === SyntaxKind.BinaryExpression
     && isLogicalExpression(node.operatorToken)
   ) {
-    const leftResult = isUnhandledPromise(checker, node.left, context, options);
+    const leftResult = isUnhandledPromise(context, node.left, options);
     if (leftResult.isUnhandled) {
       return leftResult;
     }
-    return isUnhandledPromise(checker, node.right, context, options);
+    return isUnhandledPromise(context, node.right, options);
   }
 
   // Anything else is unhandled.

@@ -156,7 +156,7 @@ const reportIntersection = (
 };
 
 const printNode = (node: TypeNode) => {
-  const oneLineText = node.getText().replaceAll("\s+", " ");
+  const oneLineText = node.getText().replaceAll(/\s+/g, " ");
   return oneLineText.length > 100
     ? oneLineText.slice(0, 95) + "..."
     : oneLineText;

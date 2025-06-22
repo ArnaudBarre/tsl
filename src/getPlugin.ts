@@ -165,7 +165,7 @@ export const getPlugin = async (
         const { diagnostics } = runLint(fileName);
         if (!diagnostics.length) return result;
         return [...result, ...diagnostics];
-      } catch (e) {
+      } catch {
         return result;
       }
     },

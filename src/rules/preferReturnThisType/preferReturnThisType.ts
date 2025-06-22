@@ -76,11 +76,7 @@ function functionEnter(
   if (!context.data) return;
   if (!func.type) return;
 
-  const node = tryGetNameInType(
-    context.data.currentClass.className,
-    func.type,
-    context,
-  );
+  const node = tryGetNameInType(context.data.currentClass.className, func.type);
   if (!node) return;
 
   const firstArg = func.parameters.at(0);
@@ -139,7 +135,6 @@ function checkReturnExpression(
 function tryGetNameInType(
   name: string,
   typeNode: AST.TypeNode,
-  context: Context<Data | undefined>,
 ): AST.TypeReferenceNode | undefined {
   if (
     typeNode.kind === SyntaxKind.TypeReference
@@ -151,7 +146,7 @@ function tryGetNameInType(
 
   if (typeNode.kind === SyntaxKind.UnionType) {
     for (const type of typeNode.types) {
-      const found = tryGetNameInType(name, type, context);
+      const found = tryGetNameInType(name, type);
       if (found) return found;
     }
   }

@@ -77,7 +77,7 @@ export const noConfusingVoidExpression = defineRule(
         return;
       }
 
-      const invalidAncestor = findInvalidAncestor(node, context);
+      const invalidAncestor = findInvalidAncestor(node);
       if (invalidAncestor === null) {
         // void expression is in valid position
         return;
@@ -265,10 +265,7 @@ export const noConfusingVoidExpression = defineRule(
      * @param node The void expression node to check.
      * @returns Invalid ancestor node if it was found. `null` otherwise.
      */
-    function findInvalidAncestor(
-      node: AST.AnyNode,
-      context: Context,
-    ): AST.AnyNode | null {
+    function findInvalidAncestor(node: AST.AnyNode): AST.AnyNode | null {
       const parent = node.parent as AnyNode;
       if (
         parent.kind === SyntaxKind.BinaryExpression
@@ -278,7 +275,7 @@ export const noConfusingVoidExpression = defineRule(
           return null;
         }
         if (node === parent.right) {
-          return findInvalidAncestor(parent, context);
+          return findInvalidAncestor(parent);
         }
       }
 
@@ -295,7 +292,7 @@ export const noConfusingVoidExpression = defineRule(
         if (parent.right === node) {
           // e.g. `x && console.log(x)`
           // this is valid only if the next ancestor is valid
-          return findInvalidAncestor(parent, context);
+          return findInvalidAncestor(parent);
         }
       }
 
@@ -305,7 +302,7 @@ export const noConfusingVoidExpression = defineRule(
       ) {
         // e.g. `cond ? console.log(true) : console.log(false)`
         // this is valid only if the next ancestor is valid
-        return findInvalidAncestor(parent, context);
+        return findInvalidAncestor(parent);
       }
 
       if (
@@ -332,7 +329,7 @@ export const noConfusingVoidExpression = defineRule(
         || parent.kind === SyntaxKind.ParenthesizedExpression
       ) {
         // e.g. console?.log('foo'), (foo ? a() : b())
-        return findInvalidAncestor(parent, context);
+        return findInvalidAncestor(parent);
       }
 
       // Any other parent is invalid.
