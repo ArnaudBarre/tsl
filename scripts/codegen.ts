@@ -408,7 +408,7 @@ export type Visitor<Data = undefined> = {
 ${visitorNodes
   .flatMap((n) => [
     `  ${n.kind}?(node: ${n.node}, context: Context<Data>): void`,
-    `  "${n.kind}:exit"?(node: ${n.node}, context: Context<Data>): void`,
+    `  ${n.kind}_exit?(node: ${n.node}, context: Context<Data>): void`,
   ])
   .join("\n")}
 };`);

@@ -229,7 +229,7 @@ traverse(srcAST, {
             ) {
               const nodeName = p.key.value.slice(0, -5);
               if (nodeName in estreeToTSTree)
-                p.key.value = `${estreeToTSTree[nodeName]!}:exit`;
+                p.key.value = `${estreeToTSTree[nodeName]!}_exit`;
             }
           }
         }

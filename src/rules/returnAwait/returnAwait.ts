@@ -19,7 +19,7 @@ export const returnAwait = defineRule(() => ({
   createData: (): boolean[] => [],
   visitor: {
     ArrowFunction: enterFunction,
-    "ArrowFunction:exit"(node, context) {
+    ArrowFunction_exit(node, context) {
       context.data.pop();
       if (
         hasModifier(node, SyntaxKind.AsyncKeyword)
@@ -31,11 +31,11 @@ export const returnAwait = defineRule(() => ({
       }
     },
     FunctionDeclaration: enterFunction,
-    "FunctionDeclaration:exit"(_, context) {
+    FunctionDeclaration_exit(_, context) {
       context.data.pop();
     },
     FunctionExpression: enterFunction,
-    "FunctionExpression:exit"(_, context) {
+    FunctionExpression_exit(_, context) {
       context.data.pop();
     },
 

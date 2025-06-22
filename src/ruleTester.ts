@@ -286,7 +286,7 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
       // @ts-expect-error
       node.forEachChild(visit);
       if (nodeType) {
-        rule.visitor[`${nodeType}:exit` as keyof Visitor]?.(
+        rule.visitor[`${nodeType}_exit` as keyof Visitor]?.(
           node as any,
           context,
         );

@@ -110,7 +110,7 @@ export const initRules = async (
     const exitMap: Record<number, ((node: AnyNode) => void) | undefined> = {};
     for (const [keySuffix, map] of [
       ["", entryMap],
-      [":exit", exitMap],
+      ["_exit", exitMap],
     ] as const) {
       for (const [kind, _key] of visitorEntries) {
         const key = (_key + keySuffix) as keyof Visitor;

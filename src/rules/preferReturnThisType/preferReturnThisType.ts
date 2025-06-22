@@ -32,13 +32,13 @@ export const preferReturnThisType = defineRule(() => ({
         },
       };
     },
-    "ClassDeclaration:exit"(_, context) {
+    ClassDeclaration_exit(_, context) {
       context.data = undefined;
     },
     MethodDeclaration(node, context) {
       functionEnter(context, node);
     },
-    "MethodDeclaration:exit"(_, context) {
+    MethodDeclaration_exit(_, context) {
       if (!context.data) return;
       functionExit(context);
       context.data.currentMethod = undefined;
@@ -57,7 +57,7 @@ export const preferReturnThisType = defineRule(() => ({
         }
       }
     },
-    "PropertyDeclaration:exit"(_, context) {
+    PropertyDeclaration_exit(_, context) {
       if (!context.data) return;
       functionExit(context);
       context.data.currentMethod = undefined;
