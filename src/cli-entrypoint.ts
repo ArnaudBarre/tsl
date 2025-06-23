@@ -36,7 +36,7 @@ const main = async () => {
 };
 
 if (process.argv.includes("--profile")) {
-  const inspector = await import("inspector");
+  const inspector = await import("node:inspector");
   const session = new inspector.Session();
   globalThis.__type_lint_profile_session = session;
   session.connect();

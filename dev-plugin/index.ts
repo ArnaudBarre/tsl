@@ -28,7 +28,7 @@ context({
           for (const m of result.warnings) log(m.text);
           try {
             if (plugin) plugin.cleanUp();
-            let path = "./getPlugin.mjs" + `?${Date.now()}`;
+            let path = `./getPlugin.mjs?${Date.now()}`;
             const module = (await import(path)) as {
               getPlugin: typeof getPlugin;
             };

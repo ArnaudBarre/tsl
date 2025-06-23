@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { build, type BuildResult, formatMessagesSync } from "esbuild";
-import ts from "typescript";
+import type ts from "typescript";
 import type { Config } from "./types.ts";
 
 export const loadConfig = async (
@@ -69,7 +69,7 @@ export const loadConfig = async (
   };
 };
 
-const jsonCache = <T extends Record<string, any>>(
+const jsonCache = <T extends Record<string, unknown>>(
   path: string,
   version: number | string,
 ) => ({

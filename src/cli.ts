@@ -34,7 +34,7 @@ const formatDiagnostics = (diagnostics: ts.Diagnostic[]) =>
   });
 
 const cwd = process.cwd();
-const parsed = ts.getParsedCommandLineOfConfigFile(
+const result = ts.getParsedCommandLineOfConfigFile(
   values.project ?? "./tsconfig.json",
   undefined,
   {
@@ -47,8 +47,7 @@ const parsed = ts.getParsedCommandLineOfConfigFile(
     readFile: (file) => fs.readFileSync(file, "utf-8"),
     useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
   },
-);
-const result = parsed!; // parsed is not undefined, since we throw on failure.
+)!; // Not undefined, since we throw on failure.
 if (result.errors.length) throw new Error(formatDiagnostics(result.errors));
 
 const host = ts.createCompilerHost(result.options, true);

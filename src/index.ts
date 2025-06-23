@@ -46,13 +46,13 @@ export { defineRule } from "./rules/_utils/index.ts";
 export const defineConfig = (config: Config) => config;
 
 export type RulesSet<
-  RulesFnsMap extends Record<string, (...args: any) => Rule<unknown>>,
+  RulesFnsMap extends Record<string, (options?: "off") => Rule<unknown>>,
 > = RulesFnsMap & {
   all: () => Array<Rule<unknown>>;
 };
 
 export const createRulesSet = <
-  T extends Record<string, (...args: any) => Rule<unknown>>,
+  T extends Record<string, (options?: "off") => Rule<unknown>>,
 >(
   rulesFunctions: T,
 ): RulesSet<T> => ({

@@ -25,5 +25,3 @@ for (const rule of rules) {
 }
 
 if (hasError) process.exit(1);
-
-export {};

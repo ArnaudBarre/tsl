@@ -75,7 +75,7 @@ const outputParts: (
 const visitedTypes = new Set<string>(importedTypes);
 const allLinks: [string, string][] = [];
 const nodes: string[] = [];
-let enums: { name: string; values: string[] }[] = [];
+const enums: { name: string; values: string[] }[] = [];
 
 const visitType = (name: string): void => {
   if (name.startsWith("SyntaxKind.")) return;
@@ -208,7 +208,7 @@ const visitType = (name: string): void => {
             assert(typeRef.typeName.left.text === "SyntaxKind");
             return;
           }
-          let typeName = typeRef.typeName.text;
+          const typeName = typeRef.typeName.text;
           if (typeName === "NodeArray") {
             assert(typeRef.typeArguments?.length === 1);
             handleType(typeRef.typeArguments[0]);
