@@ -2,6 +2,11 @@ import fs from "node:fs";
 import { parseArgs } from "node:util";
 import ts from "typescript";
 import type { SourceFile } from "./ast.ts";
+import {
+  displayFilename,
+  formatDiagnostics,
+  type TSLDiagnostic,
+} from "./formatDiagnostic.ts";
 import { core } from "./index.ts";
 import { initRules } from "./initRules.ts";
 import { loadConfig } from "./loadConfig.ts";
@@ -26,20 +31,19 @@ if (values.timing) {
   );
 }
 
-const formatDiagnostics = (diagnostics: ts.Diagnostic[]) =>
+const formatErrorDiagnostics = (diagnostics: ts.Diagnostic[]) =>
   ts.formatDiagnostics(diagnostics, {
     getCanonicalFileName: (f) => f,
     getCurrentDirectory: process.cwd,
     getNewLine: () => "\n",
   });
-
 const cwd = process.cwd();
 const result = ts.getParsedCommandLineOfConfigFile(
   values.project ?? "./tsconfig.json",
   undefined,
   {
     onUnRecoverableConfigFileDiagnostic: (diag) => {
-      throw new Error(formatDiagnostics([diag])); // ensures that `parsed` is defined.
+      throw new Error(formatErrorDiagnostics([diag])); // ensures that `parsed` is defined.
     },
     fileExists: fs.existsSync,
     getCurrentDirectory: () => cwd,
@@ -48,50 +52,19 @@ const result = ts.getParsedCommandLineOfConfigFile(
     useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
   },
 )!; // Not undefined, since we throw on failure.
-if (result.errors.length) throw new Error(formatDiagnostics(result.errors));
+if (result.errors.length)
+  throw new Error(formatErrorDiagnostics(result.errors));
 
 const host = ts.createCompilerHost(result.options, true);
 const program = ts.createProgram(result.fileNames, result.options, host);
-let hasError = false;
-if (!values["lint-only"]) {
-  const emitResult = program.emit();
-  const allDiagnostics = ts
-    .getPreEmitDiagnostics(program)
-    .concat(emitResult.diagnostics);
-
-  allDiagnostics.forEach((diagnostic) => {
-    if (diagnostic.file) {
-      let { line, character } = ts.getLineAndCharacterOfPosition(
-        diagnostic.file,
-        diagnostic.start!,
-      );
-      let message = ts.flattenDiagnosticMessageText(
-        diagnostic.messageText,
-        "\n",
-      );
-      console.log(
-        `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`,
-      );
-    } else {
-      console.log(
-        ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
-      );
-    }
-  });
-  hasError = allDiagnostics.length > 0;
-  console.log(`Typecheck in ${displayTiming(performance.now() - start)}`);
-}
 
 const configStart = performance.now();
-
 const { config } = await loadConfig(program);
-
 const { lint, allRules, timingMaps } = await initRules(
   () => program,
   config ?? { rules: core.all() },
   values.timing,
 );
-
 if (values.timing) {
   console.log(
     `Config with ${allRules.size} ${
@@ -100,39 +73,74 @@ if (values.timing) {
   );
 }
 
+let diagnostics: TSLDiagnostic[] = [];
+if (!values["lint-only"]) {
+  const emitResult = program.emit();
+  diagnostics = ts
+    .getPreEmitDiagnostics(program)
+    .concat(emitResult.diagnostics)
+    .map((d): TSLDiagnostic => {
+      const message = ts.flattenDiagnosticMessageText(
+        d.messageText,
+        host.getNewLine(),
+      );
+      const name = `TS${d.code}`;
+      if (!d.file) {
+        return { file: undefined, name, message };
+      }
+      return {
+        file: d.file,
+        name,
+        message,
+        start: d.start!,
+        length: d.length!,
+      };
+    });
+
+  if (values.timing) {
+    console.log(`Typecheck: ${displayTiming(performance.now() - start)}`);
+  }
+}
+
 const lintStart = performance.now();
 
 const files = program.getSourceFiles();
 
-const displayFilename = (name: string) => name.slice(cwd.length + 1);
-
 for (const it of files) {
-  lint(it as unknown as SourceFile, (report) => {
-    hasError = true;
-    if (report.type === "rule") {
-      const { line, character } = it.getLineAndCharacterOfPosition(
-        "node" in report ? report.node.getStart() : report.start,
-      );
-      console.log(
-        `${displayFilename(it.fileName)}(${line + 1},${character + 1}): ${
-          report.message
-        } (${report.rule.name})`,
-      );
+  let currentIdx: number | undefined = undefined;
+  lint(it as unknown as SourceFile, (r) => {
+    if (currentIdx === undefined) {
+      const lastTsDiagnostic = diagnostics.findLastIndex((d) => d.file === it);
+      if (lastTsDiagnostic !== -1) {
+        currentIdx = lastTsDiagnostic + 1;
+      } else {
+        const sortIdx = diagnostics.findLastIndex(
+          (d) => d.file !== undefined && it.fileName < d.file.fileName,
+        );
+        currentIdx = sortIdx === -1 ? diagnostics.length : sortIdx;
+      }
     } else {
-      const { line, character } = it.getLineAndCharacterOfPosition(
-        report.start,
-      );
-      console.log(
-        `${displayFilename(it.fileName)}(${line + 1},${character + 1}): ${
-          report.message
-        }`,
-      );
+      currentIdx++;
     }
+    diagnostics.splice(currentIdx, 0, {
+      file: it,
+      name: r.type === "rule" ? r.rule.name : "tsl-unused-ignore",
+      message: r.message,
+      start: "node" in r ? r.node.getStart() : r.start,
+      length:
+        "node" in r ? r.node.getEnd() - r.node.getStart() : r.end - r.start,
+    });
   });
 }
 
-const lintTime = performance.now() - lintStart;
-console.log(`Lint ran in ${displayTiming(lintTime)}`);
+if (values.timing) {
+  const lintTime = performance.now() - lintStart;
+  console.log(`Lint ran in ${displayTiming(lintTime)}`);
+}
+
+if (diagnostics.length > 0) {
+  console.log(formatDiagnostics(diagnostics));
+}
 
 if (timingMaps) {
   console.log(
@@ -155,7 +163,7 @@ if (timingMaps) {
   }
 }
 
-if (hasError) {
+if (diagnostics.length > 0) {
   process.exit(1);
 }
 

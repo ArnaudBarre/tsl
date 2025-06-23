@@ -12,6 +12,17 @@ import type {
 } from "./types.ts";
 import { visitorEntries } from "./visitorEntries.ts";
 
+type RuleReport = ReportDescriptor & { type: "rule"; rule: Rule<unknown> };
+type UnusedIgnoreReport = {
+  type: "ignore";
+  start: number;
+  end: number;
+  message: string;
+  suggestions: Suggestion[];
+};
+// tsl-ignore dsa
+export type Report = RuleReport | UnusedIgnoreReport;
+
 const matchPattern = (pattern: string, fileName: string) =>
   fileName.includes(pattern);
 
@@ -150,30 +161,16 @@ export const initRules = async (
     return value;
   };
 
-  type Report = ReportDescriptor & { type: "rule"; rule: Rule<unknown> };
   return {
     allRules,
-    lint: (
-      sourceFile: SourceFile,
-      onReport: (
-        report:
-          | Report
-          | {
-              type: "ignore";
-              start: number;
-              end: number;
-              message: string;
-              suggestions: Suggestion[];
-            },
-      ) => void,
-    ) => {
+    lint: (sourceFile: SourceFile, onReport: (report: Report) => void) => {
       if (sourceFile.fileName.includes("node_modules")) return;
       if (config.ignore?.some((p) => sourceFile.fileName.includes(p))) return;
       const { fileIgnored, ignoreComments } = getIgnoreComments(sourceFile);
       if (fileIgnored) return;
       const { rulesWithContext, visit } = getRulesVisitFn(sourceFile.fileName);
       const start = showTiming ? performance.now() : 0;
-      const reports: Report[] = [];
+      const reports: RuleReport[] = [];
       for (const { rule, context } of rulesWithContext) {
         context.sourceFile = sourceFile;
         context.report = (props) => {
