@@ -111,7 +111,7 @@ export type Checker = Omit<
       | AST.JsxSelfClosingElement
       | AST.JsxOpeningElement,
   ): Signature | undefined;
-  /** Improve narrowing, borrow from TS-ESLint */
+  /** Improve narrowing, borrow from typescript-eslint */
   isArrayType(type: Type): type is TypeReference;
   isTupleType(type: Type): type is TupleTypeReference;
   /**

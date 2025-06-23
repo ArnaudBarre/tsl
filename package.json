@@ -1,7 +1,7 @@
 {
   "name": "tsl",
   "description": "Modern TypeScript linter",
-  "version": "0.0.5",
+  "version": "1.0.16",
   "license": "MIT",
   "author": "Arnaud Barré (https://github.com/ArnaudBarre)",
   "private": true,

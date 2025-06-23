@@ -20,7 +20,6 @@ type UnusedIgnoreReport = {
   message: string;
   suggestions: Suggestion[];
 };
-// tsl-ignore dsa
 export type Report = RuleReport | UnusedIgnoreReport;
 
 const matchPattern = (pattern: string, fileName: string) =>
@@ -262,7 +261,10 @@ const getIgnoreComments = (sourceFile: SourceFile) => {
   let currentLine = 0;
   let fileIgnored = false;
   for (const match of block) {
-    const ruleNames = match[1].split(",").map((r) => r.trim());
+    const ruleNames = match[1]
+      .split(":")[0]
+      .split(",")
+      .map((r) => r.trim());
     if (ruleNames.length === 0 && match.index < sourceFile.getStart()) {
       fileIgnored = true;
       break;
@@ -286,7 +288,10 @@ const getIgnoreComments = (sourceFile: SourceFile) => {
   const inline = text.matchAll(inlineCommentRE);
   currentLine = 0;
   for (const match of inline) {
-    const ruleNames = match[1].split(",").map((r) => r.trim());
+    const ruleNames = match[1]
+      .split(":")[0]
+      .split(",")
+      .map((r) => r.trim());
     for (let i = currentLine; i < lineStarts.length; i++) {
       if (lineStarts[i] > match.index) {
         currentLine = i;
