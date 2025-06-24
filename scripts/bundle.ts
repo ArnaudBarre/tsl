@@ -41,6 +41,7 @@ writeFileSync(
       author: packageJSON.author,
       license: packageJSON.license,
       repository: "github:ArnaudBarre/tsl",
+      keywords: ["typescript", "linter"],
       type: "module",
       exports: {
         ".": { types: "./index.d.ts", import: "./index.js" },

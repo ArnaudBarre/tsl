@@ -1,6 +1,6 @@
 {
   "name": "tsl",
-  "description": "Modern TypeScript linter",
+  "description": "An extension of tsc for type-aware linting",
   "version": "1.0.16",
   "license": "MIT",
   "author": "Arnaud Barré (https://github.com/ArnaudBarre)",
