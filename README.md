@@ -276,6 +276,7 @@ Redeclared rules (identical name) completely replace the "base" rule, there is n
 Rules reports can be ignored with line comments (ignore next line) or one line block comments (ignore for the whole file).
 
 ```ts
+/* tsl-ignore */
 /* tsl-ignore org/ruleA */
 
 // tsl-ignore org/ruleB

@@ -261,10 +261,8 @@ const getIgnoreComments = (sourceFile: SourceFile) => {
   let currentLine = 0;
   let fileIgnored = false;
   for (const match of block) {
-    const ruleNames = match[1]
-      .split(":")[0]
-      .split(",")
-      .map((r) => r.trim());
+    const base = match[1].split(":")[0].trim();
+    const ruleNames = base === "" ? [] : base.split(",").map((r) => r.trim());
     if (ruleNames.length === 0 && match.index < sourceFile.getStart()) {
       fileIgnored = true;
       break;

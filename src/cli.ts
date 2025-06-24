@@ -114,9 +114,15 @@ for (const it of files) {
       if (lastTsDiagnostic !== -1) {
         currentIdx = lastTsDiagnostic + 1;
       } else {
-        const sortIdx = diagnostics.findLastIndex(
-          (d) => d.file !== undefined && it.fileName < d.file.fileName,
-        );
+        const sortIdx = diagnostics.findIndex((d, i) => {
+          const previousFile = i === 0 ? undefined : diagnostics[i - 1].file;
+          return (
+            d.file !== undefined
+            && it.fileName < d.file.fileName
+            && (previousFile === undefined
+              || it.fileName > previousFile.fileName)
+          );
+        });
         currentIdx = sortIdx === -1 ? diagnostics.length : sortIdx;
       }
     } else {
