@@ -146,6 +146,10 @@ type C2 = B<Map<string, number>>;
 type A<T = string> = T;
 type B<T extends { prop: string }> = A<T["prop"]>;
     `,
+      `
+function forwardRef<P = {}>() {}
+forwardRef<{ foo?: string }>();
+      `,
       {
         tsx: true,
         code: `

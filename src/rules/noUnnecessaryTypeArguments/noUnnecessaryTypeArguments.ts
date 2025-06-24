@@ -1,4 +1,4 @@
-import { isIntrinsicAnyType, isSymbolFlagSet } from "ts-api-utils";
+import { isSymbolFlagSet } from "ts-api-utils";
 import ts, { type NodeArray, SyntaxKind, TypeFlags } from "typescript";
 import { defineRule } from "../_utils/index.ts";
 import type { AnyNode, TypeNode } from "../../ast.ts";
@@ -81,40 +81,46 @@ function checkTSArgsAndParameters(
   if (!param?.default) return;
 
   const argType = context.checker.getTypeAtLocation(arg);
-  if (context.utils.typeOrUnionHasFlag(argType, TypeFlags.TypeVariable)) {
-    // This leads to false positives
-    return;
-  }
   const defaultType = context.checker.getTypeAtLocation(param.default);
-  const isDefaultAny = isIntrinsicAnyType(defaultType);
-  const isArgAny = isIntrinsicAnyType(argType);
 
-  if ((isDefaultAny || isArgAny) && !(isDefaultAny && isArgAny)) {
-    return;
+  if (defaultType !== argType) {
+    // For more complex types (like aliases to generic object types) - TS won't always create a
+    // global shared type object for the type - so we need to resort to manually comparing the
+    // reference type and the passed type arguments.
+    // Also - in case there are aliases - we need to resolve them before we do checks
+    const defaultTypeResolved = getTypeForComparison(context, defaultType);
+    const argTypeResolved = getTypeForComparison(context, argType);
+    if (
+      // ensure the resolved type AND all the parameters are the same
+      defaultTypeResolved.type !== argTypeResolved.type
+      || defaultTypeResolved.typeArguments.length
+        !== argTypeResolved.typeArguments.length
+      || defaultTypeResolved.typeArguments.some(
+        (t, i) => t !== argTypeResolved.typeArguments[i],
+      )
+    ) {
+      return;
+    }
   }
-  if (
-    context.checker.isTypeAssignableTo(argType, defaultType)
-    && context.checker.isTypeAssignableTo(defaultType, argType)
-  ) {
-    context.report({
-      node: arg,
-      message: messages.unnecessaryTypeParameter,
-      suggestions: [
-        {
-          message: messages.removeTypeArgument,
-          changes: [
-            {
-              // Remove the preceding comma or angle bracket
-              start: arg.getFullStart() - 1,
-              // If only one type argument, remove the closing angle bracket
-              end: i === 0 ? arg.getEnd() + 1 : arg.getEnd(),
-              newText: "",
-            },
-          ],
-        },
-      ],
-    });
-  }
+
+  context.report({
+    node: arg,
+    message: messages.unnecessaryTypeParameter,
+    suggestions: [
+      {
+        message: messages.removeTypeArgument,
+        changes: [
+          {
+            // Remove the preceding comma or angle bracket
+            start: arg.getFullStart() - 1,
+            // If only one type argument, remove the closing angle bracket
+            end: i === 0 ? arg.getEnd() + 1 : arg.getEnd(),
+            newText: "",
+          },
+        ],
+      },
+    ],
+  });
 }
 
 function getTypeParametersFromType(
@@ -189,4 +195,34 @@ function getAliasedSymbol(context: Context, symbol: ts.Symbol): ts.Symbol {
   return isSymbolFlagSet(symbol, ts.SymbolFlags.Alias)
     ? context.checker.getAliasedSymbol(symbol)
     : symbol;
+}
+
+function getTypeForComparison(
+  context: Context,
+  type: ts.Type,
+): {
+  type: ts.Type;
+  typeArguments: readonly ts.Type[];
+} {
+  if (isTypeReferenceType(type)) {
+    return {
+      type: type.target,
+      typeArguments: context.checker.getTypeArguments(type),
+    };
+  }
+  return { type, typeArguments: [] };
+}
+
+const ObjectFlagsType =
+  TypeFlags.Any
+  | TypeFlags.Undefined
+  | TypeFlags.Null
+  | TypeFlags.Never
+  | TypeFlags.Object
+  | TypeFlags.Union
+  | TypeFlags.Intersection;
+function isTypeReferenceType(type: ts.Type): type is ts.TypeReference {
+  if ((type.flags & ObjectFlagsType) === 0) return false;
+  const objectTypeFlags = (type as ts.ObjectType).objectFlags;
+  return (objectTypeFlags & ts.ObjectFlags.Reference) !== 0;
 }
