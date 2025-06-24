@@ -210,7 +210,7 @@ const b = 2;
 
 Writing custom rules is part of the core value of tsl.
 
-Rules run on the TS AST, which is less known than ESTree but allows to query type information for a given node with `context.checker.getTypeAtLocation(node)`. Use [ast-explorer.dev](https://ast-explorer.dev/#eNo9zEEKwjAQheGrxLdSKG5ctV5AcO9qNiEdQmSYCUlVpPTuTSl0+72fN0Mw4O2/voaS8oQOucH0z3xAaBBMqwlfxeKZ8GARcz8rMp4Ilztpy6xlM6lzBPEaPz7yi0tNpoTB9X23b/vtM+m48Y10wbIChCAraw==) to explore the AST.
+Rules run on the TS AST, which is less known than ESTree but allows to query type information for a given node with `context.checker.getTypeAtLocation(node)`. Use [ast-explorer.dev](https://ast-explorer.dev/#eNo9zEEKwjAQheGrxLdSKG5ctV5AcO9qNiEdQmSYCUlVpPTuTSl0+72fN0Mw4O2/voaS8oQOucH0z3xAaBBMqwlfxeKZ8GARcz8rMp4Ilztpy6xlM6lzBPEaPz7yi0tNpoTB9X23b/vtM+m48Y10wbIChCAraw==) to explore the AST. To explore type information, use [ts-ast-viewer](https://ts-ast-viewer.com/).
 
 By default, the TS AST is, funny enough, poorly typed. That's why tsl ships with rewritten AST types that allows for type narrowing and exhaustive switches.
 

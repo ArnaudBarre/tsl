@@ -5,7 +5,7 @@ import type { AST, Checker, Context, ReportDescriptor, Rule } from "./types.ts";
 import { visitorEntries } from "./visitorEntries.ts";
 
 export function print(...args: any[]) {
-  console.log(...args.map(transform));
+  console.log(...args.map((value) => transform(value, new Set())));
 }
 
 const allFlags = Object.entries(NodeFlags).filter(
@@ -17,9 +17,14 @@ for (const [key, value] of Object.entries(SyntaxKind)) {
     syntaxKinds[value] = key;
   }
 }
-const transform = (value: unknown): unknown => {
+const transform = (
+  value: unknown,
+  alreadyTransformed: Set<unknown>,
+): unknown => {
+  if (alreadyTransformed.has(value)) return value;
+  alreadyTransformed.add(value);
   if (Array.isArray(value)) {
-    return value.map(transform);
+    return value.map((value) => transform(value, alreadyTransformed));
   }
   if (typeof value === "object" && value) {
     if (isNode(value)) {
@@ -43,7 +48,10 @@ const transform = (value: unknown): unknown => {
       return node;
     } else {
       return Object.fromEntries(
-        Object.entries(value).map(([key, value]) => [key, transform(value)]),
+        Object.entries(value).map(([key, value]) => [
+          key,
+          transform(value, alreadyTransformed),
+        ]),
       );
     }
   }

@@ -357,6 +357,11 @@ x!;
       // https://www.typescriptlang.org/play/?#code/MYewdgzgLgBAZiEMC8MBECRpgQwjUSKAbgCgYKYB6KmAPQH5TDoYAjHAJxXQ87TKVqtRs3CtMAeTYArAKbBYqAN7xEMAL6DKNekxaw+0+Yp6q+m8jpEMgA
       "const a = 'a' as const;",
       "const a = <const>'a';",
+      `
+      function castNonNull<T extends { input: any }>(arg: T["input"] | null) {
+        return arg!;
+      }
+      `,
     ],
     invalid: [
       {

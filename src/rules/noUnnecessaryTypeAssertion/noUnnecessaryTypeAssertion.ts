@@ -58,23 +58,29 @@ export const noUnnecessaryTypeAssertion = defineRule(
           return;
         }
 
-        const type = context.utils.getConstrainedTypeAtLocation(
+        const type = context.checker.getTypeAtLocation(node.expression);
+        const constraintType = context.utils.getConstrainedTypeAtLocation(
           node.expression,
         );
+        const nullableFlags =
+          TypeFlags.Null
+          | TypeFlags.Undefined
+          | TypeFlags.Void
+          | TypeFlags.Unknown;
 
-        if (
-          !context.utils.typeOrUnionHasFlag(
-            type,
-            TypeFlags.Null
-              | TypeFlags.Undefined
-              | TypeFlags.Void
-              | TypeFlags.Unknown,
-          )
-        ) {
+        if (!context.utils.typeOrUnionHasFlag(constraintType, nullableFlags)) {
           if (
             node.expression.kind === SyntaxKind.Identifier
             && isPossiblyUsedBeforeAssigned(context, node.expression)
           ) {
+            return;
+          }
+          if (
+            context.utils.typeHasFlag(constraintType, TypeFlags.Any)
+            && context.utils.typeOrUnionHasFlag(type, nullableFlags)
+          ) {
+            // If the generic contains any, T | null will be any,
+            // so we need to check the non constrained type
             return;
           }
 
@@ -90,7 +96,10 @@ export const noUnnecessaryTypeAssertion = defineRule(
           const contextualType = getContextualType(context, node);
           if (contextualType) {
             if (
-              context.utils.typeOrUnionHasFlag(type, TypeFlags.Unknown)
+              context.utils.typeOrUnionHasFlag(
+                constraintType,
+                TypeFlags.Unknown,
+              )
               && !context.utils.typeOrUnionHasFlag(
                 contextualType,
                 TypeFlags.Unknown,
@@ -102,15 +111,15 @@ export const noUnnecessaryTypeAssertion = defineRule(
             // in strict mode you can't assign null to undefined, so we have to make sure that
             // the two types share a nullable type
             const typeIncludesUndefined = context.utils.typeOrUnionHasFlag(
-              type,
+              constraintType,
               TypeFlags.Undefined,
             );
             const typeIncludesNull = context.utils.typeOrUnionHasFlag(
-              type,
+              constraintType,
               TypeFlags.Null,
             );
             const typeIncludesVoid = context.utils.typeOrUnionHasFlag(
-              type,
+              constraintType,
               TypeFlags.Void,
             );
 
