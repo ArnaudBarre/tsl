@@ -52,8 +52,9 @@ const result = ts.getParsedCommandLineOfConfigFile(
     useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
   },
 )!; // Not undefined, since we throw on failure.
-if (result.errors.length)
+if (result.errors.length) {
   throw new Error(formatErrorDiagnostics(result.errors));
+}
 
 const host = ts.createCompilerHost(result.options, true);
 const program = ts.createProgram(result.fileNames, result.options, host);

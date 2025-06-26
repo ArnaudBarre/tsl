@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import path, { join } from "node:path";
 import { build, type BuildResult, formatMessagesSync } from "esbuild";
 import type ts from "typescript";
 import type { Config } from "./types.ts";
@@ -8,13 +8,18 @@ import type { Config } from "./types.ts";
 export const loadConfig = async (
   program: ts.Program,
 ): Promise<{ config: Config | null; configFiles: string[] }> => {
-  const workingDir = program.getCurrentDirectory();
-  const entryPoint = join(workingDir, "tsl.config.ts");
-  const cacheDir = join(workingDir, "node_modules/.cache/tsl");
-  const output = join(cacheDir, "config.js");
-  if (!existsSync(entryPoint)) {
-    return { config: null, configFiles: [entryPoint] };
+  const { configPath, nodeModulesPath } = findConfigPath(program);
+  if (nodeModulesPath === undefined) {
+    throw new Error("No node_modules directory found");
   }
+  if (!configPath) {
+    return {
+      config: null,
+      configFiles: [join(program.getCurrentDirectory(), "tsl.config.ts")],
+    };
+  }
+  const cacheDir = join(nodeModulesPath, ".cache/tsl");
+  const output = join(cacheDir, "config.js");
   const cache = jsonCache<{ files: [path: string, hash: string][] }>(
     join(cacheDir, "config-hashes.json"),
     4,
@@ -28,7 +33,7 @@ export const loadConfig = async (
     })
   ) {
     const result = await build({
-      entryPoints: [entryPoint],
+      entryPoints: [configPath],
       outfile: output,
       metafile: true,
       bundle: true,
@@ -40,7 +45,7 @@ export const loadConfig = async (
           name: "externalize-deps",
           setup: ({ onResolve }) => {
             onResolve({ filter: /.*/ }, ({ path }) => {
-              if (path !== entryPoint && !path.startsWith(".")) {
+              if (path !== configPath && !path.startsWith(".")) {
                 return { external: true };
               }
             });
@@ -61,12 +66,36 @@ export const loadConfig = async (
     default?: Config;
   };
   if (!module.default) {
-    throw new Error(`${entryPoint} doesn't have a default export`);
+    throw new Error(`${configPath} doesn't have a default export`);
   }
   return {
     config: module.default,
     configFiles: files.map((f) => f[0]),
   };
+};
+
+export const findConfigPath = (program: ts.Program) => {
+  let dir = program.getCurrentDirectory();
+  const { root } = path.parse(dir);
+  let configPath: string | undefined = undefined;
+  let nodeModulesPath: string | undefined = undefined;
+  while (configPath === undefined || nodeModulesPath === undefined) {
+    if (configPath === undefined) {
+      const maybeConfigPath = join(dir, "tsl.config.ts");
+      if (existsSync(maybeConfigPath)) {
+        configPath = maybeConfigPath;
+      }
+    }
+    if (nodeModulesPath === undefined) {
+      const maybeNodeModulesPath = join(dir, "node_modules");
+      if (existsSync(maybeNodeModulesPath)) {
+        nodeModulesPath = maybeNodeModulesPath;
+      }
+    }
+    if (dir === root) break;
+    dir = path.dirname(dir);
+  }
+  return { configPath, nodeModulesPath };
 };
 
 const jsonCache = <T extends Record<string, unknown>>(
