@@ -6,7 +6,7 @@
     "module": "ESNext",
     "moduleDetection": "force",
     "lib": ["ES2023"],
-    "types": ["bun"],
+    "types": ["bun", "./src/patches/all.d.ts"],
     "skipLibCheck": true,
 
     /* Bundler mode */

@@ -85,6 +85,14 @@ export default defineConfig({
 });
 ```
 
+### Migrate from typescript-eslint
+
+If you are using typescript-eslint, you can import the rules supported by tsl with this command:
+
+```bash
+bunx tsl/migrate
+```
+
 ### Add the TypeScript plugin
 
 Instead of developing multiple plugins for each IDE, tsl provides a compiler plugin that can be used to display diagnostics in the editor and provide suggestions.
@@ -321,7 +329,7 @@ Currently, the list of core rules are the type-aware lint rules I use from types
 - restrict-plus-operands: ✅ Implemented with stricter defaults, always lint assignment
 - restrict-template-expressions: ✅ Implemented, with stricter defaults
 - return-await: ✅ Implemented, only support always, remove unneeded await handled by await-thenable
-- strict-boolean-expressions:✅ Implemented
+- strict-boolean-expressions: ✅ Implemented
 - switch-exhaustiveness-check: ✅ Implemented, missing no default comment #10218
 - unbound-method: ❌ Not implemented, too OOP for me
 - use-unknown-in-catch-callback-variable: 🛑 See [Add the patches](#add-the-patches)
