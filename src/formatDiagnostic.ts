@@ -191,5 +191,6 @@ export function formatLocation(file: SourceFile, start: number): string {
 }
 
 export function displayFilename(name: string) {
+  if (name.startsWith("./")) return name.slice(2);
   return name.slice(process.cwd().length + 1);
 }

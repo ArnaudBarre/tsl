@@ -38,12 +38,13 @@ const formatErrorDiagnostics = (diagnostics: ts.Diagnostic[]) =>
     getNewLine: () => "\n",
   });
 const cwd = process.cwd();
+const fileParsingDiagnostics: ts.Diagnostic[] = [];
 const result = ts.getParsedCommandLineOfConfigFile(
   values.project ?? "./tsconfig.json",
   undefined,
   {
     onUnRecoverableConfigFileDiagnostic: (diag) => {
-      throw new Error(formatErrorDiagnostics([diag])); // ensures that `parsed` is defined.
+      fileParsingDiagnostics.push(diag);
     },
     fileExists: fs.existsSync,
     getCurrentDirectory: () => cwd,
@@ -51,13 +52,29 @@ const result = ts.getParsedCommandLineOfConfigFile(
     readFile: (file) => fs.readFileSync(file, "utf-8"),
     useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
   },
-)!; // Not undefined, since we throw on failure.
+);
+if (!result) {
+  console.log(formatErrorDiagnostics(fileParsingDiagnostics));
+  process.exit(1);
+}
 if (result.errors.length) {
-  throw new Error(formatErrorDiagnostics(result.errors));
+  console.log(formatErrorDiagnostics(result.errors));
+  process.exit(1);
 }
 
+// TODO: Handle TSConfig solution
+// const isTSConfigSolution =
+//   result.fileNames.length === 0
+//   && result.projectReferences !== undefined
+//   && result.projectReferences.length > 0;
+
 const host = ts.createCompilerHost(result.options, true);
-const program = ts.createProgram(result.fileNames, result.options, host);
+const program = ts.createProgram({
+  rootNames: result.fileNames,
+  options: result.options,
+  projectReferences: result.projectReferences,
+  host,
+});
 
 const configStart = performance.now();
 const { config } = await loadConfig(program);
@@ -76,27 +93,23 @@ if (values.timing) {
 
 let diagnostics: TSLDiagnostic[] = [];
 if (!values["lint-only"]) {
-  const emitResult = program.emit();
-  diagnostics = ts
-    .getPreEmitDiagnostics(program)
-    .concat(emitResult.diagnostics)
-    .map((d): TSLDiagnostic => {
-      const message = ts.flattenDiagnosticMessageText(
-        d.messageText,
-        host.getNewLine(),
-      );
-      const name = `TS${d.code}`;
-      if (!d.file) {
-        return { file: undefined, name, message };
-      }
-      return {
-        file: d.file,
-        name,
-        message,
-        start: d.start!,
-        length: d.length!,
-      };
-    });
+  diagnostics = ts.getPreEmitDiagnostics(program).map((d): TSLDiagnostic => {
+    const message = ts.flattenDiagnosticMessageText(
+      d.messageText,
+      host.getNewLine(),
+    );
+    const name = `TS${d.code}`;
+    if (!d.file) {
+      return { file: undefined, name, message };
+    }
+    return {
+      file: d.file,
+      name,
+      message,
+      start: d.start!,
+      length: d.length!,
+    };
+  });
 
   if (values.timing) {
     console.log(`Typecheck: ${displayTiming(performance.now() - start)}`);

@@ -13,7 +13,7 @@
     "import": "bun scripts/import-rules.ts",
     "test": "bun scripts/tests.ts",
     "build": "bun scripts/bundle.ts && tsc -p tsconfig.dist.json && cd dist && publint",
-    "lint": "bun src/cli.ts",
+    "tsl": "bun src/cli.ts",
     "prettier-all": "bun prettier-ci --write",
     "prettier-ci": "prettier --cache --check '**/*.{ts,json,md,yml}'",
     "check": "bun prettier-ci && bun run test && bun lint && bun run build",
