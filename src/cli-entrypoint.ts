@@ -17,6 +17,10 @@ if (cmd === "-v" || cmd === "--version") {
   process.exit();
 }
 
+if (process.argv.includes("--migrate")) {
+  await import("./migrate.ts");
+}
+
 if (cmd === "--help") {
   console.log(`Usage: tsl [options]
 
@@ -25,6 +29,7 @@ Options:
   --lint-only          Don't run tsc first, only lint the files (not recommended)
   -v, --version        Print the version
   -t, --timing         Print timing information
+  --migrate            Import supported rules from typescript-eslint
   --help               Print this help message
   --profile            Profile the linting process
 `);

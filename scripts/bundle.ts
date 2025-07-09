@@ -13,7 +13,6 @@ await build({
   clean: false,
   entry: [
     "src/index.ts",
-    "src/migrate.ts",
     "src/ruleTester.ts",
     "src/cli-entrypoint.ts",
     "src/cli.ts",
@@ -46,7 +45,6 @@ writeFileSync(
       type: "module",
       exports: {
         ".": { types: "./index.d.ts", import: "./index.js" },
-        "./migrate": { import: "./migrate.js" },
         "./patches": { types: "./patches/all.d.ts" },
         "./patches/*": { types: "./patches/*.d.ts" },
         "./ruleTester": {

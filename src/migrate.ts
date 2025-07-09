@@ -186,16 +186,19 @@ const readLine = async (question: string) => {
   return answer.trim();
 };
 
+function printRulesList(rules: string[]) {
+  return rules.length === 1
+    ? rules[0]
+    : `@typescript-eslint/{${rules.map((n) => n.replace("@typescript-eslint/", "")).join(", ")}}`;
+}
+
 if (missingRules.size > 0) {
-  const toArray = Array.from(missingRules);
-  const rulesName =
-    toArray.length === 1
-      ? toArray[0]
-      : `{${toArray.map((n) => n.replace("@typescript-eslint/", "")).join(", ")}}`;
   console.log(
     styleText(
       "yellow",
-      `${missingRules.size} rules missing: @typescript-eslint/${rulesName}`,
+      `${missingRules.size} rules missing: ${printRulesList(
+        Array.from(missingRules),
+      )}`,
     ),
   );
   try {
@@ -252,11 +255,9 @@ if (missingRules.size === 0) {
   console.log(
     styleText(
       "cyan",
-      `Update your ESLint config to remove the imported type-aware rules: @typescript-eslint/{${Array.from(
-        foundRules.keys(),
-      )
-        .map((name) => name.replace("@typescript-eslint/", ""))
-        .join(", ")}}`,
+      `Update your ESLint config to remove the imported type-aware rules: ${printRulesList(
+        Array.from(foundRules.keys()),
+      )}`,
     ),
   );
 }

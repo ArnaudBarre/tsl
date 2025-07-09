@@ -1,12 +1,13 @@
 # tsl [![npm](https://img.shields.io/npm/v/tsl)](https://www.npmjs.com/package/tsl)
 
-tsl is an extension of tsc for type-aware linting, using customizable rules to generate reports that are displayed alongside built-in type errors. It's designed to be used in conjunction with fast linters like [Oxlint](https://oxc.rs/docs/guide/usage/linter.html) or [Biome](https://biomejs.dev/) that can't leverage type information and currently lack APIs for writing custom rules in TypeScript.
+tsl is an extension of tsc for type-aware linting. It's designed to be used in conjunction with fast linters like [Oxlint](https://oxc.rs/docs/guide/usage/linter.html) or [Biome](https://biomejs.dev/) that can't leverage type information and currently lack APIs for writing custom rules in TypeScript.
 
 ## Features
 
-- Run type-aware rules 10x faster than [typescript-eslint](https://typescript-eslint.io/)
+- Run type-aware rules [faster](https://github.com/ArnaudBarre/tsl/issues/3) than [typescript-eslint](https://typescript-eslint.io/)
 - Type safe config with custom rules in TypeScript
 - No [IDE caching issue](https://typescript-eslint.io/troubleshooting/faqs/general/#changes-to-one-file-are-not-reflected-when-linting-other-files-in-my-ide)
+- Something missing? Look at the [roadmap](https://github.com/ArnaudBarre/tsl/issues/4) or [open an issue](https://github.com/ArnaudBarre/tsl/issues/new)
 
 ## What is type-aware linting?
 
@@ -90,7 +91,7 @@ export default defineConfig({
 If you are using typescript-eslint, you can import the rules supported by tsl with this command:
 
 ```bash
-bunx tsl/migrate
+bunx tsl --migrate
 ```
 
 ### Add the TypeScript plugin

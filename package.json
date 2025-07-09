@@ -1,7 +1,7 @@
 {
   "name": "tsl",
   "description": "An extension of tsc for type-aware linting",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "license": "MIT",
   "author": "Arnaud Barré (https://github.com/ArnaudBarre)",
   "private": true,
@@ -16,7 +16,7 @@
     "tsl": "bun src/cli.ts",
     "prettier-all": "bun prettier-ci --write",
     "prettier-ci": "prettier --cache --check '**/*.{ts,json,md,yml}'",
-    "check": "bun prettier-ci && bun run test && bun lint && bun run build",
+    "check": "bun prettier-ci && bun run test && bun tsl && bun run build",
     "ci": "bun check && bun codegen --check",
     "publish": "bun ci && cd dist && bun publish"
   },

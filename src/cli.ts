@@ -62,12 +62,6 @@ if (result.errors.length) {
   process.exit(1);
 }
 
-// TODO: Handle TSConfig solution
-// const isTSConfigSolution =
-//   result.fileNames.length === 0
-//   && result.projectReferences !== undefined
-//   && result.projectReferences.length > 0;
-
 const host = ts.createCompilerHost(result.options, true);
 const program = ts.createProgram({
   rootNames: result.fileNames,
@@ -183,10 +177,6 @@ if (timingMaps) {
   }
 }
 
-if (diagnostics.length > 0) {
-  process.exit(1);
-}
-
 if (globalThis.__type_lint_profile_session) {
   globalThis.__type_lint_profile_session.post(
     "Profiler.stop",
@@ -200,4 +190,8 @@ if (globalThis.__type_lint_profile_session) {
       }
     },
   );
+}
+
+if (diagnostics.length > 0) {
+  process.exit(1);
 }
