@@ -170,13 +170,13 @@ if (foundRules.size === 0 && missingRules.size === 0) {
   console.log(
     styleText(
       "yellow",
-      "This ESLint config may use type-aware linting, but no rules were enabled. You can probably safely remove the `project` and `projectService` options and start using tsl.",
+      "This ESLint config seems to use type-aware linting, but no rules were enabled. You can probably safely remove the `project` and `projectService` options in your ESLint config and start using tsl to get fast type-aware linting.",
     ),
   );
   process.exit(1);
 }
 
-const readLine = async (question: string) => {
+async function readLine(question: string) {
   const int = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -184,19 +184,33 @@ const readLine = async (question: string) => {
   const answer = await int.question(`${question}: `);
   int.close();
   return answer.trim();
-};
+}
 
-function printRulesList(rules: string[]) {
+function pluralize(count: number, name: string) {
+  return count === 1 ? `${count} ${name}` : `${count} ${name}s`;
+}
+
+function formatRulesSet(rules: string[]) {
   return rules.length === 1
     ? rules[0]
     : `@typescript-eslint/{${rules.map((n) => n.replace("@typescript-eslint/", "")).join(", ")}}`;
+}
+
+if (foundRules.size > 0) {
+  console.log(
+    styleText(
+      "green",
+      `${pluralize(foundRules.size, "supported rule")} found: `
+        + formatRulesSet(Array.from(foundRules.keys())),
+    ),
+  );
 }
 
 if (missingRules.size > 0) {
   console.log(
     styleText(
       "yellow",
-      `${missingRules.size} rules missing: ${printRulesList(
+      `${pluralize(missingRules.size, "rule")} missing: ${formatRulesSet(
         Array.from(missingRules),
       )}`,
     ),
@@ -255,7 +269,7 @@ if (missingRules.size === 0) {
   console.log(
     styleText(
       "cyan",
-      `Update your ESLint config to remove the imported type-aware rules: ${printRulesList(
+      `Update your ESLint config to remove the imported type-aware rules: ${formatRulesSet(
         Array.from(foundRules.keys()),
       )}`,
     ),

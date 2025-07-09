@@ -19,6 +19,7 @@ if (cmd === "-v" || cmd === "--version") {
 
 if (process.argv.includes("--migrate")) {
   await import("./migrate.ts");
+  process.exit();
 }
 
 if (cmd === "--help") {

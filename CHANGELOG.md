@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.20
+
+- Display number of supported rules in `tsl --migrate`.
+
 ## 1.0.19
 
 - Change `tsl/migrate` command to `tsl --migrate`.
