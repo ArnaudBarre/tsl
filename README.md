@@ -1,6 +1,6 @@
 # tsl [![npm](https://img.shields.io/npm/v/tsl)](https://www.npmjs.com/package/tsl)
 
-tsl is an extension of tsc for type-aware linting. It's designed to be used in conjunction with fast linters like [Oxlint](https://oxc.rs/docs/guide/usage/linter.html) or [Biome](https://biomejs.dev/) that can't leverage type information and currently lack APIs for writing custom rules in TypeScript.
+tsl is an extension of tsc for type-aware linting. It's designed to be used in conjunction with fast linters like [Oxlint](https://oxc.rs/docs/guide/usage/linter.html) or [Biome](https://biomejs.dev/) that can't leverage type information and currently lack APIs for writing custom rules in TypeScript. But you can also use it with ESLint or standalone.
 
 ## Features
 
@@ -41,7 +41,7 @@ To know if you are using type-aware linting in ESLint, see if `@typescript-eslin
 ## Installation
 
 ```bash
-bun add -D tsl
+npm install -D tsl
 ```
 
 > [!NOTE]  
@@ -145,8 +145,8 @@ Yes, you can run `tsl --lint-only` directly. But if you use rules that request t
 ### Update your CI
 
 ```diff
--  - run: bun tsc
-+  - run: bun tsl
+-  - run: npm run tsc
++  - run: npm run tsl
 ```
 
 ### Run for another tsconfig
