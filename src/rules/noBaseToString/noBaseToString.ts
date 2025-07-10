@@ -15,17 +15,24 @@ type Certainty = "always" | "will" | "may";
 
 export type NoBaseToStringOptions = {
   /**
+   * Whether to also check values of type `unknown`
+   * @default false
+   */
+  checkUnknown?: boolean;
+  /**
    * List of type names to ignore.
    * @default ["Error", "RegExp", "URL", "URLSearchParams"]
    */
   ignoredTypeNames?: string[];
 };
 type ParsedOptions = {
+  checkUnknown: boolean;
   ignoredTypeNames: string[];
 };
 
 export const noBaseToString = defineRule((_options?: NoBaseToStringOptions) => {
   const options: ParsedOptions = {
+    checkUnknown: false,
     ignoredTypeNames: ["Error", "RegExp", "URL", "URLSearchParams"],
     ..._options,
   };
@@ -224,7 +231,7 @@ function collectToStringCertainty(
       return collectToStringCertainty(context, options, constraint, visited);
     }
     // unconstrained generic means `unknown`
-    return "always";
+    return options.checkUnknown ? "may" : "always";
   }
 
   // the Boolean type definition missing toString()
@@ -275,7 +282,11 @@ function collectToStringCertainty(
     context.checker.getPropertyOfType(type, "toString")
     ?? context.checker.getPropertyOfType(type, "toLocaleString");
   if (!toString) {
-    // e.g. any/unknown
+    // unknown
+    if (options.checkUnknown && type.flags === ts.TypeFlags.Unknown) {
+      return "may";
+    }
+    // e.g. any
     return "always";
   }
 
