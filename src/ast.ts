@@ -2405,10 +2405,13 @@ export interface ImportDeclaration extends Node {
 export interface ImportClause extends Node {
   readonly kind: SyntaxKind.ImportClause;
   readonly parent: ImportDeclaration;
+  /** @deprecated Use `phaseModifier` instead */
   readonly isTypeOnly: boolean;
+  readonly phaseModifier: undefined | ImportPhaseModifierSyntaxKind;
   readonly name?: Identifier;
   readonly namedBindings?: NamedImportBindings;
 }
+export type ImportPhaseModifierSyntaxKind = SyntaxKind.TypeKeyword | SyntaxKind.DeferKeyword;
 export type NamedImportBindings = NamespaceImport | NamedImports;
 export interface NamespaceImport extends Node {
   readonly kind: SyntaxKind.NamespaceImport;
