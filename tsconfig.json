@@ -2,6 +2,7 @@
   "include": ["**/*.ts"],
   "exclude": ["dist"],
   "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.cache/tsconfig.tsbuildinfo",
     "target": "ES2022",
     "module": "ESNext",
     "moduleDetection": "force",
@@ -22,8 +23,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "useUnknownInCatchVariables": true,
-    "noPropertyAccessFromIndexSignature": true,
-
-    "plugins": [{ "name": "dev-plugin" }]
+    "noPropertyAccessFromIndexSignature": true
   }
 }
