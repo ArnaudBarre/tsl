@@ -1319,5 +1319,26 @@ v.join();
           { message: messages.baseArrayJoin({ certainty: "will", name: "v" }) },
         ],
       },
+      {
+        code: `
+function foo<T>(x: T) {
+  String(x);
+}
+      `,
+        options: { checkUnknown: true },
+        errors: [
+          { message: messages.baseToString({ certainty: "may", name: "x" }) },
+        ],
+      },
+      {
+        code: `
+declare const x: unknown;
+x.toString();
+      `,
+        errors: [
+          { message: messages.baseToString({ certainty: "may", name: "x" }) },
+        ],
+        options: { checkUnknown: true },
+      },
     ],
   });
