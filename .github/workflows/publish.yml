@@ -16,7 +16,7 @@ jobs:
           node-version: 22
       - uses: xhyrom/setup-bun@v2
       - run: bun install
-      - run: bun ci
+      - run: bun run ci
       - uses: ArnaudBarre/npm-publish@v1
         with:
           working-directory: dist
