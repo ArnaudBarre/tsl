@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.21
+
+- `noBaseToString`: add checkUnknown option ([#8](https://github.com/ArnaudBarre/tsl/pull/8))
+- `strictBooleanExpressions`: fix unary operator analysis for strict boolean expression ([#11](https://github.com/ArnaudBarre/tsl/pull/11))
+
 ## 1.0.20
 
 - Display number of supported rules in `tsl --migrate`.
