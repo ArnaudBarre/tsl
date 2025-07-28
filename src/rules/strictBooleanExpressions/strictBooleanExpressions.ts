@@ -912,11 +912,9 @@ export const strictBooleanExpressions = defineRule(
           }
         },
         PrefixUnaryExpression(context, node) {
-          traverseNode(
-            context,
-            node.operand,
-            node.operator === SyntaxKind.ExclamationToken,
-          );
+          if (node.operator === SyntaxKind.ExclamationToken) {
+            traverseNode(context, node.operand, true);
+          }
         },
         WhileStatement(context, node) {
           traverseNode(context, node.expression, true);
