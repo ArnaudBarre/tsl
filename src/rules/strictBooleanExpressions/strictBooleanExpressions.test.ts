@@ -8,6 +8,10 @@ export const test = () =>
   ruleTester({
     ruleFn: strictBooleanExpressions,
     valid: [
+      {
+        options: { allowNumber: false },
+        code: "-1",
+      },
       // boolean in boolean context
       "true ? 'a' : 'b';",
       `
@@ -582,6 +586,31 @@ declare function f(x: string | null): boolean;
     `,
     ],
     invalid: [
+      {
+        options: { allowNumber: false },
+        code: "!1",
+        errors: [
+          {
+            message: messages.conditionErrorNumber({ context: "conditional" }),
+            line: 1,
+            column: 2,
+            suggestions: [
+              {
+                message: messages.conditionFixCompareZero,
+                output: "1 === 0",
+              },
+              {
+                message: messages.conditionFixCompareNaN,
+                output: "Number.isNaN(1)",
+              },
+              {
+                message: messages.conditionFixCastBoolean,
+                output: "!Boolean(1)",
+              },
+            ],
+          },
+        ],
+      },
       // non-boolean in RHS of test expression
       {
         options: {
