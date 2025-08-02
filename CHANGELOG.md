@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.22
+
+- Support TS 5.9 ([#7](https://github.com/ArnaudBarre/tsl/pull/7))
+
 ## 1.0.21
 
 - `noBaseToString`: add checkUnknown option ([#8](https://github.com/ArnaudBarre/tsl/pull/8))
