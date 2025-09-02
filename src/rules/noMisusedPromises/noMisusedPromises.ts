@@ -299,7 +299,7 @@ function checkVariableDeclaration(
   }
 }
 
-export function checkPropertyAssignment(
+function checkPropertyAssignment(
   context: Context<Data>,
   node: AST.PropertyAssignment,
 ) {
@@ -322,7 +322,7 @@ export function checkPropertyAssignment(
   }
 }
 
-export function checkShorthandPropertyAssignment(
+function checkShorthandPropertyAssignment(
   context: Context<Data>,
   node: AST.ShorthandPropertyAssignment,
 ) {
@@ -336,7 +336,7 @@ export function checkShorthandPropertyAssignment(
   }
 }
 
-export function checkMethodDeclaration(
+function checkMethodDeclaration(
   context: Context<Data>,
   node: AST.MethodDeclaration,
 ) {

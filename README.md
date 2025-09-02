@@ -6,6 +6,7 @@ tsl is an extension of tsc for type-aware linting. It's designed to be used in c
 
 - Run type-aware rules [faster](https://github.com/ArnaudBarre/tsl/issues/3) than [typescript-eslint](https://typescript-eslint.io/)
 - Type safe config with custom rules in TypeScript
+- Multi-files rules (experimental)
 - No [IDE caching issue](https://typescript-eslint.io/troubleshooting/faqs/general/#changes-to-one-file-are-not-reflected-when-linting-other-files-in-my-ide)
 - Something missing? Look at the [roadmap](https://github.com/ArnaudBarre/tsl/issues/4) or [open an issue](https://github.com/ArnaudBarre/tsl/issues/new)
 
@@ -217,7 +218,7 @@ const b = 2;
 
 ## Custom rules
 
-Writing custom rules is part of the core value of tsl.
+Writing custom rules is part of the core values of tsl.
 
 Rules run on the TS AST, which is less known than ESTree but allows to query type information for a given node with `context.checker.getTypeAtLocation(node)`. Use [ast-explorer.dev](https://ast-explorer.dev/#eNo9zEEKwjAQheGrxLdSKG5ctV5AcO9qNiEdQmSYCUlVpPTuTSl0+72fN0Mw4O2/voaS8oQOucH0z3xAaBBMqwlfxeKZ8GARcz8rMp4Ilztpy6xlM6lzBPEaPz7yi0tNpoTB9X23b/vtM+m48Y10wbIChCAraw==) to explore the AST. To explore type information, use [ts-ast-viewer](https://ts-ast-viewer.com/).
 
@@ -273,7 +274,13 @@ export default defineConfig({
 
 ## Core rules
 
-Currently, the list of core rules are the type-aware lint rules I use from typescript-eslint. If you think more rules should be added, please open an issue, but to reduce the surface, only non-styling type-aware rules will be accepted. Here is the list of [typescript-eslint type aware rules](https://typescript-eslint.io/rules/?=typeInformation) with their status:
+### Exclusive rules
+
+- unusedExport: Detect unused exports (Using exprimental multi-files linting)
+
+### From typescript-eslint
+
+Currently, the ported rules are the type-aware lint rules I use from typescript-eslint. If you think more rules should be added, please open an issue, but to reduce the surface, only non-styling type-aware rules will be accepted. Here is the list of [typescript-eslint type aware rules](https://typescript-eslint.io/rules/?=typeInformation) with their status:
 
 - await-thenable: ✅ Implemented
 - consistent-return: 🛑 Implementation not planned, you can use `noImplicitReturns` compilerOption
