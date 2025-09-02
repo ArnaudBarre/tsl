@@ -8,7 +8,7 @@ import {
   type TSLDiagnostic,
 } from "./formatDiagnostic.ts";
 import { core } from "./index.ts";
-import { initRules } from "./initRules.ts";
+import { initRules, type Report } from "./initRules.ts";
 import { loadConfig } from "./loadConfig.ts";
 
 const start = performance.now();
@@ -72,10 +72,11 @@ const program = ts.createProgram({
 
 const configStart = performance.now();
 const { config } = await loadConfig(program);
-const { lint, allRules, timingMaps } = await initRules(
+const { lint, allRules, aggregate, timingMaps } = await initRules(
   () => program,
   config ?? { rules: core.all() },
   values.timing,
+  "cli",
 );
 if (values.timing) {
   console.log(
@@ -114,38 +115,50 @@ const lintStart = performance.now();
 
 const files = program.getSourceFiles();
 
+function onReport(
+  sourceFile: ts.SourceFile,
+  r: Report,
+  currentIdx: number | undefined,
+) {
+  if (currentIdx === undefined) {
+    const lastTsDiagnostic = diagnostics.findLastIndex(
+      (d) => d.file === sourceFile,
+    );
+    if (lastTsDiagnostic !== -1) {
+      currentIdx = lastTsDiagnostic + 1;
+    } else {
+      const sortIdx = diagnostics.findIndex((d, i) => {
+        const previousFile = i === 0 ? undefined : diagnostics[i - 1].file;
+        return (
+          d.file !== undefined
+          && sourceFile.fileName < d.file.fileName
+          && (previousFile === undefined
+            || sourceFile.fileName > previousFile.fileName)
+        );
+      });
+      currentIdx = sortIdx === -1 ? diagnostics.length : sortIdx;
+    }
+  } else {
+    currentIdx++;
+  }
+  diagnostics.splice(currentIdx, 0, {
+    file: sourceFile,
+    name: r.type === "rule" ? r.rule.name : "tsl-unused-ignore",
+    message: r.message,
+    start: "node" in r ? r.node.getStart() : r.start,
+    length: "node" in r ? r.node.getEnd() - r.node.getStart() : r.end - r.start,
+  });
+  return currentIdx;
+}
+
 for (const it of files) {
   let currentIdx: number | undefined = undefined;
   lint(it as unknown as SourceFile, (r) => {
-    if (currentIdx === undefined) {
-      const lastTsDiagnostic = diagnostics.findLastIndex((d) => d.file === it);
-      if (lastTsDiagnostic !== -1) {
-        currentIdx = lastTsDiagnostic + 1;
-      } else {
-        const sortIdx = diagnostics.findIndex((d, i) => {
-          const previousFile = i === 0 ? undefined : diagnostics[i - 1].file;
-          return (
-            d.file !== undefined
-            && it.fileName < d.file.fileName
-            && (previousFile === undefined
-              || it.fileName > previousFile.fileName)
-          );
-        });
-        currentIdx = sortIdx === -1 ? diagnostics.length : sortIdx;
-      }
-    } else {
-      currentIdx++;
-    }
-    diagnostics.splice(currentIdx, 0, {
-      file: it,
-      name: r.type === "rule" ? r.rule.name : "tsl-unused-ignore",
-      message: r.message,
-      start: "node" in r ? r.node.getStart() : r.start,
-      length:
-        "node" in r ? r.node.getEnd() - r.node.getStart() : r.end - r.start,
-    });
+    currentIdx = onReport(it, r, currentIdx);
   });
 }
+
+aggregate((sourceFile, r) => onReport(sourceFile, r, undefined));
 
 if (values.timing) {
   const lintTime = performance.now() - lintStart;

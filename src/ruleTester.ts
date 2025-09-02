@@ -4,6 +4,7 @@ import { getContextUtils } from "./getContextUtils.ts";
 import type { AST, Checker, Context, ReportDescriptor, Rule } from "./types.ts";
 import { visitorEntries } from "./visitorEntries.ts";
 
+// tsl-ignore core/unused-export
 export function print(...args: any[]) {
   console.log(...args.map((value) => transform(value, new Set())));
 }
@@ -66,18 +67,23 @@ type CaseProps<RuleFn extends (options?: unknown) => Rule<unknown>> = {
   options?: Parameters<RuleFn>[0];
   code: string;
 };
+type MultiFileCaseProps<RuleFn extends (options?: unknown) => Rule<unknown>> = {
+  compilerOptions?: ts.CompilerOptions;
+  options?: Parameters<RuleFn>[0];
+  files: { fileName: `${string}.${"ts" | "tsx"}`; code: string }[];
+};
 type ErrorReport = {
+  fileName?: string;
   message: string;
   line?: number;
   column?: number;
   endLine?: number;
   endColumn?: number;
-  suggestions?: { message: string; output?: string }[];
+  suggestions?: { message: string; output: string }[];
 };
 type SetupCase<TRule extends (options?: unknown) => Rule<unknown>> = {
   compilerOptionsKey: string;
-  fileName: string;
-  code: string;
+  files: { fileName: string; code: string }[];
   options?: Parameters<TRule>[0];
   isValid: boolean;
   index: number;
@@ -101,24 +107,25 @@ const typeFocus = process.argv[3];
 const indexFocus = process.argv[4];
 
 export type ValidTestCase<TRule extends (options?: unknown) => Rule<unknown>> =
+  | MultiFileCaseProps<TRule>
   | CaseProps<TRule>
   | string;
 export type InvalidTestCase<
   TRule extends (options?: unknown) => Rule<unknown>,
-> = CaseProps<TRule> & {
-  error?: string;
-  errors?: (
-    | {
-        message: string;
-        line?: number;
-        column?: number;
-        endColumn?: number;
-        endLine?: number;
-        suggestions?: { message: string; output: string }[];
-      }
-    | [message: string, line?: number, column?: number]
-  )[];
-};
+> =
+  | (CaseProps<TRule>
+      & (
+        | { error: string }
+        | {
+            errors: (
+              | Omit<ErrorReport, "fileName">
+              | [message: string, line?: number, column?: number]
+            )[];
+          }
+      ))
+  | (MultiFileCaseProps<TRule> & {
+      errors: ErrorReport[];
+    });
 export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
   ruleFn,
   tsx,
@@ -136,16 +143,31 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
   const cases: SetupCase<RuleFn>[] = [];
 
   const setupCase = (
-    caseProps: CaseProps<RuleFn>,
+    caseProps: CaseProps<RuleFn> | MultiFileCaseProps<RuleFn>,
     isValid: boolean,
     index: number,
     errors: ErrorReport[] | null,
   ) => {
-    const useTSX = tsx ? caseProps.tsx !== false : caseProps.tsx === true;
-    const fileName = `${isValid ? "valid" : "invalid"}-${index}.${
-      useTSX ? "tsx" : "ts"
-    }`;
-    filesMap.set(fileName, caseProps.code);
+    const useTSX =
+      "files" in caseProps
+        ? caseProps.files.some((file) => file.fileName.endsWith(".tsx"))
+        : tsx
+          ? caseProps.tsx !== false
+          : caseProps.tsx === true;
+    const files =
+      "files" in caseProps
+        ? caseProps.files
+        : [
+            {
+              fileName: `${isValid ? "valid" : "invalid"}-${index}.${
+                useTSX ? "tsx" : "ts"
+              }`,
+              code: caseProps.code,
+            },
+          ];
+    for (const file of files) {
+      filesMap.set(file.fileName, file.code);
+    }
     const compilerOptionsInput =
       caseProps.compilerOptions !== undefined || useTSX
         ? {
@@ -161,10 +183,10 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
     const compilerOptionsKey = JSON.stringify(compilerOptionsInput);
     const current = compilerOptionsToFiles.get(compilerOptionsKey);
     if (current) {
-      current.push(fileName);
+      current.push(...files.map((f) => f.fileName));
     } else {
       compilerOptionsToFiles.set(compilerOptionsKey, [
-        fileName,
+        ...files.map((f) => f.fileName),
         ...compilerOptionsInput.lib.map(
           (lib) => `node_modules/typescript/lib/lib.${lib}.d.ts`,
         ),
@@ -172,8 +194,7 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
     }
     cases.push({
       compilerOptionsKey,
-      fileName,
-      code: caseProps.code,
+      files,
       options: caseProps.options,
       isValid,
       index,
@@ -192,15 +213,12 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
   for (const [index, invalidCase] of invalid.entries()) {
     if (typeFocus && typeFocus !== "invalid") continue;
     if (indexFocus && indexFocus !== index.toString()) continue;
-    const errors = invalidCase.errors
-      ? invalidCase.errors.map((e) =>
-          Array.isArray(e)
-            ? { message: e[0], line: e[1], column: e[2], suggestions: [] }
-            : e,
-        )
-      : invalidCase.error
+    const errors =
+      "error" in invalidCase
         ? [{ message: invalidCase.error }]
-        : [];
+        : invalidCase.errors.map((e) =>
+            Array.isArray(e) ? { message: e[0], line: e[1], column: e[2] } : e,
+          );
     if (errors.length === 0) {
       throw new Error(`Invalid case ${index} has no errors`);
     }
@@ -266,45 +284,51 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
     const program = compilerOptionsToProgram.get(caseProps.compilerOptionsKey)!;
     const compilerOptions = program.getCompilerOptions();
     const reports: ReportDescriptor[] = [];
-    const sourceFile = program.getSourceFile(
-      caseProps.fileName,
-    ) as unknown as SourceFile;
-    const context: Context = {
-      sourceFile,
-      program,
-      get checker() {
-        return program.getTypeChecker() as unknown as Checker;
-      },
-      get rawChecker() {
-        return program.getTypeChecker();
-      },
-      compilerOptions,
-      utils: getContextUtils(() => program),
-      report(descriptor) {
-        reports.push(descriptor);
-      },
-      data: undefined,
-    };
-    if (rule.createData) context.data = rule.createData(context);
-    const visit = (node: AST.AnyNode) => {
-      const nodeType = visitorEntries.find((e) => e[0] === node.kind)?.[1];
-      if (nodeType) {
-        rule.visitor[nodeType]?.(context, node as any);
-      }
-      // @ts-expect-error
-      node.forEachChild(visit);
-      if (nodeType) {
-        rule.visitor[`${nodeType}_exit` as keyof Visitor]?.(
-          context,
-          node as any,
-        );
-      }
-    };
-    visit(sourceFile);
+    for (const file of caseProps.files) {
+      const sourceFile = program.getSourceFile(
+        file.fileName,
+      ) as unknown as SourceFile;
+      const context: Context = {
+        sourceFile,
+        program,
+        get checker() {
+          return program.getTypeChecker() as unknown as Checker;
+        },
+        get rawChecker() {
+          return program.getTypeChecker();
+        },
+        compilerOptions,
+        utils: getContextUtils(() => program),
+        report(descriptor) {
+          reports.push(descriptor);
+        },
+        data: undefined,
+      };
+      if (rule.createData) context.data = rule.createData(context);
+      const visit = (node: AST.AnyNode) => {
+        const nodeType = visitorEntries.find((e) => e[0] === node.kind)?.[1];
+        if (nodeType) {
+          rule.visitor[nodeType]?.(context, node as any);
+        }
+        // @ts-expect-error
+        node.forEachChild(visit);
+        if (nodeType) {
+          rule.visitor[`${nodeType}_exit` as keyof Visitor]?.(
+            context,
+            node as any,
+          );
+        }
+      };
+      visit(sourceFile);
+    }
+    const displayCode =
+      caseProps.files.length > 1
+        ? caseProps.files.map((file) => file.fileName).join(", ")
+        : caseProps.files[0].code;
     if (caseProps.isValid) {
       if (reports.length !== 0) {
         console.error(
-          `Reports for valid case ${caseProps.index} (${caseProps.code})`,
+          `Reports for valid case ${caseProps.index} (${displayCode})`,
         );
         hasError = true;
         for (const report of reports) {
@@ -314,7 +338,7 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
     } else {
       if (reports.length === 0) {
         console.error(
-          `No reports for invalid case ${caseProps.index} (${caseProps.code})`,
+          `No reports for invalid case ${caseProps.index} (${displayCode})`,
         );
         hasError = true;
       } else {
@@ -331,7 +355,7 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
           ) => {
             if (!introLogged) {
               console.error(
-                `Report(s) mismatch for invalid case ${caseProps.index} (${caseProps.code})`,
+                `Report(s) mismatch for invalid case ${caseProps.index} (${displayCode})`,
               );
               hasError = true;
               introLogged = true;
@@ -357,6 +381,22 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
             continue;
           }
           if (!expected || !got) continue;
+          const fileWithError = expected.fileName
+            ? caseProps.files.find(
+                (file) => file.fileName === expected.fileName,
+              )
+            : caseProps.files[0];
+          if (fileWithError === undefined) {
+            log(
+              " filename",
+              `One of ${caseProps.files.map((file) => file.fileName).join(", ")}`,
+              expected.fileName,
+            );
+            continue;
+          }
+          const sourceFile = program.getSourceFile(
+            fileWithError.fileName,
+          ) as unknown as SourceFile;
           if (expected.line !== undefined) {
             const gotStart = "node" in got ? got.node.getStart() : got.start;
             const gotLine =
@@ -446,7 +486,7 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
               const gotOutput = gotChanges.reduceRight(
                 (acc, it) =>
                   acc.slice(0, it.start) + it.newText + acc.slice(it.end),
-                caseProps.code,
+                fileWithError.code,
               );
               if (expectedSuggestion.output !== gotOutput) {
                 log(

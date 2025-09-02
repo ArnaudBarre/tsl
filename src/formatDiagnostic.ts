@@ -178,7 +178,7 @@ function formatCodeSpan(
   return context;
 }
 
-export function formatLocation(file: SourceFile, start: number): string {
+function formatLocation(file: SourceFile, start: number): string {
   const { line, character } = getLineAndCharacterOfPosition(file, start);
   const relativeFileName = displayFilename(file.fileName);
   let output = "";
