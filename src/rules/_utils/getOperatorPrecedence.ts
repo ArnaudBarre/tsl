@@ -392,6 +392,7 @@ export function getOperatorPrecedence(
   }
 }
 
+// tsl-ignore core/unused-export
 export function getBinaryOperatorPrecedence(kind: SyntaxKind): number {
   switch (kind) {
     case SyntaxKind.MinusToken:

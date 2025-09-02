@@ -35,7 +35,7 @@ export type Config = {
    * });
    * ```
    */
-  rules: Rule<unknown>[];
+  rules: Rule<any>[];
   /**
    * List of path parts to ignore (using string.includes)
    *
@@ -90,6 +90,20 @@ export type Rule<Data = undefined> = {
    * ```
    */
   visitor: AST.Visitor<Data>;
+  /**
+   * Called once everyfile has been visited. Can be used to generate new reports that requires
+   * cross files analysis like unused export or parameter.
+   * @example
+   * ```ts
+   * aggregate: (context, files) => {
+   *
+   * }
+   * ```
+   */
+  aggregate?: (
+    context: AggregateContext,
+    files: { sourceFile: AST.SourceFile; data: Data }[],
+  ) => void;
 };
 
 export type Checker = Omit<
@@ -219,4 +233,27 @@ export type Context<Data = unknown> = {
    * Can be used to pass information between visited nodes.
    */
   data: Data;
+};
+
+export type ReportDescriptorWithSourceFile = ReportDescriptor & {
+  sourceFile: AST.SourceFile;
+};
+export type AggregateContext = {
+  program: Context["program"];
+  checker: Context["checker"];
+  rawChecker: Context["rawChecker"];
+  compilerOptions: Context["compilerOptions"];
+  utils: Context["utils"];
+  /**
+   * Report a diagnostic
+   * @example
+   * ```ts
+   * context.report({
+   *   sourceFile: sourceFile,
+   *   node: node.expression,
+   *   message: "Foo is unused.",
+   * });
+   * ```
+   */
+  report(descriptor: ReportDescriptorWithSourceFile): void;
 };

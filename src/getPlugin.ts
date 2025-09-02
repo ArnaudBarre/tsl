@@ -1,9 +1,13 @@
 import { type FSWatcher, watch } from "node:fs";
-import type { CodeFixAction, Diagnostic, LanguageService } from "typescript";
-import type { SourceFile } from "./ast.ts";
-import { initRules } from "./initRules.ts";
+import type {
+  CodeFixAction,
+  Diagnostic,
+  LanguageService,
+  Program,
+} from "typescript";
+import { initRules, type Report } from "./initRules.ts";
 import { loadConfig } from "./loadConfig.ts";
-import type { Suggestion } from "./types.ts";
+import type { AST, Suggestion } from "./types.ts";
 
 export const getPlugin = async (
   ts: typeof import("typescript"),
@@ -19,6 +23,7 @@ export const getPlugin = async (
 }> => {
   const watchedFiles = new Map<string, FSWatcher>();
   let lint: Awaited<ReturnType<typeof initRules>>["lint"];
+  let aggregate: Awaited<ReturnType<typeof initRules>>["aggregate"];
   let diagnosticCategory: Diagnostic["category"];
 
   const load = async () => {
@@ -41,8 +46,10 @@ export const getPlugin = async (
       () => languageService.getProgram()!,
       config ?? { rules: [] },
       false,
+      "plugin",
     );
     lint = result.lint;
+    aggregate = result.aggregate;
     diagnosticCategory =
       config?.diagnosticCategory === "error"
         ? ts.DiagnosticCategory.Error
@@ -65,19 +72,29 @@ export const getPlugin = async (
     end: number;
   };
 
+  let readyForAggregate = false;
+  const aggregateStatusByProgram = new WeakMap<
+    Program,
+    { count: number; lintedFiles: Set<string> }
+  >();
   const runLint = (fileName: string) => {
     const diagnostics: Diagnostic[] = [];
     const fileSuggestions: FileSuggestion[] = [];
     const result = { diagnostics, fileSuggestions };
 
     if (fileName.includes("/node_modules/")) return result;
-    const sourceFile = languageService.getProgram()?.getSourceFile(fileName);
+    const program = languageService.getProgram();
+    if (!program) {
+      log("tsl: No program");
+      return result;
+    }
+    const sourceFile = program.getSourceFile(fileName);
     if (!sourceFile) {
       log("tsl: No sourceFile");
       return result;
     }
 
-    lint(sourceFile as unknown as SourceFile, (report) => {
+    const onReport = (report: Report) => {
       switch (report.type) {
         case "rule": {
           const { message, rule, suggestions } = report;
@@ -151,7 +168,34 @@ export const getPlugin = async (
           break;
         }
       }
-    });
+    };
+
+    lint(sourceFile as unknown as AST.SourceFile, onReport);
+
+    // Aggregate if all source files have been linted once
+    if (readyForAggregate) {
+      aggregate((sourceFileFromAggregate, report) => {
+        if (sourceFileFromAggregate === sourceFile) {
+          onReport(report);
+        }
+      });
+    } else {
+      let aggregateStatus = aggregateStatusByProgram.get(program);
+      if (!aggregateStatus) {
+        let count = 0;
+        for (const it of program.getSourceFiles()) {
+          if (!it.fileName.includes("/node_modules/")) count++;
+        }
+        aggregateStatus = { count, lintedFiles: new Set() };
+        aggregateStatusByProgram.set(program, aggregateStatus);
+      }
+      aggregateStatus.lintedFiles.add(fileName);
+      if (aggregateStatus.count === aggregateStatus.lintedFiles.size) {
+        log("tsl: Ready for aggregate");
+        readyForAggregate = true;
+      }
+    }
+
     return result;
   };
 
