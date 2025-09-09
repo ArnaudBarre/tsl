@@ -43,13 +43,6 @@ export const onlyThrowError = defineRule((_options?: OnlyThrowErrorOptions) => {
     name: "core/onlyThrowError",
     visitor: {
       ThrowStatement(context, { expression: node }) {
-        if (
-          node.kind === SyntaxKind.AwaitExpression
-          || node.kind === SyntaxKind.YieldExpression
-        ) {
-          return;
-        }
-
         if (options.allowRethrowing && node.kind === SyntaxKind.Identifier) {
           const declaration = context.checker
             .getSymbolAtLocation(node)

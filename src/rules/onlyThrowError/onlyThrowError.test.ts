@@ -197,6 +197,22 @@ Promise.reject('foo').catch(e => {
 });
       `,
       },
+      {
+        options: { allowThrowingAny: false },
+        code: `
+  async function foo() {
+    throw await Promise.resolve(new Error('error'));
+  }
+        `,
+      },
+      {
+        options: { allowThrowingAny: false },
+        code: `
+  function* foo(): Generator<number, void, Error> {
+    throw yield 303;
+  }
+        `,
+      },
     ],
     invalid: [
       { code: "throw undefined;", errors: [{ message: messages.undef }] },
