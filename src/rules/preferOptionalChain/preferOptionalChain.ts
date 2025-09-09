@@ -342,13 +342,13 @@ function gatherLogicalOperands(
       case SyntaxKind.PrefixUnaryExpression:
         if (
           operand.operator === SyntaxKind.ExclamationToken
-          && isValidFalseBooleanCheckType(
-            operand.operand,
-            areMoreOperands
-              && node.operatorToken.kind === SyntaxKind.BarBarToken,
-            context,
-            options,
-          )
+          && (!areMoreOperands
+            || isValidFalseBooleanCheckType(
+              operand.operand,
+              node.operatorToken.kind === SyntaxKind.BarBarToken,
+              context,
+              options,
+            ))
         ) {
           result.push({
             comparedName: operand.operand,
@@ -364,10 +364,10 @@ function gatherLogicalOperands(
 
       default:
         if (
-          isValidFalseBooleanCheckType(
+          !areMoreOperands
+          || isValidFalseBooleanCheckType(
             operand,
-            areMoreOperands
-              && node.operatorToken.kind === SyntaxKind.AmpersandAmpersandToken,
+            node.operatorToken.kind === SyntaxKind.AmpersandAmpersandToken,
             context,
             options,
           )
