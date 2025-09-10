@@ -567,6 +567,26 @@ const fn = () => {
   promise ??= Promise.resolve(1);
 };
     `,
+      {
+        options: { allowList: ["randomAsyncFunction"] },
+        code: `
+const randomAsyncFunction = async () => {
+  return Promise.resolve(true);
+};
+
+randomAsyncFunction();
+      `,
+      },
+      {
+        options: { allowList: ["myAsyncFunction"] },
+        code: `
+async function myAsyncFunction() {
+  return Promise.resolve('test');
+}
+
+myAsyncFunction();
+      `,
+      },
     ],
     invalid: [
       {
