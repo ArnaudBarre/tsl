@@ -1,3 +1,4 @@
+import { isUnionType } from "ts-api-utils";
 import { type InterfaceType, SyntaxKind } from "typescript";
 import { defineRule } from "../_utils/index.ts";
 import type { AST, Context } from "../../types.ts";
@@ -117,18 +118,26 @@ function checkReturnExpression(
   context: Context<Data | undefined>,
   node: AST.Expression,
 ): void {
-  if (!context.data?.currentMethod) return;
+  const data = context.data;
+  if (!data?.currentMethod) return;
 
   if (node.kind === SyntaxKind.ThisKeyword) {
-    context.data.currentMethod.hasReturnThis = true;
+    data.currentMethod.hasReturnThis = true;
   }
   const type = context.checker.getTypeAtLocation(node);
-  if (context.data.currentClass.type === type) {
-    context.data.currentMethod.hasReturnClassType = true;
+  if (data.currentClass.type === type) {
+    data.currentMethod.hasReturnClassType = true;
     return;
   }
-  if (context.data.currentClass.type.thisType === type) {
-    context.data.currentMethod.hasReturnThis = true;
+  if (data.currentClass.type.thisType === type) {
+    data.currentMethod.hasReturnThis = true;
+    return;
+  }
+  if (
+    isUnionType(type)
+    && type.types.some((typePart) => typePart === data.currentClass.type)
+  ) {
+    data.currentMethod.hasReturnClassType = true;
     return;
   }
 }
