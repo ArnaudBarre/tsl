@@ -24,6 +24,10 @@ export const test = () =>
       "Boolean(0);",
       "!!0;",
       "BigInt(3);",
+      "~~1.1;",
+      "~~-1.1;",
+      "~~(1.5 + 2.3);",
+      "~~(1 / 3);",
       // things that are not type conversion idioms (but look similar) are valid
       "new String('asdf');",
       "new Number(2);",
@@ -474,22 +478,6 @@ let str = 'asdf';
         ],
       },
       {
-        code: "2 * ~~(2 + 2);",
-        errors: [
-          {
-            message: messages.unnecessaryTypeConversion({
-              violation: "Using ~~ on a number",
-              type: "number",
-            }),
-            column: 5,
-            endColumn: 7,
-            suggestions: [
-              { message: messages.suggestRemove, output: "2 * (2 + 2);" },
-            ],
-          },
-        ],
-      },
-      {
         code: "false && !!(false || true);",
         errors: [
           {
@@ -589,6 +577,60 @@ let str = 'asdf';
                 output: `
         let str = 'asdf';
         str.length;
+        `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: "~~1;",
+        errors: [
+          {
+            column: 1,
+            endColumn: 3,
+            message: messages.unnecessaryTypeConversion({
+              violation: "Using ~~ on a number",
+              type: "number",
+            }),
+            suggestions: [{ message: messages.suggestRemove, output: "1;" }],
+          },
+        ],
+      },
+      {
+        code: "~~-1;",
+        errors: [
+          {
+            column: 1,
+            endColumn: 3,
+            message: messages.unnecessaryTypeConversion({
+              violation: "Using ~~ on a number",
+              type: "number",
+            }),
+            suggestions: [{ message: messages.suggestRemove, output: "-1;" }],
+          },
+        ],
+      },
+      {
+        code: `
+          declare const threeOrFour: 3 | 4;
+          ~~threeOrFour;
+        `,
+        errors: [
+          {
+            line: 3,
+            column: 11,
+            endColumn: 13,
+            message: messages.unnecessaryTypeConversion({
+              violation: "Using ~~ on a number",
+              type: "number",
+            }),
+            suggestions: [
+              {
+                message: messages.suggestRemove,
+                output: `
+          declare const threeOrFour: 3 | 4;
+          threeOrFour;
         `,
               },
             ],

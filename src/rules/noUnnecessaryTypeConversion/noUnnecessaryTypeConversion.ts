@@ -205,7 +205,15 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
         && node.operand.operator === SyntaxKind.TildeToken
       ) {
         const type = context.checker.getTypeAtLocation(node.operand.operand);
-        if (doesUnderlyingTypeMatchFlag(context, type, TypeFlags.NumberLike)) {
+        if (
+          context.utils
+            .unionConstituents(type)
+            .every(
+              (t) =>
+                typeHasFlag(t, TypeFlags.NumberLike)
+                && Number.isInteger((t as ts.NumberLiteralType).value),
+            )
+        ) {
           report({
             context,
             violation: "Using ~~ on a number",
