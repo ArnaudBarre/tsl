@@ -39,10 +39,15 @@ const formatErrorDiagnostics = (diagnostics: ts.Diagnostic[]) =>
   });
 const cwd = process.cwd();
 const fileParsingDiagnostics: ts.Diagnostic[] = [];
-const result = ts.getParsedCommandLineOfConfigFile(
-  values.project ?? "./tsconfig.json",
-  undefined,
-  {
+
+const programs: {
+  program: ts.Program;
+  host: { getNewLine: () => string };
+  configFile: string;
+}[] = [];
+
+function addProject(configFile: string) {
+  const result = ts.getParsedCommandLineOfConfigFile(configFile, undefined, {
     onUnRecoverableConfigFileDiagnostic: (diag) => {
       fileParsingDiagnostics.push(diag);
     },
@@ -51,118 +56,158 @@ const result = ts.getParsedCommandLineOfConfigFile(
     readDirectory: ts.sys.readDirectory,
     readFile: (file) => fs.readFileSync(file, "utf-8"),
     useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
-  },
-);
-if (!result) {
-  console.log(formatErrorDiagnostics(fileParsingDiagnostics));
-  process.exit(1);
-}
-if (result.errors.length) {
-  console.log(formatErrorDiagnostics(result.errors));
-  process.exit(1);
-}
-
-const host = ts.createCompilerHost(result.options, true);
-const program = ts.createProgram({
-  rootNames: result.fileNames,
-  options: result.options,
-  projectReferences: result.projectReferences,
-  host,
-});
-
-const configStart = performance.now();
-const { config } = await loadConfig(program);
-const { lint, allRules, timingMaps } = await initRules(
-  () => program,
-  config ?? { rules: core.all() },
-  values.timing,
-);
-if (values.timing) {
-  console.log(
-    `Config with ${allRules.size} ${
-      allRules.size === 1 ? "rule" : "rules"
-    } loaded in ${displayTiming(performance.now() - configStart)}`,
-  );
-}
-
-let diagnostics: TSLDiagnostic[] = [];
-if (!values["lint-only"]) {
-  diagnostics = ts.getPreEmitDiagnostics(program).map((d): TSLDiagnostic => {
-    const message = ts.flattenDiagnosticMessageText(
-      d.messageText,
-      host.getNewLine(),
-    );
-    const name = `TS${d.code}`;
-    if (!d.file) {
-      return { file: undefined, name, message };
-    }
-    return {
-      file: d.file,
-      name,
-      message,
-      start: d.start!,
-      length: d.length!,
-    };
   });
-
-  if (values.timing) {
-    console.log(`Typecheck: ${displayTiming(performance.now() - start)}`);
+  if (!result) {
+    console.log(formatErrorDiagnostics(fileParsingDiagnostics));
+    process.exit(1);
+  }
+  if (result.errors.length) {
+    console.log(formatErrorDiagnostics(result.errors));
+    process.exit(1);
+  }
+  const host = ts.createCompilerHost(result.options, true);
+  programs.push({
+    program: ts.createProgram({
+      rootNames: result.fileNames,
+      options: result.options,
+      projectReferences: result.projectReferences,
+      host,
+    }),
+    host,
+    configFile,
+  });
+  if (result.projectReferences !== undefined) {
+    for (const projectReference of result.projectReferences) {
+      addProject(projectReference.path);
+    }
   }
 }
 
-const lintStart = performance.now();
+addProject(values.project ?? "./tsconfig.json");
 
-const files = program.getSourceFiles();
+let unsued = 1;
+let unsued2 = 1;
 
-for (const it of files) {
-  let currentIdx: number | undefined = undefined;
-  lint(it as unknown as SourceFile, (r) => {
-    if (currentIdx === undefined) {
-      const lastTsDiagnostic = diagnostics.findLastIndex((d) => d.file === it);
-      if (lastTsDiagnostic !== -1) {
-        currentIdx = lastTsDiagnostic + 1;
-      } else {
-        const sortIdx = diagnostics.findIndex((d, i) => {
-          const previousFile = i === 0 ? undefined : diagnostics[i - 1].file;
-          return (
-            d.file !== undefined
-            && it.fileName < d.file.fileName
-            && (previousFile === undefined
-              || it.fileName > previousFile.fileName)
-          );
-        });
-        currentIdx = sortIdx === -1 ? diagnostics.length : sortIdx;
-      }
-    } else {
-      currentIdx++;
+let diagnostics: TSLDiagnostic[] = [];
+let allTimingMaps:
+  | { Rule: Record<string, number>; File: Record<string, number> }
+  | undefined;
+
+for (const { program, configFile, host } of programs) {
+  if (values.timing && programs.length > 1) {
+    console.log(`Linting ${configFile}`);
+  }
+  const configStart = performance.now();
+  const { config } = await loadConfig(program);
+  const { lint, allRules, timingMaps } = await initRules(
+    () => program,
+    config ?? { rules: core.all() },
+    values.timing,
+  );
+  if (values.timing) {
+    console.log(
+      `Config with ${allRules.size} ${
+        allRules.size === 1 ? "rule" : "rules"
+      } loaded in ${displayTiming(performance.now() - configStart)}`,
+    );
+  }
+
+  if (!values["lint-only"]) {
+    diagnostics = diagnostics.concat(
+      ts.getPreEmitDiagnostics(program).map((d): TSLDiagnostic => {
+        const message = ts.flattenDiagnosticMessageText(
+          d.messageText,
+          host.getNewLine(),
+        );
+        const name = `TS${d.code}`;
+        if (!d.file) {
+          return { file: undefined, name, message };
+        }
+        return {
+          file: d.file,
+          name,
+          message,
+          start: d.start!,
+          length: d.length!,
+        };
+      }),
+    );
+
+    if (values.timing) {
+      console.log(`Typecheck: ${displayTiming(performance.now() - start)}`);
     }
-    diagnostics.splice(currentIdx, 0, {
-      file: it,
-      name: r.type === "rule" ? r.rule.name : "tsl-unused-ignore",
-      message: r.message,
-      start: "node" in r ? r.node.getStart() : r.start,
-      length:
-        "node" in r ? r.node.getEnd() - r.node.getStart() : r.end - r.start,
-    });
-  });
-}
+  }
 
-if (values.timing) {
-  const lintTime = performance.now() - lintStart;
-  console.log(`Lint ran in ${displayTiming(lintTime)}`);
+  const lintStart = performance.now();
+
+  const files = program.getSourceFiles();
+
+  for (const it of files) {
+    let currentIdx: number | undefined = undefined;
+    lint(it as unknown as SourceFile, (r) => {
+      if (currentIdx === undefined) {
+        const lastTsDiagnostic = diagnostics.findLastIndex(
+          (d) => d.file === it,
+        );
+        if (lastTsDiagnostic !== -1) {
+          currentIdx = lastTsDiagnostic + 1;
+        } else {
+          const sortIdx = diagnostics.findIndex((d, i) => {
+            const previousFile = i === 0 ? undefined : diagnostics[i - 1].file;
+            return (
+              d.file !== undefined
+              && it.fileName < d.file.fileName
+              && (previousFile === undefined
+                || it.fileName > previousFile.fileName)
+            );
+          });
+          currentIdx = sortIdx === -1 ? diagnostics.length : sortIdx;
+        }
+      } else {
+        currentIdx++;
+      }
+      diagnostics.splice(currentIdx, 0, {
+        file: it,
+        name: r.type === "rule" ? r.rule.name : "tsl-unused-ignore",
+        message: r.message,
+        start: "node" in r ? r.node.getStart() : r.start,
+        length:
+          "node" in r ? r.node.getEnd() - r.node.getStart() : r.end - r.start,
+      });
+    });
+  }
+
+  if (values.timing) {
+    const lintTime = performance.now() - lintStart;
+    console.log(`Lint ran in ${displayTiming(lintTime)}`);
+  }
+  if (timingMaps) {
+    if (!allTimingMaps) {
+      allTimingMaps = timingMaps;
+    } else {
+      for (const key in timingMaps.Rule) {
+        allTimingMaps.Rule[key] =
+          (allTimingMaps.Rule[key] ?? 0) + timingMaps.Rule[key];
+      }
+      for (const key in timingMaps.File) {
+        allTimingMaps.File[key] =
+          (allTimingMaps.File[key] ?? 0) + timingMaps.File[key];
+      }
+    }
+  }
 }
 
 if (diagnostics.length > 0) {
   console.log(formatDiagnostics(diagnostics));
 }
 
-if (timingMaps) {
+if (allTimingMaps) {
   console.log(
     `Total time: ${displayTiming(
       performance.now() - globalThis.__type_lint_start,
     )}`,
   );
-  for (const [timingName, map] of Object.entries(timingMaps)) {
+  for (const [timingName, map] of Object.entries(allTimingMaps)) {
     const rulesEntries = Object.entries(map)
       .map(([key, time]) => ({ key, time }))
       .sort((a, b) => b.time - a.time);
