@@ -32,6 +32,7 @@ export type OnlyThrowErrorOptions = {
   allow?: string[];
 };
 
+// https://typescript-eslint.io/rules/only-throw-error
 export const onlyThrowError = defineRule((_options?: OnlyThrowErrorOptions) => {
   const options = {
     allowThrowingAny: true,

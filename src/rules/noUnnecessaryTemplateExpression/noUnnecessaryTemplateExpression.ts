@@ -11,6 +11,7 @@ export const messages = {
     "Remove unnecessary template expression.",
 };
 
+// https://typescript-eslint.io/rules/no-unnecessary-template-expression
 export const noUnnecessaryTemplateExpression = defineRule(() => ({
   name: "core/noUnnecessaryTemplateExpression",
   visitor: {

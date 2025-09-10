@@ -10,6 +10,7 @@ export const messages = {
   suggestRemove: "Remove the type conversion.",
 };
 
+// https://typescript-eslint.io/rules/no-unnecessary-type-conversion
 export const noUnnecessaryTypeConversion = defineRule(() => ({
   name: "core/noUnnecessaryTypeConversion",
   visitor: {

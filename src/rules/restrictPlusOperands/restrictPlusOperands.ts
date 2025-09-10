@@ -40,6 +40,7 @@ export const messages = {
     `Operands of '+' operations must be a number or ${params.stringLike}. Got \`${params.left}\` + \`${params.right}\`.`,
 };
 
+// https://typescript-eslint.io/rules/restrict-plus-operands
 export const restrictPlusOperands = defineRule(
   (_options?: RestrictPlusOperandsOptions) => {
     const options = {

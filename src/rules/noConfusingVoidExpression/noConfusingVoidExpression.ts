@@ -55,6 +55,7 @@ export type NoConfusingVoidExpressionOptions = {
   ignoreVoidReturningFunctions?: boolean;
 };
 
+// https://typescript-eslint.io/rules/no-confusing-void-expression
 export const noConfusingVoidExpression = defineRule(
   (_options?: NoConfusingVoidExpressionOptions) => {
     const options = {

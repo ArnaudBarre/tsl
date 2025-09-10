@@ -54,6 +54,7 @@ type ParsedOptions = {
   ignoreVoid: boolean;
 };
 
+// https://typescript-eslint.io/rules/no-floating-promises
 export const noFloatingPromises = defineRule(
   (_options?: NoFloatingPromisesOptions) => {
     const options: ParsedOptions = {

@@ -30,6 +30,7 @@ type ParsedOptions = {
   ignoredTypeNames: string[];
 };
 
+// https://typescript-eslint.io/rules/no-base-to-string
 export const noBaseToString = defineRule((_options?: NoBaseToStringOptions) => {
   const options: ParsedOptions = {
     checkUnknown: false,

@@ -65,6 +65,7 @@ type ParsedOptions = {
   checkTypePredicates: boolean;
 };
 
+// https://typescript-eslint.io/rules/no-unnecessary-condition
 export const noUnnecessaryCondition = defineRule(
   (_options?: NoUnnecessaryConditionOptions) => {
     const options: ParsedOptions = {

@@ -8,6 +8,7 @@ export const messages = {
   fix: "Fix",
 };
 
+// https://typescript-eslint.io/rules/non-nullable-type-assertion-style
 export const nonNullableTypeAssertionStyle = defineRule(() => ({
   name: "core/nonNullableTypeAssertionStyle",
   visitor: {

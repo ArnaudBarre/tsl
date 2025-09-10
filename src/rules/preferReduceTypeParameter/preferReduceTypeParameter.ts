@@ -8,6 +8,7 @@ export const messages = {
   fix: "Replace with a type parameter.",
 };
 
+// https://typescript-eslint.io/rules/prefer-reduce-type-parameter
 export const preferReduceTypeParameter = defineRule(() => ({
   name: "core/preferReduceTypeParameter",
   visitor: {

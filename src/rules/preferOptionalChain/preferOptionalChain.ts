@@ -72,6 +72,7 @@ type ParsedOptions = {
   requireNullish: boolean;
 };
 
+// https://typescript-eslint.io/rules/prefer-optional-chain
 export const preferOptionalChain = defineRule(
   (_options?: PreferOptionalChainOptions) => {
     const options = {

@@ -10,6 +10,7 @@ export const messages = {
     `${params.type} is assignable to ${params.assignableTo} and can be removed.`,
 };
 
+// https://typescript-eslint.io/rules/no-redundant-type-constituents
 export const noRedundantTypeConstituents = defineRule(() => ({
   name: "core/noRedundantTypeConstituents",
   visitor: {

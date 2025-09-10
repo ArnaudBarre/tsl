@@ -36,6 +36,7 @@ export const messages = {
     "Replace map spread in object with `Object.fromEntries()`",
 };
 
+// https://typescript-eslint.io/rules/no-misused-spread
 export const noMisusedSpread = defineRule(() => ({
   name: "core/noMisusedSpread",
   visitor: {

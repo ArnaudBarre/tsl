@@ -16,6 +16,7 @@ export const messages = {
   removeAwait: "Remove unnecessary `await`.",
 };
 
+// https://typescript-eslint.io/rules/await-thenable
 export const awaitThenable = defineRule(() => ({
   name: "core/awaitThenable",
   visitor: {

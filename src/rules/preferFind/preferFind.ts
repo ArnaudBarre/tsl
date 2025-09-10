@@ -8,6 +8,7 @@ export const messages = {
   preferFindSuggestion: "Use .find(...) instead of .filter(...)[0].",
 };
 
+// https://typescript-eslint.io/rules/prefer-find
 export const preferFind = defineRule(() => ({
   name: "core/preferFind",
   visitor: {

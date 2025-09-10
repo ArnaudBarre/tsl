@@ -25,6 +25,7 @@ export type NoUnnecessaryTypeAssertionOptions = {
   typesToIgnore?: string[];
 };
 
+// https://typescript-eslint.io/rules/no-unnecessary-type-assertion
 export const noUnnecessaryTypeAssertion = defineRule(
   (options: NoUnnecessaryTypeAssertionOptions = {}) => ({
     name: "core/noUnnecessaryTypeAssertion",

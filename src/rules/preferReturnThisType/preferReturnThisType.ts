@@ -19,6 +19,7 @@ type Data = {
   };
 };
 
+// https://typescript-eslint.io/rules/prefer-return-this-type
 export const preferReturnThisType = defineRule(() => ({
   name: "core/preferReturnThisType",
   createData: (): Data | undefined => undefined,

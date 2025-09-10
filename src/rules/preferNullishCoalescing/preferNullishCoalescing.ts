@@ -78,6 +78,7 @@ type ParsedOptions = {
   };
 };
 
+// https://typescript-eslint.io/rules/prefer-nullish-coalescing
 export const preferNullishCoalescing = defineRule(
   (_options?: PreferNullishCoalescingOptions) => {
     const options: ParsedOptions = {

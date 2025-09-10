@@ -65,6 +65,8 @@ export type NoMisusedPromisesOptions = {
 
 const createData = () => ({ checkedNodes: new Set<ts.Node>() });
 type Data = ReturnType<typeof createData>;
+
+// https://typescript-eslint.io/rules/no-misused-promises
 export const noMisusedPromises = defineRule(
   (_options?: NoMisusedPromisesOptions) => {
     const options = {

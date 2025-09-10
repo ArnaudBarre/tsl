@@ -20,6 +20,7 @@ const EVAL_LIKE_METHODS = new Set([
   "setTimeout",
 ]);
 
+// https://typescript-eslint.io/rules/no-implied-eval
 export const noImpliedEval = defineRule(() => ({
   name: "core/noImpliedEval",
   visitor: {

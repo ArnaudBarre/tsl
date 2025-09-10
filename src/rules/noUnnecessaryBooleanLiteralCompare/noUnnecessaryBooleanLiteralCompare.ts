@@ -38,6 +38,7 @@ type ParsedOptions = {
   allowComparingNullableBooleansToFalse: boolean;
 };
 
+// https://typescript-eslint.io/rules/no-unnecessary-boolean-literal-compare
 export const noUnnecessaryBooleanLiteralCompare = defineRule(
   (_options?: NoUnnecessaryBooleanLiteralCompareOptions) => {
     const options: ParsedOptions = {

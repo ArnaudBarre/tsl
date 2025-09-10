@@ -15,6 +15,7 @@ export type NoMeaninglessVoidOperatorOptions = {
   checkNever?: boolean;
 };
 
+// https://typescript-eslint.io/rules/no-meaningless-void-operator
 export const noMeaninglessVoidOperator = defineRule(
   (options?: NoMeaninglessVoidOperatorOptions) => ({
     name: "core/noMeaninglessVoidOperator",

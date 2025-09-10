@@ -6,6 +6,7 @@ export const messages = {
   fix: "Replace 'indexOf()' with 'includes()'.",
 };
 
+// https://typescript-eslint.io/rules/prefer-includes
 export const preferIncludes = defineRule(() => ({
   name: "core/preferIncludes",
   visitor: {

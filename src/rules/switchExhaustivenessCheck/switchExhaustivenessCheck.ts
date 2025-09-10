@@ -38,6 +38,7 @@ type SwitchMetadata = {
   symbolName: string | undefined;
 };
 
+// https://typescript-eslint.io/rules/switch-exhaustiveness-check
 export const switchExhaustivenessCheck = defineRule(
   (_options?: SwitchExhaustivenessCheckOptions) => {
     const options = {

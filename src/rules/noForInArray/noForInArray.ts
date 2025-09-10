@@ -7,6 +7,7 @@ export const messages = {
     "For-in loops over arrays skips holes, returns indices as strings, and may visit the prototype chain or other enumerable properties. Use a more robust iteration method such as for-of or array.forEach instead.",
 };
 
+// https://typescript-eslint.io/rules/no-for-in-array
 export const noForInArray = defineRule(() => ({
   name: "core/noForInArray",
   visitor: {

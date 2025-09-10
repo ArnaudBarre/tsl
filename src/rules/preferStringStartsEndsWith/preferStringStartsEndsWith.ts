@@ -18,6 +18,7 @@ export type PreferStringStartsEndsWithOptions = {
   allowSingleElementEquality?: "always" | "never";
 };
 
+// https://typescript-eslint.io/rules/prefer-string-starts-ends-with
 export const preferStringStartsEndsWith = defineRule(
   (_options?: PreferStringStartsEndsWithOptions) => {
     const options = {

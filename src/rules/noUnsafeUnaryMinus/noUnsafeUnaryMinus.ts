@@ -6,6 +6,7 @@ export const messages = {
     `Argument of unary negation should be assignable to number | bigint but is ${params.type} instead.`,
 };
 
+// https://typescript-eslint.io/rules/no-unsafe-unary-minus
 export const noUnsafeUnaryMinus = defineRule(() => ({
   name: "core/noUnsafeUnaryMinus",
   visitor: {

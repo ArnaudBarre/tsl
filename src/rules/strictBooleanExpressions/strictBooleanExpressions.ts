@@ -125,6 +125,7 @@ type ConditionErrorMessageId =
 
 type Data = { checkedNodes: Set<ts.Node> };
 
+// https://typescript-eslint.io/rules/strict-boolean-expressions
 export const strictBooleanExpressions = defineRule(
   (_options?: StrictBooleanExpressionsOptions) => {
     const options = {

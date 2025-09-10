@@ -21,6 +21,7 @@ type ParameterCapableNode =
   | AST.TypeQueryNode
   | AST.TypeReferenceNode;
 
+// https://typescript-eslint.io/rules/no-unnecessary-type-arguments
 export const noUnnecessaryTypeArguments = defineRule(() => ({
   name: "core/noUnnecessaryTypeArguments",
   visitor: {

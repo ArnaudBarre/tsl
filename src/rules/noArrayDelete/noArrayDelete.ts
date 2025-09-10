@@ -9,6 +9,7 @@ export const messages = {
   useSplice: "Use `array.splice()` instead.",
 };
 
+// https://typescript-eslint.io/rules/no-array-delete
 export const noArrayDelete = defineRule(() => ({
   name: "core/noArrayDelete",
   visitor: {

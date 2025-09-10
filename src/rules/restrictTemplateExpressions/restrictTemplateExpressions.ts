@@ -100,6 +100,7 @@ const optionTesters = (
   tester,
 }));
 
+// https://typescript-eslint.io/rules/restrict-template-expressions
 export const restrictTemplateExpressions = defineRule(
   (_options?: RestrictTemplateExpressionsOptions) => {
     const options = {

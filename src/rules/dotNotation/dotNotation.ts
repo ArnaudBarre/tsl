@@ -3,6 +3,7 @@ import { defineRule } from "../_utils/index.ts";
 
 const validIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/u;
 
+// https://typescript-eslint.io/rules/dot-notation
 export const dotNotation = defineRule(() => ({
   name: "core/dotNotation",
   visitor: {

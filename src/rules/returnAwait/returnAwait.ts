@@ -13,6 +13,7 @@ type FunctionNode =
   | AST.FunctionDeclaration
   | AST.FunctionExpression;
 
+// https://typescript-eslint.io/rules/return-await
 export const returnAwait = defineRule(() => ({
   name: "core/returnAwait",
   // Keep track of (async) function stack
