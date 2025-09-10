@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.23
+
+Port fixes from typescript-eslint up to v8.43.0
+
 ## 1.0.22
 
 - Support TS 5.9 ([#7](https://github.com/ArnaudBarre/tsl/pull/7))

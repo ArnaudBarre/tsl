@@ -91,7 +91,7 @@ export default defineConfig({
 If you are using typescript-eslint, you can import the rules supported by tsl with this command:
 
 ```bash
-bunx tsl --migrate
+npx tsl --migrate
 ```
 
 ### Add the TypeScript plugin
