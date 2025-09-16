@@ -48,7 +48,7 @@ export const initRules = async (
     }
     return key;
   };
-  const baseRules = (await Promise.all(config.rules)).flat();
+  const baseRules = config.rules;
 
   const allRules = new Set<string>();
   for (const rule of baseRules) {
