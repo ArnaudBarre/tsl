@@ -347,6 +347,14 @@ export function typeOrUnionHasFlag(type: ts.Type, flag: TypeFlags): boolean {
   for (const t of type.types) flags |= t.flags;
   return (flags & flag) !== 0;
 }
+export function typeHasSymbolFlag(
+  type: ts.Type,
+  flag: ts.SymbolFlags,
+): boolean {
+  const symbol = type.getSymbol();
+  if (!symbol) return false;
+  return (symbol.flags & flag) !== 0;
+}
 
 export function isTypeRecurser(
   type: ts.Type,

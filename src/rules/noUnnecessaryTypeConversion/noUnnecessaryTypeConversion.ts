@@ -1,6 +1,6 @@
-import ts, { SyntaxKind, TypeFlags } from "typescript";
+import ts, { SymbolFlags, SyntaxKind, TypeFlags } from "typescript";
 import { getOperatorPrecedenceForNode } from "../_utils/getOperatorPrecedence.ts";
-import { defineRule, typeHasFlag } from "../_utils/index.ts";
+import { defineRule } from "../_utils/index.ts";
 import { isIdentifierFromDefaultLibrary } from "../_utils/isBuiltinSymbolLike.ts";
 import type { Context } from "../../types.ts";
 
@@ -146,6 +146,11 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
         const type = context.utils.getConstrainedTypeAtLocation(
           callee.expression,
         );
+
+        if (context.utils.typeHasSymbolFlag(type, SymbolFlags.EnumMember)) {
+          return;
+        }
+
         if (doesUnderlyingTypeMatchFlag(context, type, TypeFlags.StringLike)) {
           context.report({
             start: callee.name.getStart(),
@@ -210,7 +215,7 @@ export const noUnnecessaryTypeConversion = defineRule(() => ({
             .unionConstituents(type)
             .every(
               (t) =>
-                typeHasFlag(t, TypeFlags.NumberLike)
+                context.utils.typeHasFlag(t, TypeFlags.NumberLike)
                 && Number.isInteger((t as ts.NumberLiteralType).value),
             )
         ) {
@@ -234,7 +239,7 @@ function doesUnderlyingTypeMatchFlag(
 ): boolean {
   return context.utils
     .unionConstituents(type)
-    .every((t) => typeHasFlag(t, typeFlag));
+    .every((t) => context.utils.typeHasFlag(t, typeFlag));
 }
 
 const builtInTypeFlags: Record<string, TypeFlags | undefined> = {

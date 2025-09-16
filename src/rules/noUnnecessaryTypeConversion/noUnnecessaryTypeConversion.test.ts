@@ -87,6 +87,10 @@ export const test = () =>
       "~~new Number();",
       "Boolean(new Boolean());",
       "!!new Boolean();",
+      `
+      enum CustomIds { Id1 = 'id1' }
+      const compareWithToString = CustomIds.Id1.toString() === 'id1';
+    `,
     ],
     invalid: [
       {

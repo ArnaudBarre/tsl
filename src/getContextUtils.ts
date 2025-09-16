@@ -1,6 +1,10 @@
 import { intersectionConstituents, unionConstituents } from "ts-api-utils";
 import type { Program } from "typescript";
-import { typeHasFlag, typeOrUnionHasFlag } from "./rules/_utils/index.ts";
+import {
+  typeHasFlag,
+  typeHasSymbolFlag,
+  typeOrUnionHasFlag,
+} from "./rules/_utils/index.ts";
 import type { Context } from "./types.ts";
 
 export const getContextUtils = (
@@ -10,6 +14,7 @@ export const getContextUtils = (
   intersectionConstituents,
   typeHasFlag,
   typeOrUnionHasFlag,
+  typeHasSymbolFlag,
   getConstrainedTypeAtLocation(node) {
     const checker = getProgram().getTypeChecker();
     const nodeType = checker.getTypeAtLocation(node);

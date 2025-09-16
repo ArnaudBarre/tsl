@@ -3,6 +3,7 @@ import type {
   Node,
   Program,
   Signature,
+  SymbolFlags,
   TupleTypeReference,
   Type,
   TypeChecker,
@@ -165,6 +166,10 @@ export type Context<Data = unknown> = {
      * Check if the given type or one of its union type parts has the given flag.
      */
     typeOrUnionHasFlag: (type: Type, flag: TypeFlags) => boolean;
+    /**
+     * Check if the given type has the given symbol flag.
+     */
+    typeHasSymbolFlag: (type: Type, flag: SymbolFlags) => boolean;
     /**
      * Resolves the given node's type. Will return the type's generic constraint, if it has one.
      *

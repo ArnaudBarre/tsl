@@ -1,6 +1,7 @@
 import { isTypeParameter } from "ts-api-utils";
 import ts from "typescript";
 import type { AST, Context } from "../../types";
+import { typeHasSymbolFlag } from "./index.ts";
 
 export function isBuiltinSymbolLike(
   program: ts.Program,
@@ -58,10 +59,8 @@ function isBuiltinSymbolLikeRecurser(
     return predicateResult;
   }
 
-  const symbol = type.getSymbol();
   if (
-    symbol
-    && symbol.flags & (ts.SymbolFlags.Class | ts.SymbolFlags.Interface)
+    typeHasSymbolFlag(type, ts.SymbolFlags.Class | ts.SymbolFlags.Interface)
   ) {
     const checker = program.getTypeChecker();
     for (const baseType of checker.getBaseTypes(type as ts.InterfaceType)) {
