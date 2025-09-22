@@ -480,6 +480,30 @@ String(v);
 declare const v: ('foo' | 'bar')[][];
 String(v);
     `,
+      {
+        options: { ignoredTypeNames: ["MyError"] },
+        code: `
+interface MyError<T> {}
+declare const error: MyError<number>;
+error.toString();
+      `,
+      },
+      {
+        options: { ignoredTypeNames: ["MyError"] },
+        code: `
+type MyError<T> = {};
+declare const error: MyError<number>;
+error.toString();
+      `,
+      },
+      {
+        options: { ignoredTypeNames: ["MyError"] },
+        code: `
+class MyError<T> {}
+declare const error: MyError<number>;
+error.toString();
+      `,
+      },
     ],
     invalid: [
       {

@@ -243,11 +243,11 @@ function collectToStringCertainty(
     return "always";
   }
 
-  if (
-    options.ignoredTypeNames.includes(getTypeName(context.rawChecker, type))
-  ) {
-    return "always";
-  }
+  let typeName = getTypeName(context.rawChecker, type);
+  const genericIndex = typeName.indexOf("<");
+  if (genericIndex !== -1) typeName = typeName.slice(0, genericIndex);
+
+  if (options.ignoredTypeNames.includes(typeName)) return "always";
 
   if (type.isIntersection()) {
     return collectIntersectionTypeCertainty(type, (t) =>
