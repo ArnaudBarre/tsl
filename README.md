@@ -45,7 +45,7 @@ npm install -D tsl
 ```
 
 > [!NOTE]  
-> TS 5.8 is expected as a peer dependency.
+> TS >=5.8 is expected as a peer dependency.
 
 ### Add a configuration
 

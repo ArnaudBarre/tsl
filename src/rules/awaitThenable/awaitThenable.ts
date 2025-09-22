@@ -1,10 +1,12 @@
 import {
   getWellKnownSymbolPropertyOfType,
   isIntrinsicAnyType,
+  isTypeReference,
 } from "ts-api-utils";
-import { NodeFlags } from "typescript";
+import { NodeFlags, SyntaxKind, type Type } from "typescript";
 import { defineRule } from "../_utils/index.ts";
 import { needsToBeAwaited } from "../_utils/needsToBeAwaited.ts";
+import type { AST, Context } from "../../types.ts";
 
 export const messages = {
   await: 'Unexpected `await` of a non-Promise (non-"Thenable") value.',
@@ -13,8 +15,12 @@ export const messages = {
   convertToOrdinaryFor: "Convert to an ordinary `for...of` loop.",
   forAwaitOfNonAsyncIterable:
     "Unexpected `for await...of` of a value that is not async iterable.",
+  invalidPromiseAggregatorInput:
+    'Unexpected iterable of non-Promise (non-"Thenable") values passed to promise aggregator.',
   removeAwait: "Remove unnecessary `await`.",
 };
+
+const PROMISE_METHODS = ["all", "allSettled", "race", "any"];
 
 // https://typescript-eslint.io/rules/await-thenable
 export const awaitThenable = defineRule(() => ({
@@ -41,6 +47,34 @@ export const awaitThenable = defineRule(() => ({
             },
           ],
         });
+      }
+    },
+    CallExpression(context, node) {
+      if (node.expression.kind !== SyntaxKind.PropertyAccessExpression) return;
+      if (node.expression.expression.kind !== SyntaxKind.Identifier) return;
+      if (node.expression.expression.text !== "Promise") return;
+      if (!PROMISE_METHODS.includes(node.expression.name.text)) return;
+      const argument = node.arguments.at(0);
+      if (!argument) return;
+
+      if (argument.kind === SyntaxKind.ArrayLiteralExpression) {
+        for (const element of argument.elements) {
+          const type = context.utils.getConstrainedTypeAtLocation(element);
+          if (isNonAwaitableType(context, element, type)) {
+            context.report({
+              node: element,
+              message: messages.invalidPromiseAggregatorInput,
+            });
+          }
+        }
+      } else {
+        const type = context.utils.getConstrainedTypeAtLocation(argument);
+        if (isInvalidPromiseAggregatorInput(context, argument, type)) {
+          context.report({
+            node: argument,
+            message: messages.invalidPromiseAggregatorInput,
+          });
+        }
       }
     },
     ForOfStatement(context, node) {
@@ -117,3 +151,52 @@ export const awaitThenable = defineRule(() => ({
     },
   },
 }));
+
+function isInvalidPromiseAggregatorInput(
+  context: Context,
+  node: AST.AnyNode,
+  type: Type,
+): boolean {
+  for (const part of context.utils.unionConstituents(type)) {
+    const valueTypes = getValueTypesOfArrayLike(context, part);
+
+    if (valueTypes != null) {
+      for (const typeArgument of valueTypes) {
+        if (isNonAwaitableType(context, node, typeArgument)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+function getValueTypesOfArrayLike(
+  context: Context,
+  type: Type,
+): readonly Type[] | null {
+  if (context.checker.isTupleType(type)) {
+    return context.checker.getTypeArguments(type);
+  }
+
+  // `Iterable<...>`
+  if (isTypeReference(type)) {
+    return context.checker.getTypeArguments(type).slice(0, 1);
+  }
+
+  return null;
+}
+
+function isNonAwaitableType(
+  context: Context,
+  node: AST.AnyNode,
+  type: Type,
+): boolean {
+  return context.utils
+    .unionConstituents(type)
+    .every(
+      (typeArgumentPart) =>
+        needsToBeAwaited(context, node, typeArgumentPart) === "Never",
+    );
+}
