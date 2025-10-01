@@ -1,4 +1,10 @@
-import { isIntersectionType, isTypeParameter, isUnionType } from "ts-api-utils";
+import {
+  isIntersectionType,
+  isObjectFlagSet,
+  isObjectType,
+  isTypeParameter,
+  isUnionType,
+} from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { defineRule, getTypeName } from "../_utils/index.ts";
 import { isIdentifierFromDefaultLibrary } from "../_utils/isBuiltinSymbolLike.ts";
@@ -215,6 +221,34 @@ function collectJoinCertainty(
   return "always";
 }
 
+function hasBaseTypes(type: ts.Type): type is ts.InterfaceType {
+  return (
+    isObjectType(type)
+    && isObjectFlagSet(type, ts.ObjectFlags.Interface | ts.ObjectFlags.Class)
+  );
+}
+
+function isIgnoredTypeOrBase(
+  context: Context,
+  options: ParsedOptions,
+  type: ts.Type,
+  seen = new Set<ts.Type>(),
+): boolean {
+  if (seen.has(type)) return false; // Prevent infinite recursion on circular references
+  seen.add(type);
+
+  let typeName = getTypeName(context.rawChecker, type);
+  const genericIndex = typeName.indexOf("<");
+  if (genericIndex !== -1) typeName = typeName.slice(0, genericIndex);
+  return (
+    options.ignoredTypeNames.includes(typeName)
+    || (hasBaseTypes(type)
+      && context.rawChecker
+        .getBaseTypes(type)
+        .some((base) => isIgnoredTypeOrBase(context, options, base, seen)))
+  );
+}
+
 function collectToStringCertainty(
   context: Context,
   options: ParsedOptions,
@@ -243,11 +277,9 @@ function collectToStringCertainty(
     return "always";
   }
 
-  let typeName = getTypeName(context.rawChecker, type);
-  const genericIndex = typeName.indexOf("<");
-  if (genericIndex !== -1) typeName = typeName.slice(0, genericIndex);
-
-  if (options.ignoredTypeNames.includes(typeName)) return "always";
+  if (isIgnoredTypeOrBase(context, options, type)) {
+    return "always";
+  }
 
   if (type.isIntersection()) {
     return collectIntersectionTypeCertainty(type, (t) =>

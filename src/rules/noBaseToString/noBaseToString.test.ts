@@ -504,6 +504,14 @@ declare const error: MyError<number>;
 error.toString();
       `,
       },
+      {
+        options: { ignoredTypeNames: ["Error"] },
+        code: `
+interface MyError extends Error {}
+declare const error: MyError;
+error.toString();
+        `,
+      },
     ],
     invalid: [
       {
@@ -1363,6 +1371,19 @@ x.toString();
           { message: messages.baseToString({ certainty: "may", name: "x" }) },
         ],
         options: { checkUnknown: true },
+      },
+      {
+        code: `
+interface A extends B {}
+interface B extends A {}
+declare const a: A;
+a.toString();
+        `,
+        errors: [
+          {
+            message: messages.baseToString({ certainty: "will", name: "a" }),
+          },
+        ],
       },
     ],
   });
