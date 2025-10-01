@@ -540,6 +540,29 @@ x ?? y;
           },
         ],
       },
+      {
+        options: { ignoreBooleanCoercion: true },
+        code: `
+let a: string | boolean | undefined;
+let b: string | boolean | undefined;
+const test = Boolean(!a ? b : a);
+      `,
+        errors: [
+          {
+            message: messages.preferNullishOverTernary,
+            suggestions: [
+              {
+                message: messages.suggestNullish({ equals: "" }),
+                output: `
+let a: string | boolean | undefined;
+let b: string | boolean | undefined;
+const test = Boolean(a ?? b);
+      `,
+              },
+            ],
+          },
+        ],
+      },
       ...nullishTypeTest((nullish, type, equals) => ({
         code: `
 declare let x: ${type} | ${nullish};
