@@ -4,8 +4,8 @@ import {
   defineRule,
   isHigherPrecedenceThanUnary,
   isLogicalExpression,
+  isPromiseLike,
 } from "../_utils/index.ts";
-import { isBuiltinSymbolLike } from "../_utils/isBuiltinSymbolLike.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
 
 const messageBase =
@@ -329,18 +329,4 @@ function isPromiseArray(context: Context, node: ts.Node): boolean {
     }
   }
   return false;
-}
-
-function isPromiseLike(
-  context: Context,
-  node: ts.Node,
-  type?: ts.Type,
-): boolean {
-  type ??= context.checker.getTypeAtLocation(node);
-
-  return context.utils
-    .unionConstituents(context.checker.getApparentType(type))
-    .some((typePart) =>
-      isBuiltinSymbolLike(context.program, typePart, "Promise"),
-    );
 }

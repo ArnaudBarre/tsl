@@ -5,6 +5,7 @@ import {
   getOperatorPrecedence,
   OperatorPrecedence,
 } from "./getOperatorPrecedence.ts";
+import { isBuiltinSymbolLike } from "./isBuiltinSymbolLike.ts";
 
 export const run = <T>(cb: () => T) => cb();
 
@@ -375,3 +376,17 @@ export const getValueOfLiteralType = (
   }
   return type.value;
 };
+
+export function isPromiseLike(
+  context: Context,
+  node: ts.Node,
+  type?: ts.Type,
+): boolean {
+  type ??= context.checker.getTypeAtLocation(node);
+
+  return context.utils
+    .unionConstituents(context.checker.getApparentType(type))
+    .some((typePart) =>
+      isBuiltinSymbolLike(context.program, typePart, "Promise"),
+    );
+}

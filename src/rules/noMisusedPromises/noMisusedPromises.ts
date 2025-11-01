@@ -7,6 +7,7 @@ import {
   isAssignmentExpression,
   isFunction,
   isLogicalExpression,
+  isPromiseLike,
   run,
 } from "../_utils/index.ts";
 import type { AST, Context } from "../../types.ts";
@@ -245,6 +246,18 @@ function checkArguments(
   context: Context<Data>,
   node: AST.CallExpression | AST.NewExpression,
 ): void {
+  if (
+    node.kind === SyntaxKind.CallExpression
+    && node.expression.kind === SyntaxKind.PropertyAccessExpression
+    && node.expression.name.kind === SyntaxKind.Identifier
+    && node.expression.name.text === "finally"
+    && isPromiseLike(context, node.expression.expression)
+  ) {
+    // TS types are wrong for finally types, so manually ignore
+    // See https://github.com/typescript-eslint/typescript-eslint/issues/10959
+    return;
+  }
+
   const voidArgs = voidFunctionArguments(context, node);
   if (voidArgs.size === 0) {
     return;
