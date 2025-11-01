@@ -468,6 +468,10 @@ export const test = () =>
       declare const x: void | (() => void);
       x && x();
     `,
+      `
+      declare const foo: { bar: string | null } | null;
+      foo != null && foo.bar !== null;
+    `,
       "typeof globalThis !== 'undefined' && globalThis.Array();",
       // with the `| null | undefined` type - `!== null` doesn't cover the
       // `undefined` case - so optional chaining is not a valid conversion
@@ -1739,26 +1743,6 @@ export const test = () =>
         ],
       },
       {
-        code: `
-                declare const foo: { bar: string } | null;
-                foo !== null && foo.bar !== null;
-              `,
-        errors: [
-          {
-            message: messages.preferOptionalChain,
-            suggestions: [
-              {
-                message: messages.optionalChainSuggest,
-                output: `
-                declare const foo: { bar: string } | null;
-                foo?.bar !== null;
-              `,
-              },
-            ],
-          },
-        ],
-      },
-      {
         code: "foo != null && foo.bar != null;",
         errors: [
           {
@@ -1767,26 +1751,6 @@ export const test = () =>
               {
                 message: messages.optionalChainSuggest,
                 output: "foo?.bar != null;",
-              },
-            ],
-          },
-        ],
-      },
-      {
-        code: `
-                declare const foo: { bar: string | null } | null;
-                foo != null && foo.bar !== null;
-              `,
-        errors: [
-          {
-            message: messages.preferOptionalChain,
-            suggestions: [
-              {
-                message: messages.optionalChainSuggest,
-                output: `
-                declare const foo: { bar: string | null } | null;
-                foo?.bar !== null;
-              `,
               },
             ],
           },

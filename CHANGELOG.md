@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.26
+
+- Port fixes from typescript-eslint up to v8.46.2
+
 ## 1.0.25
 
 - Port fixes from typescript-eslint up to v8.44.1
