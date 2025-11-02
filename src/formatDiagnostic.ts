@@ -6,6 +6,8 @@ import ts, {
   type SourceFile,
 } from "typescript";
 
+const a = 2;
+
 export type TSLDiagnostic = {
   name: string;
   message: string;
