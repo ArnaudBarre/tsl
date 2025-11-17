@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.27
+
+- `preferOptionalChain`: fix chain analysis when the chain ends with `=== null`
+
 ## 1.0.26
 
 - Port fixes from typescript-eslint up to v8.46.2

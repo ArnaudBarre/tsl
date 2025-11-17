@@ -472,6 +472,10 @@ export const test = () =>
       declare const foo: { bar: string | null } | null;
       foo != null && foo.bar !== null;
     `,
+      `
+      declare const foo: { bar: number | null } | undefined;
+      foo === undefined || foo.bar === null;
+    `,
       "typeof globalThis !== 'undefined' && globalThis.Array();",
       // with the `| null | undefined` type - `!== null` doesn't cover the
       // `undefined` case - so optional chaining is not a valid conversion
@@ -2724,19 +2728,6 @@ const baz = foo?.bar;
       ...getBaseCases({
         mutateCode: (c) => `!${c.replaceAll("||", "|| !")}`,
         mutateOutput: (c) => `!${c}`,
-        operator: "||",
-      }),
-      // but if the type is just `| null` - then it covers the cases and is
-      // a valid conversion
-      ...getBaseCases({
-        mutateCode: (c) =>
-          c
-            .replaceAll("||", "=== null ||")
-            // SEE TODO AT THE BOTTOM OF THE RULE
-            // We need to ensure the final operand is also a "valid" `||` check
-            .replace(/;$/, " === null;"),
-        mutateDeclaration: (c) => c.replaceAll("| undefined", ""),
-        mutateOutput: (c) => c.replace(/;$/, " === null;"),
         operator: "||",
       }),
       ...getBaseCases({

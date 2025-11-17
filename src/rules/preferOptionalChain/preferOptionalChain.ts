@@ -707,10 +707,17 @@ const analyzeOrChainOperand: OperandAnalyzer = (
       return [operand];
 
     case "StrictEqualNull": {
-      // handle `x === null || x === undefined`
       const nextOperand = chain.at(index + 1);
+      if (nextOperand === undefined) {
+        // If the chain ends with === null, changing to ?. would change the runtime behavior of the expression
+        // ex: if foo is undefined,
+        // foo === undefined || foo.bar === null => true
+        // foo?.bar === null => false
+        return null;
+      }
+      // handle `x === null || x === undefined`
       if (
-        nextOperand?.comparisonType === "StrictEqualUndefined"
+        nextOperand.comparisonType === "StrictEqualUndefined"
         && compareNodes(operand.comparedName, nextOperand.comparedName)
           === "Equal"
       ) {
