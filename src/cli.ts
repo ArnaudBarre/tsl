@@ -11,8 +11,6 @@ import { core } from "./index.ts";
 import { initRules } from "./initRules.ts";
 import { loadConfig } from "./loadConfig.ts";
 
-const start = performance.now();
-
 const { values } = parseArgs({
   options: {
     project: { type: "string", short: "p" },
@@ -22,15 +20,16 @@ const { values } = parseArgs({
   },
 });
 
-const displayTiming = (ms: number) =>
-  ms > 1_000 ? `${(ms / 1_000).toFixed(2)}s` : `${ms.toFixed(0)}ms`;
+const displayTiming = (start: number) => {
+  const ms = performance.now() - start;
+  return ms > 1000 ? `${(ms / 1000).toFixed(2)}s` : `${ms.toFixed(0)}ms`;
+};
 
 if (values.timing) {
-  console.log(
-    `Booted in ${displayTiming(start - globalThis.__type_lint_start)}`,
-  );
+  console.log(`Booted in ${displayTiming(globalThis.__type_lint_start)}`);
 }
 
+const programStart = performance.now();
 const formatErrorDiagnostics = (diagnostics: ts.Diagnostic[]) =>
   ts.formatDiagnostics(diagnostics, {
     getCanonicalFileName: (f) => f,
@@ -70,6 +69,10 @@ const program = ts.createProgram({
   host,
 });
 
+if (values.timing) {
+  console.log(`TS program created in ${displayTiming(programStart)}`);
+}
+
 const configStart = performance.now();
 const { config } = await loadConfig(program);
 const { lint, allRules, timingMaps } = await initRules(
@@ -81,10 +84,11 @@ if (values.timing) {
   console.log(
     `Config with ${allRules.size} ${
       allRules.size === 1 ? "rule" : "rules"
-    } loaded in ${displayTiming(performance.now() - configStart)}`,
+    } loaded in ${displayTiming(configStart)}`,
   );
 }
 
+const typecheckStart = performance.now();
 let diagnostics: TSLDiagnostic[] = [];
 if (!values["lint-only"]) {
   diagnostics = ts.getPreEmitDiagnostics(program).map((d): TSLDiagnostic => {
@@ -106,7 +110,7 @@ if (!values["lint-only"]) {
   });
 
   if (values.timing) {
-    console.log(`Typecheck: ${displayTiming(performance.now() - start)}`);
+    console.log(`Typecheck: ${displayTiming(typecheckStart)}`);
   }
 }
 
@@ -148,8 +152,7 @@ for (const it of files) {
 }
 
 if (values.timing) {
-  const lintTime = performance.now() - lintStart;
-  console.log(`Lint ran in ${displayTiming(lintTime)}`);
+  console.log(`Lint ran in ${displayTiming(lintStart)}`);
 }
 
 if (diagnostics.length > 0) {
@@ -157,11 +160,7 @@ if (diagnostics.length > 0) {
 }
 
 if (timingMaps) {
-  console.log(
-    `Total time: ${displayTiming(
-      performance.now() - globalThis.__type_lint_start,
-    )}`,
-  );
+  console.log(`Total time: ${displayTiming(globalThis.__type_lint_start)}`);
   for (const [timingName, map] of Object.entries(timingMaps)) {
     const rulesEntries = Object.entries(map)
       .map(([key, time]) => ({ key, time }))
