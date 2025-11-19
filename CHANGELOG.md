@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `noUnnecessaryCondition`: Catch useless `?? null` and `?? undefined` coalescing and add "Remove unnecessary nullish coalescing" suggestion.
+
 ## 1.0.27
 
 - `preferOptionalChain`: fix chain analysis when the chain ends with `=== null`
