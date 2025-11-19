@@ -934,6 +934,7 @@ function test<T>(arg: T | { value: string }) {
   }
 }
     `,
+      `declare const foo: string | undefined; const bar = foo ?? null;`,
     ],
     invalid: [
       // Ensure that it's checking in all the right places
@@ -1556,14 +1557,31 @@ function test<T extends object>(a: T) {
             column: 15,
           },
         ],
-      }, // Nullish coalescing operator
+      },
+      // Nullish coalescing operator
       {
         code: `
 function test(a: string) {
   return a ?? 'default';
 }
       `,
-        errors: [{ message: messages.neverNullish, line: 3, column: 10 }],
+        errors: [
+          {
+            message: messages.neverNullish,
+            line: 3,
+            column: 12,
+            suggestions: [
+              {
+                message: messages.removeNullishCoalescing,
+                output: `
+function test(a: string) {
+  return a;
+}
+      `,
+              },
+            ],
+          },
+        ],
       },
       {
         code: `
@@ -1571,7 +1589,23 @@ function test(a: string | false) {
   return a ?? 'default';
 }
       `,
-        errors: [{ message: messages.neverNullish, line: 3, column: 10 }],
+        errors: [
+          {
+            message: messages.neverNullish,
+            line: 3,
+            column: 12,
+            suggestions: [
+              {
+                message: messages.removeNullishCoalescing,
+                output: `
+function test(a: string | false) {
+  return a;
+}
+      `,
+              },
+            ],
+          },
+        ],
       },
       {
         code: `
@@ -1579,15 +1613,48 @@ function test<T extends string>(a: T) {
   return a ?? 'default';
 }
       `,
-        errors: [{ message: messages.neverNullish, line: 3, column: 10 }],
-      }, // nullish + array index without optional chaining
+        errors: [
+          {
+            message: messages.neverNullish,
+            line: 3,
+            column: 12,
+            suggestions: [
+              {
+                message: messages.removeNullishCoalescing,
+                output: `
+function test<T extends string>(a: T) {
+  return a;
+}
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      // nullish + array index without optional chaining
       {
         code: `
 function test(a: { foo: string }[]) {
   return a[0].foo ?? 'default';
 }
       `,
-        errors: [{ message: messages.neverNullish, line: 3, column: 10 }],
+        errors: [
+          {
+            message: messages.neverNullish,
+            line: 3,
+            column: 19,
+            suggestions: [
+              {
+                message: messages.removeNullishCoalescing,
+                output: `
+function test(a: { foo: string }[]) {
+  return a[0].foo;
+}
+      `,
+              },
+            ],
+          },
+        ],
       },
       {
         code: `
@@ -1619,7 +1686,23 @@ function test(a: never) {
   return a ?? 'default';
 }
       `,
-        errors: [{ message: messages.never, line: 3, column: 10 }],
+        errors: [
+          {
+            message: messages.never,
+            line: 3,
+            column: 12,
+            suggestions: [
+              {
+                message: messages.removeNullishCoalescing,
+                output: `
+function test(a: never) {
+  return a;
+}
+      `,
+              },
+            ],
+          },
+        ],
       },
       {
         code: `
@@ -1627,8 +1710,25 @@ function test<T extends { foo: number }, K extends 'foo'>(num: T[K]) {
   num ?? 'default';
 }
       `,
-        errors: [{ message: messages.neverNullish, line: 3, column: 3 }],
-      }, // Predicate functions
+        errors: [
+          {
+            message: messages.neverNullish,
+            line: 3,
+            column: 7,
+            suggestions: [
+              {
+                message: messages.removeNullishCoalescing,
+                output: `
+function test<T extends { foo: number }, K extends 'foo'>(num: T[K]) {
+  num;
+}
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      // Predicate functions
       {
         code: `
 [1, 3, 5].filter(() => true);
@@ -2757,9 +2857,18 @@ foo ??= 1;
           {
             message: messages.neverNullish,
             line: 3,
-            column: 1,
-            endColumn: 4,
+            column: 5,
             endLine: 3,
+            endColumn: 10,
+            suggestions: [
+              {
+                message: messages.removeNullishCoalescing,
+                output: `
+declare let foo: {};
+foo;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -2772,9 +2881,18 @@ foo ??= 1;
           {
             message: messages.neverNullish,
             line: 3,
-            column: 1,
-            endColumn: 4,
+            column: 5,
             endLine: 3,
+            endColumn: 10,
+            suggestions: [
+              {
+                message: messages.removeNullishCoalescing,
+                output: `
+declare let foo: number;
+foo;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -2863,9 +2981,18 @@ foo.bar ??= 1;
           {
             message: messages.neverNullish,
             line: 3,
-            column: 1,
-            endColumn: 8,
+            column: 9,
             endLine: 3,
+            endColumn: 14,
+            suggestions: [
+              {
+                message: messages.removeNullishCoalescing,
+                output: `
+declare const foo: { bar: number };
+foo.bar;
+      `,
+              },
+            ],
           },
         ],
       },
@@ -3184,6 +3311,50 @@ declare const arr: object[];
 if (arr[42] && arr[42]) {}
        `,
         errors: [{ message: messages.alwaysTruthy, line: 3, column: 16 }],
+      },
+      {
+        code: `
+declare const foo: string | null;
+const bar = foo ?? null;
+       `,
+        errors: [
+          {
+            message: messages.uselessNullCoalescing,
+            line: 3,
+            column: 17,
+            suggestions: [
+              {
+                message: messages.removeNullishCoalescing,
+                output: `
+declare const foo: string | null;
+const bar = foo;
+       `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+declare const foo: string | undefined;
+const bar = foo ?? undefined;
+       `,
+        errors: [
+          {
+            message: messages.uselessUndefinedCoalescing,
+            line: 3,
+            column: 17,
+            suggestions: [
+              {
+                message: messages.removeNullishCoalescing,
+                output: `
+declare const foo: string | undefined;
+const bar = foo;
+       `,
+              },
+            ],
+          },
+        ],
       },
     ],
   });

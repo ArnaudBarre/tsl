@@ -37,15 +37,20 @@ export const messages = {
     right: string;
   }) =>
     `Unnecessary conditional, comparison is always ${params.trueOrFalse}, since ${params.left} ${params.operator} ${params.right} is ${params.trueOrFalse}.`,
-  never: "Unnecessary conditional, value is `never`.",
+  never: "Unnecessary conditional, left-hand side of `??` operator is `never`.",
   neverNullish:
-    "Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined.",
+    "Unnecessary conditional, left-hand side of `??` operator is not possibly null or undefined.",
+  uselessNullCoalescing:
+    "Unnecessary coalescing, null is already included in the left-hand side of the `??` operator.",
+  uselessUndefinedCoalescing:
+    "Unnecessary coalescing, undefined is already included in the left-hand side of the `??` operator.",
   neverOptionalChain: "Unnecessary optional chain on a non-nullish value.",
   noOverlapBooleanExpression:
     "Unnecessary conditional, the types have no overlap.",
   typeGuardAlreadyIsType: (params: { typeGuardOrAssertionFunction: string }) =>
     `Unnecessary conditional, expression already has the type being checked by the ${params.typeGuardOrAssertionFunction}.`,
   removeOptionalChain: "Remove unnecessary optional chain.",
+  removeNullishCoalescing: "Remove unnecessary nullish coalescing.",
 };
 
 export type NoUnnecessaryConditionOptions = {
@@ -85,10 +90,8 @@ export const noUnnecessaryCondition = defineRule(
               checkNode(context, node.left);
               break;
             case SyntaxKind.QuestionQuestionEqualsToken:
-              checkNodeForNullish(context, node.left);
-              break;
             case SyntaxKind.QuestionQuestionToken:
-              checkNodeForNullish(context, node.left);
+              checkNodeForNullish(context, node);
               break;
             case SyntaxKind.BarBarToken:
             case SyntaxKind.AmpersandAmpersandToken:
@@ -305,13 +308,16 @@ function checkNode(
   }
 }
 
-function checkNodeForNullish(context: Context, node: AST.Expression): void {
-  const type = context.utils.getConstrainedTypeAtLocation(node);
+function checkNodeForNullish(
+  context: Context,
+  node: AST.BinaryExpression,
+): void {
+  const leftType = context.utils.getConstrainedTypeAtLocation(node.left);
 
   // Conditional is always necessary if it involves `any`, `unknown` or a naked type parameter
   if (
     context.utils.typeOrUnionHasFlag(
-      type,
+      leftType,
       TypeFlags.Any
         | TypeFlags.Unknown
         | TypeFlags.TypeParameter
@@ -321,15 +327,34 @@ function checkNodeForNullish(context: Context, node: AST.Expression): void {
     return;
   }
 
-  let message: string | null = null;
-  if (context.utils.typeOrUnionHasFlag(type, TypeFlags.Never)) {
-    message = messages.never;
+  function reportUselessCoalescing(message: string) {
+    context.report({
+      start: node.operatorToken.getStart(),
+      end: node.right.getEnd(),
+      message,
+      suggestions: [
+        {
+          message: messages.removeNullishCoalescing,
+          changes: [
+            {
+              start: node.left.getEnd(),
+              end: node.right.getEnd(),
+              newText: "",
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  if (context.utils.typeOrUnionHasFlag(leftType, TypeFlags.Never)) {
+    reportUselessCoalescing(messages.never);
   } else if (
-    !context.utils.typeOrUnionHasFlag(type, nullishFlag)
+    !context.utils.typeOrUnionHasFlag(leftType, nullishFlag)
     && !(
-      (node.kind === SyntaxKind.PropertyAccessExpression
-        || node.kind === SyntaxKind.ElementAccessExpression)
-      && isNullableMemberExpression(context, node)
+      (node.left.kind === SyntaxKind.PropertyAccessExpression
+        || node.left.kind === SyntaxKind.ElementAccessExpression)
+      && isNullableMemberExpression(context, node.left)
     )
   ) {
     // Since typescript array index signature types don't represent the
@@ -337,20 +362,29 @@ function checkNodeForNullish(context: Context, node: AST.Expression): void {
     //  just skip the check, to avoid false positives
     if (
       context.compilerOptions.noUncheckedIndexedAccess === true
-      || (!isArrayIndexExpression(context, node)
+      || (!isArrayIndexExpression(context, node.left)
         && !(
-          node.kind === SyntaxKind.PropertyAccessExpression
-          && optionChainContainsOptionArrayIndex(context, node)
+          node.left.kind === SyntaxKind.PropertyAccessExpression
+          && optionChainContainsOptionArrayIndex(context, node.left)
         ))
     ) {
-      message = messages.neverNullish;
+      reportUselessCoalescing(messages.neverNullish);
     }
-  } else if (isAlwaysNullish(context, type)) {
-    message = messages.alwaysNullish;
-  }
-
-  if (message) {
-    context.report({ node, message });
+  } else if (isAlwaysNullish(context, leftType)) {
+    context.report({ node: node.left, message: messages.alwaysNullish });
+  } else {
+    if (
+      context.utils.typeOrUnionHasFlag(leftType, TypeFlags.Null)
+      && node.right.kind === SyntaxKind.NullKeyword
+    ) {
+      reportUselessCoalescing(messages.uselessNullCoalescing);
+    } else if (
+      context.utils.typeOrUnionHasFlag(leftType, TypeFlags.Undefined)
+      && node.right.kind === SyntaxKind.Identifier
+      && node.right.text === "undefined"
+    ) {
+      reportUselessCoalescing(messages.uselessUndefinedCoalescing);
+    }
   }
 }
 
