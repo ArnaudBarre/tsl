@@ -2324,5 +2324,22 @@ const obj: O = {
           },
         ],
       },
+      {
+        code: `
+type A = { f: () => void } | undefined;
+const a: A = {
+  async f() {},
+};
+        `,
+        errors: [
+          {
+            message: messages.voidReturnProperty,
+            line: 4,
+            column: 3,
+            endLine: 4,
+            endColumn: 8,
+          },
+        ],
+      },
     ],
   });

@@ -375,10 +375,11 @@ export function checkMethodDeclaration(
   if (objType === undefined) {
     return;
   }
-  const propertySymbol = context.checker.getPropertyOfType(
-    objType,
-    node.name.text,
-  );
+  const propertySymbol = context.utils
+    .unionConstituents(objType)
+    .map((t) => context.checker.getPropertyOfType(t, node.name.getText()))
+    .find((p) => p);
+
   if (propertySymbol === undefined) {
     return;
   }
