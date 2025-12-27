@@ -480,6 +480,17 @@ String(v);
 declare const v: ('foo' | 'bar')[][];
 String(v);
     `,
+      `
+class BaseError extends Error {
+  code?: string;
+}
+class Boom<T> extends BaseError {
+  details: T;
+}
+function bar<T>(error: Boom<T>) {
+  console.log(error.toString());
+}
+    `,
       {
         options: { ignoredTypeNames: ["MyError"] },
         code: `

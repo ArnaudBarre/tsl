@@ -3,6 +3,7 @@ import {
   isObjectFlagSet,
   isObjectType,
   isTypeParameter,
+  isTypeReference,
   isUnionType,
 } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
@@ -221,11 +222,23 @@ function collectJoinCertainty(
   return "always";
 }
 
-function hasBaseTypes(type: ts.Type): type is ts.InterfaceType {
-  return (
-    isObjectType(type)
-    && isObjectFlagSet(type, ts.ObjectFlags.Interface | ts.ObjectFlags.Class)
-  );
+function getBaseTypesForType(
+  context: Context,
+  type: ts.Type,
+): readonly ts.Type[] {
+  if (!isObjectType(type)) return [];
+
+  const interfaceTarget = isTypeReference(type) ? type.target : type;
+
+  const interfaceType =
+    isObjectFlagSet(
+      interfaceTarget,
+      ts.ObjectFlags.Interface | ts.ObjectFlags.Class,
+    ) && (interfaceTarget as ts.InterfaceType);
+
+  if (interfaceType === false) return [];
+
+  return context.checker.getBaseTypes(interfaceType);
 }
 
 function isIgnoredTypeOrBase(
@@ -242,10 +255,9 @@ function isIgnoredTypeOrBase(
   if (genericIndex !== -1) typeName = typeName.slice(0, genericIndex);
   return (
     options.ignoredTypeNames.includes(typeName)
-    || (hasBaseTypes(type)
-      && context.rawChecker
-        .getBaseTypes(type)
-        .some((base) => isIgnoredTypeOrBase(context, options, base, seen)))
+    || getBaseTypesForType(context, type).some((base) =>
+      isIgnoredTypeOrBase(context, options, base, seen),
+    )
   );
 }
 
