@@ -309,6 +309,7 @@ Currently, the list of core rules are the type-aware lint rules I use from types
 - no-unsafe-return: ❌ Not implemented, too noisy for me
 - no-unsafe-type-assertion: ❌ Not implemented, too noisy for me
 - no-unsafe-unary-minus: ✅ Implemented
+- no-useless-default-assignment: ✅ Implemented
 - non-nullable-type-assertion-style: ✅ Implemented
 - only-throw-error: ✅ Implemented, allow options is named based only
 - prefer-destructuring: Styling is out of core

@@ -18,6 +18,7 @@ import { noUnnecessaryTypeArguments } from "./rules/noUnnecessaryTypeArguments/n
 import { noUnnecessaryTypeAssertion } from "./rules/noUnnecessaryTypeAssertion/noUnnecessaryTypeAssertion.ts";
 import { noUnnecessaryTypeConversion } from "./rules/noUnnecessaryTypeConversion/noUnnecessaryTypeConversion.ts";
 import { noUnsafeUnaryMinus } from "./rules/noUnsafeUnaryMinus/noUnsafeUnaryMinus.ts";
+import { noUselessDefaultAssignment } from "./rules/noUselessDefaultAssignment/noUselessDefaultAssignment.ts";
 import { onlyThrowError } from "./rules/onlyThrowError/onlyThrowError.ts";
 import { preferFind } from "./rules/preferFind/preferFind.ts";
 import { preferIncludes } from "./rules/preferIncludes/preferIncludes.ts";
@@ -81,6 +82,7 @@ export const core = createRulesSet({
   noUnnecessaryTypeAssertion,
   noUnnecessaryTypeConversion,
   noUnsafeUnaryMinus,
+  noUselessDefaultAssignment,
   onlyThrowError,
   preferFind,
   preferIncludes,

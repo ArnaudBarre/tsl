@@ -64,6 +64,7 @@ const tseslintTypeAwareRules = new Set(
     "no-unsafe-return",
     "no-unsafe-type-assertion",
     "no-unsafe-unary-minus",
+    "no-useless-default-assignment",
     "non-nullable-type-assertion-style",
     "only-throw-error",
     "prefer-destructuring",

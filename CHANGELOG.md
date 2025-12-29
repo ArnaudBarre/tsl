@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- `noUnnecessaryCondition`: Catch useless `?? null` and `?? undefined` coalescing and add "Remove unnecessary nullish coalescing" suggestion.
+- Add `noUselessDefaultAssignment` rule
+- `noUnnecessaryCondition`: Catch useless `?? null` and `?? undefined` coalescing and add "Remove unnecessary nullish coalescing" suggestion
+- Port fixes from typescript-eslint up to v8.51.0
 
 ## 1.0.27
 
