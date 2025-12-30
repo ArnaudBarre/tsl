@@ -935,6 +935,8 @@ function test<T>(arg: T | { value: string }) {
 }
     `,
       `declare const foo: string | undefined; const bar = foo ?? null;`,
+      `declare const foo: { bar: number | null } | null; const baz = foo?.bar ?? null;`,
+      `declare const foo: { bar: number | null } | null; const baz = foo?.bar ?? undefined;`,
     ],
     invalid: [
       // Ensure that it's checking in all the right places

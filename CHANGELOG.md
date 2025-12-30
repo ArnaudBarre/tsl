@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.28
 
 - Add `noUselessDefaultAssignment` rule
 - `noUnnecessaryCondition`: Catch useless `?? null` and `?? undefined` coalescing and add "Remove unnecessary nullish coalescing" suggestion

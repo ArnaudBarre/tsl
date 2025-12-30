@@ -41,9 +41,9 @@ export const messages = {
   neverNullish:
     "Unnecessary conditional, left-hand side of `??` operator is not possibly null or undefined.",
   uselessNullCoalescing:
-    "Unnecessary coalescing, null is already included in the left-hand side of the `??` operator.",
+    "Unnecessary coalescing, undefined is not included in the left-hand side of the `??` operator.",
   uselessUndefinedCoalescing:
-    "Unnecessary coalescing, undefined is already included in the left-hand side of the `??` operator.",
+    "Unnecessary coalescing, null is not included in the left-hand side of the `??` operator.",
   neverOptionalChain: "Unnecessary optional chain on a non-nullish value.",
   noOverlapBooleanExpression:
     "Unnecessary conditional, the types have no overlap.",
@@ -374,14 +374,14 @@ function checkNodeForNullish(
     context.report({ node: node.left, message: messages.alwaysNullish });
   } else {
     if (
-      context.utils.typeOrUnionHasFlag(leftType, TypeFlags.Null)
-      && node.right.kind === SyntaxKind.NullKeyword
+      node.right.kind === SyntaxKind.NullKeyword
+      && !context.utils.typeOrUnionHasFlag(leftType, TypeFlags.Undefined)
     ) {
       reportUselessCoalescing(messages.uselessNullCoalescing);
     } else if (
-      context.utils.typeOrUnionHasFlag(leftType, TypeFlags.Undefined)
-      && node.right.kind === SyntaxKind.Identifier
+      node.right.kind === SyntaxKind.Identifier
       && node.right.text === "undefined"
+      && !context.utils.typeOrUnionHasFlag(leftType, TypeFlags.Null)
     ) {
       reportUselessCoalescing(messages.uselessUndefinedCoalescing);
     }
