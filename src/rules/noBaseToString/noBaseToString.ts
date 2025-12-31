@@ -250,7 +250,7 @@ function isIgnoredTypeOrBase(
   if (seen.has(type)) return false; // Prevent infinite recursion on circular references
   seen.add(type);
 
-  let typeName = getTypeName(context.rawChecker, type);
+  let typeName = getTypeName(context.checker, type);
   const genericIndex = typeName.indexOf("<");
   if (genericIndex !== -1) typeName = typeName.slice(0, genericIndex);
   return (

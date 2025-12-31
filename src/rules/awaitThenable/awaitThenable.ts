@@ -88,7 +88,7 @@ export const awaitThenable = defineRule(() => ({
             getWellKnownSymbolPropertyOfType(
               t,
               "asyncIterator",
-              context.rawChecker,
+              context.checker,
             ),
           );
 
@@ -122,7 +122,7 @@ export const awaitThenable = defineRule(() => ({
                 getWellKnownSymbolPropertyOfType(
                   typePart,
                   "asyncDispose",
-                  context.rawChecker,
+                  context.checker,
                 ) != null,
             );
 

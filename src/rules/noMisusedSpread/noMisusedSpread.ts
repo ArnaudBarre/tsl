@@ -167,7 +167,7 @@ function checkObjectSpread(
 
 function isIterable(context: Context, type: ts.Type): boolean {
   return typeConstituents(type).some((t) =>
-    getWellKnownSymbolPropertyOfType(t, "iterator", context.rawChecker),
+    getWellKnownSymbolPropertyOfType(t, "iterator", context.checker),
   );
 }
 

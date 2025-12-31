@@ -31,8 +31,8 @@ export function needsToBeAwaited(
     return "May";
   }
 
-  // 'thenable' values should always be be awaited
-  if (isThenableType(context.rawChecker, node, constrainedType)) {
+  // 'thenable' values should always be awaited
+  if (isThenableType(context.checker, node, constrainedType)) {
     return "Always";
   }
 

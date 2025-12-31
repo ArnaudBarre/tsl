@@ -418,7 +418,7 @@ export const preferStringStartsEndsWith = defineRule(
 function isTypeString(context: Context, expression: AST.Expression): boolean {
   return (
     getTypeName(
-      context.rawChecker,
+      context.checker,
       context.utils.getConstrainedTypeAtLocation(expression),
     ) === "string"
   );

@@ -223,7 +223,7 @@ Rules run on the TS AST, which is less known than ESTree but allows to query typ
 
 By default, the TS AST is, funny enough, poorly typed. That's why tsl ships with rewritten AST types that allows for type narrowing and exhaustive switches.
 
-To help build rules, a few common utils are available on `context.utils`, and `context.checker` is overridden with some type changes. If you need to pass the checker to another library that expects the builtin TypeChecker type, like [ts-api-utils](https://github.com/JoshuaKGoldberg/ts-api-utils), you can use `context.rawChecker`.
+To help build rules, a few common utils are available on `context.utils`, and `context.checker` is overridden with some type changes.
 
 ```ts
 import { type AST, core, defineConfig } from "tsl";

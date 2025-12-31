@@ -133,7 +133,7 @@ export const restrictPlusOperands = defineRule(
             for (const subBaseType of context.utils.unionConstituents(
               baseType,
             )) {
-              const typeName = getTypeName(context.rawChecker, subBaseType);
+              const typeName = getTypeName(context.checker, subBaseType);
               if (
                 typeName === "RegExp"
                   ? !options.allowRegExp

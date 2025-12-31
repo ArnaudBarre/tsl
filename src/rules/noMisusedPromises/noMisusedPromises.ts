@@ -532,7 +532,7 @@ function isSometimesThenable(
   for (const subType of context.utils.unionConstituents(
     context.checker.getApparentType(type),
   )) {
-    if (isThenableType(context.rawChecker, node, subType)) {
+    if (isThenableType(context.checker, node, subType)) {
       return true;
     }
   }
@@ -746,7 +746,7 @@ function anySignatureIsThenableType(
 ): boolean {
   for (const signature of type.getCallSignatures()) {
     const returnType = signature.getReturnType();
-    if (isThenableType(context.rawChecker, node, returnType)) {
+    if (isThenableType(context.checker, node, returnType)) {
       return true;
     }
   }
@@ -787,7 +787,7 @@ function isVoidReturningFunctionType(
 
       // If a certain positional argument accepts both thenable and void returns,
       // a promise-returning function is valid
-      if (isThenableType(context.rawChecker, node, returnType)) {
+      if (isThenableType(context.checker, node, returnType)) {
         return false;
       }
 

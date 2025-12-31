@@ -10,6 +10,7 @@ import type {
   TypeFlags,
   TypeReference,
 } from "typescript";
+import type ts from "typescript";
 import type * as AST from "./ast.ts";
 export type { AST };
 
@@ -101,8 +102,8 @@ export type Checker = Omit<
   | "isTupleType"
 > & {
   /** Fix Expression _Brand check */
-  getContextualType(node: AST.Expression): Type | undefined;
-  getTypeFromTypeNode(node: AST.TypeNode): Type;
+  getContextualType(node: AST.Expression | ts.Expression): Type | undefined;
+  getTypeFromTypeNode(node: AST.TypeNode | ts.TypeNode): Type;
   getResolvedSignature(
     node:
       | AST.CallExpression
@@ -110,7 +111,8 @@ export type Checker = Omit<
       | AST.TaggedTemplateExpression
       | AST.Decorator
       | AST.JsxSelfClosingElement
-      | AST.JsxOpeningElement,
+      | AST.JsxOpeningElement
+      | ts.CallLikeExpression,
   ): Signature | undefined;
   /** Improve narrowing, borrow from typescript-eslint */
   isArrayType(type: Type): type is TypeReference;
@@ -144,7 +146,7 @@ export type Context<Data = unknown> = {
   sourceFile: AST.SourceFile;
   program: Program;
   /**
-   * TypeScript checker, with some types overriddes
+   * TypeScript checker, with some types overrides
    * Can be used to get the type of a node
    * @example
    * ```ts
@@ -153,7 +155,7 @@ export type Context<Data = unknown> = {
    */
   checker: Checker;
   /**
-   * Useful if you need to pass the checker to another library that expect the builtin TypeChecker type
+   * @deprecated, use checker
    */
   rawChecker: TypeChecker;
   compilerOptions: CompilerOptions;

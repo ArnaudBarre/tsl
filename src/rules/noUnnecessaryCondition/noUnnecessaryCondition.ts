@@ -706,10 +706,10 @@ function isNullablePropertyType(
       return isNullableType(context, propType);
     }
   }
-  const typeName = getTypeName(context.rawChecker, propertyType);
+  const typeName = getTypeName(context.checker, propertyType);
   return context.checker
     .getIndexInfosOfType(objType)
-    .some((info) => getTypeName(context.rawChecker, info.keyType) === typeName);
+    .some((info) => getTypeName(context.checker, info.keyType) === typeName);
 }
 
 function isNullableType(context: Context, type: ts.Type): boolean {
@@ -784,7 +784,7 @@ function isMemberExpressionNullableOriginFromObject(
 
       return context.checker.getIndexInfosOfType(type).some((info) => {
         const isStringTypeName =
-          getTypeName(context.rawChecker, info.keyType) === "string";
+          getTypeName(context.checker, info.keyType) === "string";
         return (
           isStringTypeName
           && (usingNoUncheckedIndexedAccess

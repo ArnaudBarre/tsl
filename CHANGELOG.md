@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Deprecate `context.rawChecker`. Types overrides from `context.checker` have been updated so it can be passed to other libraries. Thanks @JoshuaKGoldberg for challenging this!
+
 ## 1.0.28
 
 - Add `noUselessDefaultAssignment` rule

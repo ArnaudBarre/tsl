@@ -90,7 +90,7 @@ const optionTesters = (
     [
       "RegExp",
       (context, type): boolean =>
-        getTypeName(context.rawChecker, type) === "RegExp",
+        getTypeName(context.checker, type) === "RegExp",
     ],
     ["Never", (_, type) => isIntrinsicNeverType(type)],
   ] as const satisfies [string, OptionTester][]
