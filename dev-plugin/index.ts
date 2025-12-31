@@ -58,7 +58,7 @@ context({
 const logs: string[] = [];
 let logPath: string | undefined;
 const log = (v: string) => {
-  logs.push(v);
+  logs.push(`[${new Date().toISOString().slice(11, -1)}] ${v}`);
   if (logPath !== undefined) writeFileSync(logPath, logs.join("\n"));
 };
 

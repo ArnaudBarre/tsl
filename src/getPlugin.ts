@@ -137,16 +137,14 @@ export const getPlugin = async (
             start,
             length: end - start,
           });
-          if (suggestions.length) {
-            for (const suggestion of suggestions) {
-              fileSuggestions.push({
-                rule: "ignore",
-                start,
-                end,
-                message: suggestion.message,
-                changes: suggestion.changes,
-              });
-            }
+          for (const suggestion of suggestions()) {
+            fileSuggestions.push({
+              rule: "ignore",
+              start,
+              end,
+              message: suggestion.message,
+              changes: suggestion.changes,
+            });
           }
           break;
         }

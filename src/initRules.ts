@@ -18,7 +18,7 @@ type UnusedIgnoreReport = {
   start: number;
   end: number;
   message: string;
-  suggestions: Suggestion[];
+  suggestions: () => Suggestion[];
 };
 export type Report = RuleReport | UnusedIgnoreReport;
 
@@ -108,9 +108,7 @@ export const initRules = async (
             return getProgram().getCompilerOptions();
           },
           utils: contextUtils,
-          report: undefined as unknown as (
-            descriptor: ReportDescriptor,
-          ) => void,
+          report: undefined as unknown as Context["report"],
           data: undefined,
         },
       });
@@ -206,31 +204,36 @@ export const initRules = async (
       }
       for (const comment of ignoreComments) {
         if (comment.used) continue;
-        const lineStart = lineStarts[comment.line - 1];
-        const lineEnd = lineStarts.at(comment.line);
-        const fixLocation = run(() => {
-          const fileText = sourceFile.getText();
-          const lineText = fileText.slice(lineStart, lineEnd).trim();
-          const commentText = fileText.slice(comment.start, comment.end);
-          if (lineText === commentText) {
-            return {
-              start: lineStart,
-              length: (lineEnd ?? comment.end) - lineStart,
-            };
-          }
-          return { start: comment.start, length: comment.end - comment.start };
-        });
         onReport({
           type: "ignore",
           start: comment.start,
           end: comment.end,
           message: "Unused ignore comment",
-          suggestions: [
-            {
-              message: "Remove unused ignore comment",
-              changes: [{ ...fixLocation, newText: "" }],
-            },
-          ],
+          suggestions: () => {
+            const lineStart = lineStarts[comment.line - 1];
+            const lineEnd = lineStarts.at(comment.line);
+            const fixLocation = run(() => {
+              const fileText = sourceFile.getText();
+              const lineText = fileText.slice(lineStart, lineEnd).trim();
+              const commentText = fileText.slice(comment.start, comment.end);
+              if (lineText === commentText) {
+                return {
+                  start: lineStart,
+                  length: (lineEnd ?? comment.end) - lineStart,
+                };
+              }
+              return {
+                start: comment.start,
+                length: comment.end - comment.start,
+              };
+            });
+            return [
+              {
+                message: "Remove unused ignore comment",
+                changes: [{ ...fixLocation, newText: "" }],
+              },
+            ];
+          },
         });
       }
       if (showTiming) {

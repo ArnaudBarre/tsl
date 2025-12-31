@@ -35,7 +35,7 @@ export type Config = {
    * });
    * ```
    */
-  rules: Rule<unknown>[];
+  rules: Rule<any>[];
   /**
    * List of path parts to ignore (using string.includes)
    *
@@ -63,7 +63,7 @@ export type Config = {
      * Redeclared rules (identical name) completely replace the base rules, there is no merging of options.
      * You can turn off a rule for these files by passing `"off"` as the rule option.
      */
-    rules: Rule<unknown>[];
+    rules: Rule<any>[];
   }[];
 };
 
