@@ -41,6 +41,8 @@ export default defineConfig({
 
 `enableProjectWideRulesInIDE` is an experimental new option to enable project-wide reports in the IDE (default to false). The IDE implementation is still a work in progress, and memory leaks or performance issues may occur.
 
+`core/unusedExport` is a new project-wide rule available with this release.
+
 ### Deprecate `context.rawChecker`
 
 Types overrides of `context.checker` have been updated so it can be passed to other libraries. `context.rawChecker` is therefore not needed anymore and has been deprecated. Thanks @JoshuaKGoldberg for challenging this!
