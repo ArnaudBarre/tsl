@@ -2,6 +2,7 @@ import ts from "typescript";
 import type { AnyNode, SourceFile, Visitor } from "./ast.ts";
 import { getContextUtils } from "./getContextUtils.ts";
 import type {
+  AggregateContext,
   AST,
   Checker,
   Config,
@@ -31,6 +32,7 @@ export const initRules = async (
   getProgram: () => ts.Program,
   config: Config,
   showTiming: boolean,
+  mode: "cli" | "plugin",
 ) => {
   const contextUtils = getContextUtils(getProgram);
   const rulesTimingMap: Record<string, number> = {};
@@ -51,20 +53,31 @@ export const initRules = async (
   const baseRules = config.rules;
 
   const allRules = new Set<string>();
+  const allProjectWideRules = new Set<string>();
   for (const rule of baseRules) {
     allRules.add(rule.name);
+    if (rule.aggregate) allProjectWideRules.add(rule.name);
     if (showTiming) rulesTimingMap[rule.name] = 0;
   }
   if (config.overrides) {
     for (const override of config.overrides) {
       for (const rule of override.rules) {
         allRules.add(rule.name);
+        if (rule.aggregate) allProjectWideRules.add(rule.name);
         if (showTiming) rulesTimingMap[rule.name] = 0;
       }
     }
   }
 
-  type RuleWithContext = { rule: Rule<unknown>; context: Context };
+  type RuleWithContext = {
+    rule: Rule<unknown>;
+    context: Context;
+    // Using a record instead of an array for fast update in plugin mode
+    filesForAggregate: Record<
+      string,
+      { sourceFile: SourceFile; data: unknown }
+    >;
+  };
   const getRulesVisitFnCache = new Map<
     string /* overridesKey */,
     ReturnType<typeof getRulesVisitFn>
@@ -93,6 +106,7 @@ export const initRules = async (
       const rule = rulesMaps[ruleName];
       rulesWithContext.push({
         rule,
+        filesForAggregate: {},
         context: {
           sourceFile: undefined as unknown as SourceFile,
           get program() {
@@ -158,19 +172,41 @@ export const initRules = async (
     return value;
   };
 
+  const ignoreCommentsMap: Record<
+    string,
+    IgnoreComment[] | "fileIgnored" | undefined
+  > = {};
+  const aggregateContext: AggregateContext = {
+    get checker() {
+      return getProgram().getTypeChecker() as unknown as Checker;
+    },
+    get compilerOptions() {
+      return getProgram().getCompilerOptions();
+    },
+    get program() {
+      return getProgram();
+    },
+    utils: contextUtils,
+    report: undefined as unknown as AggregateContext["report"],
+  };
+
   return {
     allRules,
     lint: (sourceFile: SourceFile, onReport: (report: Report) => void) => {
       if (sourceFile.fileName.includes("node_modules")) return;
       if (config.ignore?.some((p) => sourceFile.fileName.includes(p))) return;
       const { fileIgnored, ignoreComments } = getIgnoreComments(sourceFile);
-      if (fileIgnored) return;
+      ignoreCommentsMap[sourceFile.fileName] = fileIgnored
+        ? "fileIgnored"
+        : ignoreComments;
       const { rulesWithContext, visit } = getRulesVisitFn(sourceFile.fileName);
       const start = showTiming ? performance.now() : 0;
       const reports: RuleReport[] = [];
       for (const { rule, context } of rulesWithContext) {
+        if (fileIgnored && !rule.aggregate) return;
         context.sourceFile = sourceFile;
         context.report = (props) => {
+          if (fileIgnored) return;
           reports.push({ type: "rule", rule, ...props });
         };
         if (rule.createData) {
@@ -186,11 +222,12 @@ export const initRules = async (
       for (const report of reports) {
         const timingStart = showTiming ? performance.now() : 0;
         const start = "node" in report ? report.node.getStart() : report.start;
-        const line =
-          lineStarts.findLastIndex((lineStart) => start >= lineStart) + 1;
+        const line = lineStarts.findLastIndex(
+          (lineStart) => start >= lineStart,
+        );
         const ignoreComment = ignoreComments.find(
           (comment) =>
-            (!comment.local || comment.line === line - 1)
+            (!comment.local || comment.line === line)
             && comment.ruleNames.includes(report.rule.name),
         );
         if (ignoreComment) {
@@ -202,43 +239,106 @@ export const initRules = async (
           rulesTimingMap[report.rule.name] += performance.now() - timingStart;
         }
       }
-      for (const comment of ignoreComments) {
-        if (comment.used) continue;
-        onReport({
-          type: "ignore",
-          start: comment.start,
-          end: comment.end,
-          message: "Unused ignore comment",
-          suggestions: () => {
-            const lineStart = lineStarts[comment.line - 1];
-            const lineEnd = lineStarts.at(comment.line);
-            const fixLocation = run(() => {
-              const fileText = sourceFile.getText();
-              const lineText = fileText.slice(lineStart, lineEnd).trim();
-              const commentText = fileText.slice(comment.start, comment.end);
-              if (lineText === commentText) {
-                return {
-                  start: lineStart,
-                  length: (lineEnd ?? comment.end) - lineStart,
-                };
-              }
-              return {
-                start: comment.start,
-                length: comment.end - comment.start,
-              };
-            });
-            return [
-              {
-                message: "Remove unused ignore comment",
-                changes: [{ ...fixLocation, newText: "" }],
-              },
-            ];
-          },
-        });
+      for (const ruleWithContext of rulesWithContext) {
+        if (!ruleWithContext.rule.aggregate) continue;
+        ruleWithContext.filesForAggregate[sourceFile.fileName] = {
+          sourceFile,
+          data: ruleWithContext.context.data,
+        };
       }
       if (showTiming) {
         filesTimingMap[sourceFile.fileName] = performance.now() - start;
       }
+    },
+    aggregate: () => {
+      const map = new Map<ts.SourceFile, Report[]>();
+      const addReport = (sourceFile: ts.SourceFile, report: Report) => {
+        let reports = map.get(sourceFile);
+        if (!reports) {
+          reports = [];
+          map.set(sourceFile, reports);
+        }
+        reports.push(report);
+      };
+      for (const { rulesWithContext } of getRulesVisitFnCache.values()) {
+        for (const it of rulesWithContext) {
+          if (!it.rule.aggregate) continue;
+          aggregateContext.report = (props) => {
+            const start = "node" in props ? props.node.getStart() : props.start;
+            const line = props.sourceFile
+              .getLineStarts()
+              .findLastIndex((lineStart) => start >= lineStart);
+            const ignoreComments = ignoreCommentsMap[props.sourceFile.fileName];
+            if (ignoreComments === "fileIgnored") return;
+            const ignoreComment = ignoreComments?.find(
+              (comment) =>
+                (!comment.local || comment.line === line)
+                && comment.ruleNames.includes(it.rule.name),
+            );
+            if (ignoreComment) {
+              ignoreComment.used = true;
+              return;
+            }
+            addReport(props.sourceFile as unknown as ts.SourceFile, {
+              type: "rule",
+              rule: it.rule,
+              ...props,
+            });
+          };
+          it.rule.aggregate(
+            aggregateContext,
+            Object.values(it.filesForAggregate),
+          );
+        }
+      }
+      for (const sourceFile of getProgram().getSourceFiles()) {
+        const comments = ignoreCommentsMap[sourceFile.fileName];
+        if (comments === undefined || comments === "fileIgnored") continue;
+        for (const comment of comments) {
+          if (comment.used) continue;
+          if (
+            mode === "plugin"
+            && !config.enableProjectWideRulesInIDE
+            && comment.ruleNames.some((name) => allProjectWideRules.has(name))
+          ) {
+            // Don't generate false positives reports if project-wide rules were skipped
+            continue;
+          }
+          addReport(sourceFile, {
+            type: "ignore",
+            start: comment.start,
+            end: comment.end,
+            message: "Unused ignore comment",
+            suggestions: () => {
+              const lineStarts = sourceFile.getLineStarts();
+              const lineStart = lineStarts[comment.line - 1];
+              const lineEnd = lineStarts.at(comment.line);
+              const fixLocation = run(() => {
+                const fileText = sourceFile.getText();
+                const lineText = fileText.slice(lineStart, lineEnd).trim();
+                const commentText = fileText.slice(comment.start, comment.end);
+                if (lineText === commentText) {
+                  return {
+                    start: lineStart,
+                    length: (lineEnd ?? comment.end) - lineStart,
+                  };
+                }
+                return {
+                  start: comment.start,
+                  length: comment.end - comment.start,
+                };
+              });
+              return [
+                {
+                  message: "Remove unused ignore comment",
+                  changes: [{ ...fixLocation, newText: "" }],
+                },
+              ];
+            },
+          });
+        }
+      }
+      return map;
     },
     timingMaps: showTiming
       ? { Rule: rulesTimingMap, File: filesTimingMap }
