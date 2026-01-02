@@ -32,8 +32,10 @@ import { restrictTemplateExpressions } from "./rules/restrictTemplateExpressions
 import { returnAwait } from "./rules/returnAwait/returnAwait.ts";
 import { strictBooleanExpressions } from "./rules/strictBooleanExpressions/strictBooleanExpressions.ts";
 import { switchExhaustivenessCheck } from "./rules/switchExhaustivenessCheck/switchExhaustivenessCheck.ts";
+import { unusedExport } from "./rules/unusedExport/unusedExport.ts";
 import type { Config, Rule } from "./types.ts";
 
+/* tsl-ignore core/unusedExport */
 export type {
   AST,
   Checker,
@@ -96,4 +98,5 @@ export const core = createRulesSet({
   returnAwait,
   strictBooleanExpressions,
   switchExhaustivenessCheck,
+  unusedExport,
 });
