@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   noMeaninglessVoidOperator,
 } from "./noMeaninglessVoidOperator.ts";
 
-export const test = () =>
-  ruleTester({
+test("noMeaninglessVoidOperator", () => {
+  const hasError = ruleTester({
     ruleFn: noMeaninglessVoidOperator,
     valid: [
       `
@@ -89,3 +90,5 @@ function bar(x: never) {
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

@@ -1,3 +1,4 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, noBaseToString } from "./noBaseToString.ts";
 
@@ -22,8 +23,8 @@ const literalListWrapped = [
   ...literalListBasic,
   ...literalListNeedParen.map((i) => `(${i})`),
 ];
-export const test = () =>
-  ruleTester({
+test("noBaseToString", () => {
+  const hasError = ruleTester({
     ruleFn: noBaseToString,
     valid: [
       // template
@@ -1398,3 +1399,5 @@ a.toString();
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

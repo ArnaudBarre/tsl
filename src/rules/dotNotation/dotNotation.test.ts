@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { dotNotation } from "./dotNotation.ts";
 
-export const test = () =>
-  ruleTester({
+test("dotNotation", () => {
+  const hasError = ruleTester({
     ruleFn: dotNotation,
     valid: [
       "a['12'];",
@@ -92,3 +93,5 @@ dingus?.nested['property'];
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

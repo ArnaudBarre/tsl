@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   noUnnecessaryTypeConversion,
 } from "./noUnnecessaryTypeConversion.ts";
 
-export const test = () =>
-  ruleTester({
+test("noUnnecessaryTypeConversion", () => {
+  const hasError = ruleTester({
     ruleFn: noUnnecessaryTypeConversion,
     valid: [
       // standard type conversions are valid
@@ -643,3 +644,5 @@ let str = 'asdf';
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

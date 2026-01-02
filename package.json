@@ -11,7 +11,7 @@
     "dev": "esbuild --bundle dev-plugin/index.ts --outfile=dev-plugin/index.js --platform=node --format=cjs --external:esbuild --watch",
     "codegen": "bun scripts/codegen.ts",
     "import": "bun scripts/import-rule.ts",
-    "test": "bun scripts/tests.ts",
+    "test": "bun test",
     "build": "bun scripts/bundle.ts && tsc -p tsconfig.dist.json && cd dist && publint",
     "tsl": "bun src/cli.ts",
     "prettier-all": "bun prettier-ci --write",

@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   noConfusingVoidExpression,
 } from "./noConfusingVoidExpression.ts";
 
-export const test = () =>
-  ruleTester({
+test("noConfusingVoidExpression", () => {
+  const hasError = ruleTester({
     ruleFn: noConfusingVoidExpression,
     valid: [
       "() => Math.random();",
@@ -1391,3 +1392,5 @@ function test(arg?: string): any | void {
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

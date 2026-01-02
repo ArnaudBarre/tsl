@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   noUselessDefaultAssignment,
 } from "./noUselessDefaultAssignment.ts";
 
-export const test = () =>
-  ruleTester({
+test("noUselessDefaultAssignment", () => {
+  const hasError = ruleTester({
     ruleFn: noUselessDefaultAssignment,
     valid: [
       `
@@ -590,3 +591,5 @@ export const test = () =>
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

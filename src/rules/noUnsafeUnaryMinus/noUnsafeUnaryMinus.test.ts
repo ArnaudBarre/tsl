@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, noUnsafeUnaryMinus } from "./noUnsafeUnaryMinus.ts";
 
-export const test = () =>
-  ruleTester({
+test("noUnsafeUnaryMinus", () => {
+  const hasError = ruleTester({
     ruleFn: noUnsafeUnaryMinus,
     valid: [
       "+42;",
@@ -59,3 +60,5 @@ export const test = () =>
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

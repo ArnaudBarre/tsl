@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   noUnnecessaryTypeArguments,
 } from "./noUnnecessaryTypeArguments.ts";
 
-export const test = () =>
-  ruleTester({
+test("noUnnecessaryTypeArguments", () => {
+  const hasError = ruleTester({
     ruleFn: noUnnecessaryTypeArguments,
     valid: [
       "f<>();",
@@ -725,3 +726,5 @@ const button = <Button />;
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

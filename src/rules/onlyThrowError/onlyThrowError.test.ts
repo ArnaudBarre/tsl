@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, onlyThrowError } from "./onlyThrowError.ts";
 
-export const test = () =>
-  ruleTester({
+test("onlyThrowError", () => {
+  const hasError = ruleTester({
     ruleFn: onlyThrowError,
     valid: [
       "throw new Error();",
@@ -399,3 +400,5 @@ function fun<T extends number>(t: T): void {
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

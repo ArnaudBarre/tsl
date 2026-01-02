@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, noFloatingPromises } from "./noFloatingPromises.ts";
 
-export const test = () =>
-  ruleTester({
+test("noFloatingPromises", () => {
+  const hasError = ruleTester({
     ruleFn: noFloatingPromises,
     valid: [
       `
@@ -4707,3 +4708,5 @@ await (<Promise<number>>{});
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

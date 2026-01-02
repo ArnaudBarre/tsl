@@ -338,7 +338,7 @@ Currently, the list of core rules are the type-aware lint rules I use from types
 
 ## Create sharable rules
 
-Use `defineRule` and `createRulesSet` that are used for the core rules. You can test your rules using `ruleTester`, which is still a bit raw.
+Use `defineRule` and `createRulesSet` that are used for the core rules. You can test your rules using `ruleTester`, which is still a bit raw. Feel free to open an issue if you need help or have ideas for improvements.
 
 ## FAQ
 

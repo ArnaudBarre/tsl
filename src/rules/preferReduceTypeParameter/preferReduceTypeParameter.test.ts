@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   preferReduceTypeParameter,
 } from "./preferReduceTypeParameter.ts";
 
-export const test = () =>
-  ruleTester({
+test("preferReduceTypeParameter", () => {
+  const hasError = ruleTester({
     ruleFn: preferReduceTypeParameter,
     valid: [
       `
@@ -310,3 +311,5 @@ tuple.reduce<number[]>((a, s) => a.concat(s * 2), []);
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

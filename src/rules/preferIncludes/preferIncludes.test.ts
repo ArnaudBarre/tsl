@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, preferIncludes } from "./preferIncludes.ts";
 
-export const test = () =>
-  ruleTester({
+test("preferIncludes", () => {
+  const hasError = ruleTester({
     ruleFn: preferIncludes,
     valid: [
       `
@@ -603,3 +604,5 @@ export const test = () =>
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

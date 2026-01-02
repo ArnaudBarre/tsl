@@ -1,3 +1,4 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
@@ -24,8 +25,8 @@ const nullishTypeTest = <T>(
     ),
   );
 
-export const test = () =>
-  ruleTester({
+test("preferNullishCoalescing", () => {
+  const hasError = ruleTester({
     ruleFn: preferNullishCoalescing,
     valid: [
       "declare let x: number | undefined; 15 !== x && x !== undefined ? x : y;",
@@ -2445,3 +2446,5 @@ function lazyInitialize() {
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

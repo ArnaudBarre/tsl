@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, noForInArray } from "./noForInArray.ts";
 
-export const test = () =>
-  ruleTester({
+test("noForInArray", () => {
+  const hasError = ruleTester({
     ruleFn: noForInArray,
     valid: [
       `
@@ -314,3 +315,5 @@ for (const key in obj) {
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

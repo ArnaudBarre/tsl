@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { awaitThenable, messages } from "./awaitThenable.ts";
 
-export const test = () =>
-  ruleTester({
+test("awaitThenable", () => {
+  const hasError = ruleTester({
     ruleFn: awaitThenable,
     valid: [
       `
@@ -969,3 +970,5 @@ class C<R extends number> {
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

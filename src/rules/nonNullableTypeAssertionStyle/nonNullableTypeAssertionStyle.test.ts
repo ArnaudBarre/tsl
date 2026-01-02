@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   nonNullableTypeAssertionStyle,
 } from "./nonNullableTypeAssertionStyle.ts";
 
-export const test = () =>
-  ruleTester({
+test("nonNullableTypeAssertionStyle", () => {
+  const hasError = ruleTester({
     ruleFn: nonNullableTypeAssertionStyle,
     valid: [
       `
@@ -341,3 +342,5 @@ function first<T extends string | number>(array: ArrayLike<T>): T | null {
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

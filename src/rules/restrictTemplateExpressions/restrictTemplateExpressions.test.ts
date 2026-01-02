@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   restrictTemplateExpressions,
 } from "./restrictTemplateExpressions.ts";
 
-export const test = () =>
-  ruleTester({
+test("restrictTemplateExpressions", () => {
+  const hasError = ruleTester({
     ruleFn: restrictTemplateExpressions,
     valid: [
       // Base case
@@ -609,3 +610,5 @@ export const test = () =>
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

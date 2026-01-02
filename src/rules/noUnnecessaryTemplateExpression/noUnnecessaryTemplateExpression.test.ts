@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   noUnnecessaryTemplateExpression,
 } from "./noUnnecessaryTemplateExpression.ts";
 
-export const test = () =>
-  ruleTester({
+test("noUnnecessaryTemplateExpression", () => {
+  const hasError = ruleTester({
     ruleFn: noUnnecessaryTemplateExpression,
     valid: [
       "const string = 'a';",
@@ -457,3 +458,5 @@ export const test = () =>
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

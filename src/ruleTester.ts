@@ -61,6 +61,7 @@ const isNode = (value: object): value is AST.AnyNode =>
   "kind" in value && typeof value.kind === "number";
 
 type CaseProps<RuleFn extends (options?: unknown) => Rule<unknown>> = {
+  /** Parse code as TSX */
   tsx?: boolean;
   compilerOptions?: ts.CompilerOptions;
   options?: Parameters<RuleFn>[0];
@@ -119,6 +120,11 @@ export type InvalidTestCase<
     | [message: string, line?: number, column?: number]
   )[];
 };
+
+/**
+ * Output API is still a bit raw (it prints differences to the console and returns a 'hasError' boolean)
+ * Feel free to open an issue if you need help or have ideas for improvements.
+ */
 export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
   ruleFn,
   tsx,
@@ -126,6 +132,7 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
   invalid,
 }: {
   ruleFn: RuleFn;
+  /** Parse code as TSX, @default false */
   tsx?: boolean;
   valid: ValidTestCase<RuleFn>[];
   invalid: InvalidTestCase<RuleFn>[];
@@ -181,7 +188,6 @@ export const ruleTester = <RuleFn extends (options?: any) => Rule<unknown>>({
     });
   };
 
-  console.log(ruleFn().name);
   for (const [index, _validCase] of valid.entries()) {
     if (typeFocus && typeFocus !== "valid") continue;
     if (indexFocus && indexFocus !== index.toString()) continue;

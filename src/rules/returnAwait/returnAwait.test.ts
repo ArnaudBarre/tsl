@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, returnAwait } from "./returnAwait.ts";
 
-export const test = () =>
-  ruleTester({
+test("returnAwait", () => {
+  const hasError = ruleTester({
     ruleFn: returnAwait,
     valid: [
       `
@@ -553,3 +554,5 @@ async function f() {
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   strictBooleanExpressions,
 } from "./strictBooleanExpressions.ts";
 
-export const test = () =>
-  ruleTester({
+test("strictBooleanExpressions", () => {
+  const hasError = ruleTester({
     ruleFn: strictBooleanExpressions,
     valid: [
       {
@@ -4377,3 +4378,5 @@ const stringValue: string = 'hoge';
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   preferStringStartsEndsWith,
 } from "./preferStringStartsEndsWith.ts";
 
-export const test = () =>
-  ruleTester({
+test("preferStringStartsEndsWith", () => {
+  const hasError = ruleTester({
     ruleFn: preferStringStartsEndsWith,
     valid: [
       `
@@ -1548,3 +1549,5 @@ export const test = () =>
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, noImpliedEval } from "./noImpliedEval.ts";
 
-export const test = () =>
-  ruleTester({
+test("noImpliedEval", () => {
+  const hasError = ruleTester({
     ruleFn: noImpliedEval,
     valid: [
       "foo.setImmediate(null);",
@@ -903,3 +904,5 @@ setTimeout(foo || bar, 500);
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

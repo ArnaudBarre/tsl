@@ -1,3 +1,4 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, noUnnecessaryCondition } from "./noUnnecessaryCondition.ts";
 
@@ -14,8 +15,8 @@ const unnecessaryConditionTest = (
   errors: [{ message: messages[messageId], line: 4, column: 12 }],
 });
 
-export const test = () =>
-  ruleTester({
+test("noUnnecessaryCondition", () => {
+  const hasError = ruleTester({
     ruleFn: noUnnecessaryCondition,
     valid: [
       `
@@ -3360,3 +3361,5 @@ const bar = foo;
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

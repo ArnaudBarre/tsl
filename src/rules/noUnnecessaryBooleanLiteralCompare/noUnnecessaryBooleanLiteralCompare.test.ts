@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   noUnnecessaryBooleanLiteralCompare,
 } from "./noUnnecessaryBooleanLiteralCompare.ts";
 
-export const test = () =>
-  ruleTester({
+test("noUnnecessaryBooleanLiteralCompare", () => {
+  const hasError = ruleTester({
     ruleFn: noUnnecessaryBooleanLiteralCompare,
     valid: [
       `
@@ -661,3 +662,5 @@ const extendsUnknown: <T extends unknown>(
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

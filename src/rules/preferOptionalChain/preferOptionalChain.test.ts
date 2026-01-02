@@ -1,3 +1,4 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, preferOptionalChain } from "./preferOptionalChain.ts";
 
@@ -208,8 +209,8 @@ const getBaseCases = ({
     };
   });
 
-export const test = () =>
-  ruleTester({
+test("preferOptionalChain", () => {
+  const hasError = ruleTester({
     ruleFn: preferOptionalChain,
     valid: [
       "foo || {};",
@@ -2781,3 +2782,5 @@ const baz = foo?.bar;
       }),
     ],
   });
+  expect(hasError).toEqual(false);
+});

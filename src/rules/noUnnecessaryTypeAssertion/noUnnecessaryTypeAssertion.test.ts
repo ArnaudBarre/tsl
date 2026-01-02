@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   noUnnecessaryTypeAssertion,
 } from "./noUnnecessaryTypeAssertion.ts";
 
-export const test = () =>
-  ruleTester({
+test("noUnnecessaryTypeAssertion", () => {
+  const hasError = ruleTester({
     ruleFn: noUnnecessaryTypeAssertion,
     valid: [
       `
@@ -1434,3 +1435,5 @@ class T {
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

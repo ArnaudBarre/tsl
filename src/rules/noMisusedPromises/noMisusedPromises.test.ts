@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, noMisusedPromises } from "./noMisusedPromises.ts";
 
-export const test = () =>
-  ruleTester({
+test("noMisusedPromises", () => {
+  const hasError = ruleTester({
     ruleFn: noMisusedPromises,
     valid: [
       `
@@ -2343,3 +2344,5 @@ const a: A = {
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

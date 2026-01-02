@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, noMisusedSpread } from "./noMisusedSpread.ts";
 
-export const test = () =>
-  ruleTester({
+test("noMisusedSpread", () => {
+  const hasError = ruleTester({
     ruleFn: noMisusedSpread,
     valid: [
       "const a = [...[1, 2, 3]];",
@@ -1571,3 +1572,5 @@ export const test = () =>
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

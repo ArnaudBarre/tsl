@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, preferFind } from "./preferFind.ts";
 
-export const test = () =>
-  ruleTester({
+test("preferFind", () => {
+  const hasError = ruleTester({
     ruleFn: preferFind,
     valid: [
       `
@@ -391,3 +392,5 @@ declare const spreadArgs: [(x: unknown) => boolean];
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

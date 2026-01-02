@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, restrictPlusOperands } from "./restrictPlusOperands.ts";
 
-export const test = () =>
-  ruleTester({
+test("restrictPlusOperands", () => {
+  const hasError = ruleTester({
     ruleFn: restrictPlusOperands,
     valid: [
       "let x = 5;",
@@ -1496,3 +1497,5 @@ const f = (a: any, b: unknown) => a + b;
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

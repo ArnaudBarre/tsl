@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, noArrayDelete } from "./noArrayDelete.ts";
 
-export const test = () =>
-  ruleTester({
+test("noArrayDelete", () => {
+  const hasError = ruleTester({
     ruleFn: noArrayDelete,
     valid: [
       `
@@ -554,3 +555,5 @@ export const test = () =>
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

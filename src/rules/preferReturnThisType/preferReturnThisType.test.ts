@@ -1,8 +1,9 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import { messages, preferReturnThisType } from "./preferReturnThisType.ts";
 
-export const test = () =>
-  ruleTester({
+test("preferReturnThisType", () => {
+  const hasError = ruleTester({
     ruleFn: preferReturnThisType,
     valid: [
       `
@@ -463,3 +464,5 @@ class BaseUnion {
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

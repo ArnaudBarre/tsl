@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   switchExhaustivenessCheck,
 } from "./switchExhaustivenessCheck.ts";
 
-export const test = () =>
-  ruleTester({
+test("switchExhaustivenessCheck", () => {
+  const hasError = ruleTester({
     ruleFn: switchExhaustivenessCheck,
     valid: [
       // All branches matched
@@ -2692,3 +2693,5 @@ function foo(x: string[]) {
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});

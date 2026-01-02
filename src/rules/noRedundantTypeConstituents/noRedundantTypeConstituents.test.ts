@@ -1,11 +1,12 @@
+import { expect, test } from "bun:test";
 import { ruleTester } from "../../ruleTester.ts";
 import {
   messages,
   noRedundantTypeConstituents,
 } from "./noRedundantTypeConstituents.ts";
 
-export const test = () =>
-  ruleTester({
+test("noRedundantTypeConstituents", () => {
+  const hasError = ruleTester({
     ruleFn: noRedundantTypeConstituents,
     valid: [
       `
@@ -262,3 +263,5 @@ export const test = () =>
       },
     ],
   });
+  expect(hasError).toEqual(false);
+});
