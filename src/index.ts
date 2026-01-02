@@ -35,6 +35,7 @@ import { switchExhaustivenessCheck } from "./rules/switchExhaustivenessCheck/swi
 import { unusedExport } from "./rules/unusedExport/unusedExport.ts";
 import type { Config, Rule } from "./types.ts";
 
+/* tsl-ignore core/unusedExport */
 export type {
   AST,
   Checker,

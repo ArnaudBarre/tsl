@@ -4,6 +4,7 @@ import { getContextUtils } from "./getContextUtils.ts";
 import type { AST, Checker, Context, ReportDescriptor, Rule } from "./types.ts";
 import { visitorEntries } from "./visitorEntries.ts";
 
+// tsl-ignore core/unusedExport
 export function print(...args: any[]) {
   console.log(...args.map((value) => transform(value, new Set())));
 }
