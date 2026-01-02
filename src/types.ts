@@ -66,6 +66,13 @@ export type Config = {
      */
     rules: Rule<any>[];
   }[];
+  /**
+   * The IDE implementation is still a work in progress,
+   * and memory leaks or performance issues may occur.
+   * @default false
+   * @experimental
+   */
+  enableProjectWideRulesInIDE?: boolean;
 };
 
 export type Rule<Data = undefined> = {
@@ -91,6 +98,20 @@ export type Rule<Data = undefined> = {
    * ```
    */
   visitor: AST.Visitor<Data>;
+  /**
+   * Called once after all files have been visited. Can be used to generate new reports that
+   * require cross-file analysis like validating imports or usages.
+   * @example
+   * ```ts
+   * aggregate: (context, files) => {
+   *
+   * }
+   * ```
+   */
+  aggregate?: (
+    context: AggregateContext,
+    files: { sourceFile: AST.SourceFile; data: Data }[],
+  ) => void;
 };
 
 export type Checker = Omit<
@@ -221,4 +242,26 @@ export type Context<Data = unknown> = {
    * Can be used to pass information between visited nodes.
    */
   data: Data;
+};
+
+export type ReportDescriptorWithSourceFile = ReportDescriptor & {
+  sourceFile: AST.SourceFile;
+};
+export type AggregateContext = {
+  program: Context["program"];
+  checker: Context["checker"];
+  compilerOptions: Context["compilerOptions"];
+  utils: Context["utils"];
+  /**
+   * Report a diagnostic
+   * @example
+   * ```ts
+   * context.report({
+   *   sourceFile: sourceFile,
+   *   node: node.expression,
+   *   message: "Foo is unused.",
+   * });
+   * ```
+   */
+  report(descriptor: ReportDescriptorWithSourceFile): void;
 };

@@ -1,6 +1,7 @@
 import { core, defineConfig } from "./src/index.ts";
 
 export default defineConfig({
+  enableProjectWideRulesInIDE: true,
   rules: [
     ...core.all(),
     core.noConfusingVoidExpression({ ignoreArrowShorthand: true }),
