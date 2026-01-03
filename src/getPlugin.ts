@@ -5,6 +5,8 @@ import { initRules } from "./initRules.ts";
 import { loadConfig } from "./loadConfig.ts";
 import type { Suggestion } from "./types.ts";
 
+const UNUSED_COMMENT_CODE = "unusedComment";
+
 export const getPlugin = async (
   ts: typeof import("typescript"),
   languageService: LanguageService,
@@ -48,7 +50,7 @@ export const getPlugin = async (
         ? ts.DiagnosticCategory.Error
         : ts.DiagnosticCategory.Warning;
     (ts as any).codefix.registerCodeFix({
-      errorCodes: Array.from(result.allRules),
+      errorCodes: [UNUSED_COMMENT_CODE, ...Array.from(result.allRules)],
       getCodeActions: () => undefined,
     });
     log(
@@ -131,7 +133,7 @@ export const getPlugin = async (
           diagnostics.push({
             category: ts.DiagnosticCategory.Warning,
             source: "tsl",
-            code: "unusedComment" as any,
+            code: UNUSED_COMMENT_CODE as any,
             messageText: message,
             file: sourceFile,
             start,

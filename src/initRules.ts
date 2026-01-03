@@ -213,7 +213,7 @@ export const initRules = async (
             const lineStart = lineStarts[comment.line - 1];
             const lineEnd = lineStarts.at(comment.line);
             const fixLocation = run(() => {
-              const fileText = sourceFile.getText();
+              const fileText = sourceFile.getFullText();
               const lineText = fileText.slice(lineStart, lineEnd).trim();
               const commentText = fileText.slice(comment.start, comment.end);
               if (lineText === commentText) {
