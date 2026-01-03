@@ -12,10 +12,7 @@ export const getPlugin = async (
   languageService: LanguageService,
   log: (v: string) => void,
 ): Promise<{
-  getSemanticDiagnostics(
-    fileName: string,
-    original: LanguageService["getSemanticDiagnostics"],
-  ): Diagnostic[];
+  getSemanticDiagnostics(fileName: string): Diagnostic[];
   getCodeFixesAtPosition: LanguageService["getCodeFixesAtPosition"];
   cleanUp(): void;
 }> => {
@@ -156,17 +153,12 @@ export const getPlugin = async (
   };
 
   return {
-    getSemanticDiagnostics: (
-      fileName: string,
-      original: LanguageService["getSemanticDiagnostics"],
-    ) => {
-      const result = original(fileName);
+    getSemanticDiagnostics: (fileName: string) => {
       try {
-        const { diagnostics } = runLint(fileName);
-        if (!diagnostics.length) return result;
-        return [...result, ...diagnostics];
-      } catch {
-        return result;
+        return runLint(fileName).diagnostics;
+      } catch (e) {
+        log((e as any)?.message);
+        return [];
       }
     },
     getCodeFixesAtPosition: (fileName, start, end) => {
@@ -214,7 +206,8 @@ export const getPlugin = async (
           }
         }
         return result;
-      } catch {
+      } catch (e) {
+        log((e as any)?.message);
         return [];
       }
     },
