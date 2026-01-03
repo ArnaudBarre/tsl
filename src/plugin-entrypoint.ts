@@ -10,10 +10,10 @@ const init: ts.server.PluginModuleFactory = ({ typescript: ts }) => {
         info.languageService;
       let plugin: Awaited<ReturnType<typeof getPlugin>> | undefined;
       void getPlugin(ts, info.languageService, log).then((p) => (plugin = p));
-      info.languageService.getSemanticDiagnostics = (fileName) => {
-        if (!plugin) return getSemanticDiagnostics(fileName);
-        return plugin.getSemanticDiagnostics(fileName, getSemanticDiagnostics);
-      };
+      info.languageService.getSemanticDiagnostics = (fileName) => [
+        ...(plugin?.getSemanticDiagnostics(fileName) ?? []),
+        ...getSemanticDiagnostics(fileName),
+      ];
       info.languageService.getCodeFixesAtPosition = (...args) => [
         ...(plugin?.getCodeFixesAtPosition(...args) ?? []),
         ...getCodeFixesAtPosition(...args),
