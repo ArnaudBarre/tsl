@@ -618,7 +618,7 @@ function checkCallExpression(
  * Inspect a call expression to see if it's a call to an assertion function.
  * If it is, return the node of the argument that is asserted and other useful info.
  */
-export function findTypeGuardAssertedArgument(
+function findTypeGuardAssertedArgument(
   context: Context,
   node: AST.CallExpression,
 ): { argument: AST.Expression; asserts: boolean; type: ts.Type } | undefined {
@@ -870,7 +870,7 @@ function checkOptionalChain(
 }
 
 // Truthiness utilities
-export function isPossiblyFalsy(type: ts.Type): boolean {
+function isPossiblyFalsy(type: ts.Type): boolean {
   return isTypeRecurser(type, (t) => {
     return t.isLiteral()
       ? !Boolean(getValueOfLiteralType(t))

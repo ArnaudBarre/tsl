@@ -6,6 +6,7 @@ tsl is an extension of tsc for type-aware linting. It's designed to be used in c
 
 - Run type-aware rules [faster](https://github.com/ArnaudBarre/tsl/issues/3) than [typescript-eslint](https://typescript-eslint.io/)
 - Type safe config with custom rules in TypeScript
+- Project-wide rules (experimental)
 - No [IDE caching issue](https://typescript-eslint.io/troubleshooting/faqs/general/#changes-to-one-file-are-not-reflected-when-linting-other-files-in-my-ide)
 - Something missing? Look at the [roadmap](https://github.com/ArnaudBarre/tsl/issues/4) or [open an issue](https://github.com/ArnaudBarre/tsl/issues/new)
 
@@ -200,6 +201,10 @@ Like the ignore option, the `files` option test for inclusion against the file p
 
 Redeclared rules (identical name) completely replace the "base" rule, there is no merging of options.
 
+### enableProjectWideRulesInIDE (experimental)
+
+Enable project-wide rules in IDE. The IDE implementation is still a work in progress, and memory leaks or performance issues may occur. Enable and report issues if you encounter any.
+
 ## Ignore comments
 
 Rules reports can be ignored with line comments (ignore next line) or one line block comments (ignore for the whole file).
@@ -271,9 +276,58 @@ export default defineConfig({
 });
 ```
 
+### Project-wide rules (added in 1.1.0, experimental)
+
+Rules can optionally implement an `aggregate` function that will be called once for all files that have been linted. This allows to implement rules that require cross-file analysis, like detecting circular dependencies.
+
+```ts
+import { type AST, core, defineConfig } from "tsl";
+
+type ImportsData = {
+  imports: { path: string; node: AST.ImportDeclaration }[];
+};
+
+export default defineConfig({
+  rules: [
+    ...core.all(),
+    {
+      name: "org/noCircularDependencies",
+      createData: (): ImportsData => ({ imports: [] }),
+      visitor: {
+        ImportDeclaration(context, node) {
+          context.data.imports.push({ path: toAbsolutePath(node), node });
+        },
+      },
+      aggregate(context, files) {
+        //                ^ { sourceFile: AST.SourceFile; data: ImportsData }[]
+        for (const circularEntry of getCircularDependencies(files)) {
+          context.report({
+            message: "Circular dependency detected",
+            sourceFile: circularEntry.sourceFile,
+            node: circularEntry.data.imports[circularEntry.importIndex].node,
+          });
+        }
+      },
+    },
+  ],
+});
+```
+
+> [!CAUTION]
+> Project-wide rules are currently not supported inside overrides
+
+> [!IMPORTANT]
+> The list of files is only files that were linted. If you need a generated file to be in that list, but you still want to ignore all lint rules inside it, use a top level ignore comment instead of using the ignore option.
+
 ## Core rules
 
-Currently, the list of core rules are the type-aware lint rules I use from typescript-eslint. If you think more rules should be added, please open an issue, but to reduce the surface, only non-styling type-aware rules will be accepted. Here is the list of [typescript-eslint type aware rules](https://typescript-eslint.io/rules/?=typeInformation) with their status:
+### Exclusive rules
+
+- unusedExport: Detect unused exports (Using experimental project-wide linting)
+
+### From typescript-eslint
+
+Currently, the ported rules are the type-aware lint rules I use from typescript-eslint. If you think more rules should be added, please open an issue, but to reduce the surface, only non-styling type-aware rules will be accepted. Here is the list of [typescript-eslint type aware rules](https://typescript-eslint.io/rules/?=typeInformation) with their status:
 
 - await-thenable: ✅ Implemented
 - consistent-return: 🛑 Implementation not planned, you can use `noImplicitReturns` compilerOption
