@@ -2,7 +2,16 @@
 
 ## Unreleased
 
-- Deprecate `context.rawChecker`. Types overrides from `context.checker` have been updated so it can be passed to other libraries. Thanks @JoshuaKGoldberg for challenging this!
+### Add `context.languageService`
+
+This allows to create a first kind of 'multi-file' rules. It's used in the new core rule `core/unusedExport`.
+
+### Deprecate `context.rawChecker`
+
+Types overrides of `context.checker` have been updated so it can be passed to other libraries. `context.rawChecker` is therefore not needed anymore and has been deprecated. Thanks @JoshuaKGoldberg for challenging this!
+
+### Other
+
 - Port fixes from typescript-eslint up to v8.54.0
 
 ## 1.0.28
