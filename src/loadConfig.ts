@@ -2,20 +2,19 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path, { join } from "node:path";
 import { build, type BuildResult, formatMessagesSync } from "esbuild";
-import type ts from "typescript";
 import type { Config } from "./types.ts";
 
 export const loadConfig = async (
-  program: ts.Program,
+  directory: string,
 ): Promise<{ config: Config | null; configFiles: string[] }> => {
-  const { configPath, nodeModulesPath } = findConfigPath(program);
+  const { configPath, nodeModulesPath } = findConfigPath(directory);
   if (nodeModulesPath === undefined) {
     throw new Error("No node_modules directory found");
   }
   if (!configPath) {
     return {
       config: null,
-      configFiles: [join(program.getCurrentDirectory(), "tsl.config.ts")],
+      configFiles: [join(directory, "tsl.config.ts")],
     };
   }
   const cacheDir = join(nodeModulesPath, ".cache/tsl");
@@ -74,8 +73,7 @@ export const loadConfig = async (
   };
 };
 
-export const findConfigPath = (program: ts.Program) => {
-  let dir = program.getCurrentDirectory();
+export const findConfigPath = (dir: string) => {
   const { root } = path.parse(dir);
   let configPath: string | undefined = undefined;
   let nodeModulesPath: string | undefined = undefined;

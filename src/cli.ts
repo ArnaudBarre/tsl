@@ -61,22 +61,34 @@ if (result.errors.length) {
   process.exit(1);
 }
 
-const host = ts.createCompilerHost(result.options, true);
-const program = ts.createProgram({
-  rootNames: result.fileNames,
-  options: result.options,
-  projectReferences: result.projectReferences,
-  host,
+const languageService = ts.createLanguageService({
+  getCompilationSettings: () => result.options,
+  getScriptFileNames: () => result.fileNames,
+  getScriptVersion: () => "0", // Static version for single-run CLI
+  getScriptSnapshot: (fileName) => {
+    if (!fs.existsSync(fileName)) return undefined;
+    return ts.ScriptSnapshot.fromString(fs.readFileSync(fileName, "utf-8"));
+  },
+  getCurrentDirectory: () => cwd,
+  getDefaultLibFileName: (options) => ts.getDefaultLibFilePath(options),
+  readFile: (file) => fs.readFileSync(file, "utf-8"),
+  fileExists: fs.existsSync,
+  directoryExists: (dir) =>
+    fs.existsSync(dir) && fs.statSync(dir).isDirectory(),
+  getDirectories: ts.sys.getDirectories,
+  readDirectory: ts.sys.readDirectory,
 });
+const program = languageService.getProgram()!;
 
 if (values.timing) {
   console.log(`TS program created in ${displayTiming(programStart)}`);
 }
 
 const configStart = performance.now();
-const { config } = await loadConfig(program);
+const { config } = await loadConfig(program.getCurrentDirectory());
 const { lint, allRules, timingMaps } = await initRules(
   () => program,
+  () => languageService,
   config ?? { rules: core.all() },
   values.timing,
 );
@@ -94,7 +106,7 @@ if (!values["lint-only"]) {
   diagnostics = ts.getPreEmitDiagnostics(program).map((d): TSLDiagnostic => {
     const message = ts.flattenDiagnosticMessageText(
       d.messageText,
-      host.getNewLine(),
+      ts.sys.newLine,
     );
     const name = `TS${d.code}`;
     if (!d.file) {

@@ -23,7 +23,7 @@ export const getPlugin = async (
   const load = async () => {
     const start = performance.now();
     const { config, configFiles } = await loadConfig(
-      languageService.getProgram()!,
+      languageService.getProgram()!.getCurrentDirectory(),
     );
     for (const watchedFile in watchedFiles) {
       if (!configFiles.includes(watchedFile)) {
@@ -38,6 +38,7 @@ export const getPlugin = async (
     }
     const result = await initRules(
       () => languageService.getProgram()!,
+      () => languageService,
       config ?? { rules: [] },
       false,
     );

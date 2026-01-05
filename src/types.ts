@@ -1,5 +1,6 @@
 import type {
   CompilerOptions,
+  LanguageService,
   Node,
   Program,
   Signature,
@@ -145,6 +146,7 @@ export type ReportDescriptor = (
 export type Context<Data = unknown> = {
   sourceFile: AST.SourceFile;
   program: Program;
+  languageService: LanguageService;
   /**
    * TypeScript checker, with some types overrides
    * Can be used to get the type of a node
