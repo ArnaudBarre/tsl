@@ -73,7 +73,7 @@ export const loadConfig = async (
   };
 };
 
-export const findConfigPath = (dir: string) => {
+const findConfigPath = (dir: string) => {
   const { root } = path.parse(dir);
   let configPath: string | undefined = undefined;
   let nodeModulesPath: string | undefined = undefined;
