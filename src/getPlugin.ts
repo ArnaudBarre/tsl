@@ -38,6 +38,7 @@ export const getPlugin = async (
     }
     const result = await initRules(
       () => languageService.getProgram()!,
+      () => languageService,
       config ?? { rules: [] },
       false,
     );
