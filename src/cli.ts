@@ -7,6 +7,7 @@ import {
   formatDiagnostics,
   type TSLDiagnostic,
 } from "./formatDiagnostic.ts";
+import { getLanguageService } from "./getLanguageService.ts";
 import { core } from "./index.ts";
 import { initRules } from "./initRules.ts";
 import { loadConfig } from "./loadConfig.ts";
@@ -62,12 +63,14 @@ if (result.errors.length) {
 }
 
 const host = ts.createCompilerHost(result.options, true);
-const program = ts.createProgram({
+const programForLanguageServiceHost = ts.createProgram({
   rootNames: result.fileNames,
   options: result.options,
   projectReferences: result.projectReferences,
-  host,
+  host: host,
 });
+const languageService = getLanguageService(programForLanguageServiceHost);
+const program = languageService.getProgram()!;
 
 if (values.timing) {
   console.log(`TS program created in ${displayTiming(programStart)}`);
@@ -77,6 +80,7 @@ const configStart = performance.now();
 const { config } = await loadConfig(program);
 const { lint, allRules, timingMaps } = await initRules(
   () => program,
+  () => languageService,
   config ?? { rules: core.all() },
   values.timing,
 );
