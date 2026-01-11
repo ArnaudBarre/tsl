@@ -1,7 +1,7 @@
 import assert from "node:assert";
 import { readFileSync, writeFileSync } from "node:fs";
 import { format } from "prettier";
-import ts from "typescript";
+import ts, { SyntaxKind } from "typescript";
 
 const path = "node_modules/typescript/lib/typescript.d.ts";
 const program = ts.createProgram([path], {});
@@ -22,20 +22,7 @@ const baseProps = baseNodeProps.filter(
   (p) => p.name !== "kind" && p.name !== "parent",
 );
 
-const keywordTypeInterface = interfaces.find(
-  (i) => i.name.text === "KeywordTypeNode",
-);
-assert(
-  keywordTypeInterface
-    && keywordTypeInterface.typeParameters?.length === 1
-    && keywordTypeInterface.typeParameters[0].default
-    && ts.isTypeReferenceNode(keywordTypeInterface.typeParameters[0].default)
-    && ts.isIdentifier(keywordTypeInterface.typeParameters[0].default.typeName),
-  "Unexpected params for KeywordTypeNode",
-);
-const keywordTypeName =
-  keywordTypeInterface.typeParameters[0].default.typeName.text;
-const keywordType = types.find((t) => t.name.text === keywordTypeName);
+const keywordType = types.find((t) => t.name.text === "KeywordTypeSyntaxKind");
 assert(keywordType && ts.isUnionTypeNode(keywordType.type));
 const typeKeywordNames = keywordType.type.types.map((t) => {
   assert(
@@ -83,7 +70,18 @@ const visitType = (name: string): void => {
   visitedTypes.add(name);
 
   if (typeKeywordNames.includes(name)) {
-    outputParts.push({ name, kind: `SyntaxKind.${name}`, members: [] });
+    outputParts.push({
+      name,
+      kind: `SyntaxKind.${name}`,
+      members: [
+        ts.factory.createPropertySignature(
+          undefined,
+          "_typeNodeBrand",
+          undefined,
+          ts.factory.createKeywordTypeNode(SyntaxKind.AnyKeyword),
+        ),
+      ],
+    });
     nodes.push(name);
     return;
   }
@@ -145,7 +143,6 @@ const visitType = (name: string): void => {
   for (const p of props) {
     if (p === kind) continue;
     if (baseProps.includes(p)) continue;
-    if (/_\w+Brand/.test(p.name)) continue;
     if (p.name === "parent") continue;
     assert(p.valueDeclaration);
     if (p.valueDeclaration.getFullText().includes("/** @deprecated */")) {
@@ -257,6 +254,7 @@ const visitType = (name: string): void => {
             || typeNode.kind === ts.SyntaxKind.NeverKeyword
             || typeNode.kind === ts.SyntaxKind.StringKeyword
             || typeNode.kind === ts.SyntaxKind.BooleanKeyword
+            || typeNode.kind === ts.SyntaxKind.AnyKeyword
           ) {
             // no-op
           } else {
@@ -281,7 +279,14 @@ const visitType = (name: string): void => {
   outputParts.push({
     name,
     kind: kind.valueDeclaration.type.getText(),
-    members: allMembers,
+    members: allMembers.sort((a, b) =>
+      // Put _nodeTypeBrand properties last
+      a.name?.getText().startsWith("_")
+        ? 1
+        : b.name?.getText().startsWith("_")
+          ? -1
+          : 0,
+    ),
   });
   nodes.push(name);
 
@@ -379,7 +384,7 @@ outputParts.push(`
  * defined for compatibility with base types and is not ts.Node to keep
  * narrowing working on node.parent.kind
  */
-export interface NullNode extends Node {
+interface NullNode extends Node {
   readonly kind: SyntaxKind.NullKeyword;
   readonly parent: NullNode;
 }

@@ -95,20 +95,15 @@ export type Rule<Data = undefined> = {
 
 export type Checker = Omit<
   TypeChecker,
-  | "getContextualType"
-  | "getTypeFromTypeNode"
-  | "getResolvedSignature"
-  | "isArrayType"
-  | "isTupleType"
+  "getResolvedSignature" | "isArrayType" | "isTupleType"
 > & {
-  /** Fix Expression _Brand check */
-  getContextualType(node: AST.Expression | ts.Expression): Type | undefined;
-  getTypeFromTypeNode(node: AST.TypeNode | ts.TypeNode): Type;
   getResolvedSignature(
     node:
-      | AST.CallExpression
-      | AST.NewExpression
       | AST.TaggedTemplateExpression
+      // tsl-ignore core/noRedundantTypeConstituents
+      | AST.CallExpression
+      // tsl-ignore core/noRedundantTypeConstituents
+      | AST.NewExpression
       | AST.Decorator
       | AST.JsxSelfClosingElement
       | AST.JsxOpeningElement
