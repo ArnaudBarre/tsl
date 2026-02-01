@@ -332,6 +332,7 @@ Currently, the list of core rules are the type-aware lint rules I use from types
 - restrict-template-expressions: ✅ Implemented, with stricter defaults
 - return-await: ✅ Implemented, only support always, remove unneeded await handled by await-thenable
 - strict-boolean-expressions: ✅ Implemented
+- strict-void-return: ❌ Not implemented
 - switch-exhaustiveness-check: ✅ Implemented, missing no default comment #10218
 - unbound-method: ❌ Not implemented, too OOP for me
 - use-unknown-in-catch-callback-variable: 🛑 See [Add the patches](#add-the-patches)

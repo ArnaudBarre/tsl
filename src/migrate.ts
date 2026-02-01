@@ -28,6 +28,8 @@ const { all: _, ...rules } = core;
 
 const addPrefix = (name: string) => `@typescript-eslint/${name}`;
 
+// Can be regeberated with this on https://typescript-eslint.io/rules/
+// $$(`[title="requires type information"]`).map(it => it.parentNode.childNodes[0].childNodes[0].childNodes[0].href.split("/").pop())
 const tseslintTypeAwareRules = new Set(
   [
     "await-thenable",
@@ -87,6 +89,7 @@ const tseslintTypeAwareRules = new Set(
     "restrict-template-expressions",
     "return-await",
     "strict-boolean-expressions",
+    "strict-void-return",
     "switch-exhaustiveness-check",
     "unbound-method",
     "use-unknown-in-catch-callback-variable",
