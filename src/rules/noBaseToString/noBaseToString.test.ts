@@ -492,6 +492,14 @@ function bar<T>(error: Boom<T>) {
   console.log(error.toString());
 }
     `,
+      `
+declare const a: { [Symbol.toPrimitive](): string };
+a.toString();
+    `,
+      `
+declare const a: { valueOf(): string };
+a.toString();
+    `,
       {
         options: { ignoredTypeNames: ["MyError"] },
         code: `
@@ -1395,6 +1403,24 @@ a.toString();
           {
             message: messages.baseToString({ certainty: "will", name: "a" }),
           },
+        ],
+      },
+      {
+        code: `
+declare const a: { [Symbol.toPrimitive](): string } | { other: true; }
+a.toString();
+        `,
+        errors: [
+          { message: messages.baseToString({ certainty: "may", name: "a" }) },
+        ],
+      },
+      {
+        code: `
+declare const a: { valueOf(): string } | { other: true };
+a.toString();
+        `,
+        errors: [
+          { message: messages.baseToString({ certainty: "may", name: "a" }) },
         ],
       },
     ],

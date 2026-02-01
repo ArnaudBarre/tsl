@@ -323,34 +323,86 @@ function collectToStringCertainty(
     );
   }
 
-  const toString =
-    context.checker.getPropertyOfType(type, "toString")
-    ?? context.checker.getPropertyOfType(type, "toLocaleString");
-  if (!toString) {
-    // unknown
-    if (options.checkUnknown && type.flags === ts.TypeFlags.Unknown) {
-      return "may";
-    }
-    // e.g. any
-    return "always";
+  switch (isToStringLikeFromObject(context, type)) {
+    case undefined:
+      // unknown
+      if (options.checkUnknown && type.flags === ts.TypeFlags.Unknown) {
+        return "may";
+      }
+      // e.g. any
+      return "always";
+
+    case true:
+      return "will";
+
+    case false:
+      return "always";
+  }
+}
+
+function isToStringLikeFromObject(context: Context, type: ts.Type) {
+  // An explicit [Symbol.toPrimitive] declaration is always user-defined
+  if (
+    type
+      .getProperties()
+      .some(
+        (property) =>
+          property.valueDeclaration
+          && isSymbolToPrimitiveMethod(context, property.valueDeclaration),
+      )
+  ) {
+    return false;
   }
 
-  const declarations = toString.getDeclarations();
+  // Otherwise, we check for known methods used in type coercion.
+  // We'll try to find one that's not declared on Object itself.
+  // Failing that, we'll fall back to one that is.
+  let foundFallbackOnObject = false;
 
-  if (declarations == null || declarations.length !== 1) {
+  for (const propertyName of ["toLocaleString", "toString", "valueOf"]) {
+    const candidate = context.checker.getPropertyOfType(type, propertyName);
+    if (!candidate) {
+      continue;
+    }
+
+    const declarations = candidate.getDeclarations();
+
     // If there are multiple declarations, at least one of them must not be
     // the default object toString.
     //
     // This may only matter for older versions of TS
     // see https://github.com/typescript-eslint/typescript-eslint/issues/8585
-    return "always";
+    if (declarations?.length !== 1) {
+      continue;
+    }
+
+    // Not being the Object interface means this is user-defined.
+    if (
+      !ts.isInterfaceDeclaration(declarations[0].parent)
+      || declarations[0].parent.name.text !== "Object"
+    ) {
+      return false;
+    }
+
+    foundFallbackOnObject = true;
   }
 
-  const declaration = declarations[0];
-  const isBaseToString =
-    ts.isInterfaceDeclaration(declaration.parent)
-    && declaration.parent.name.text === "Object";
-  return isBaseToString ? "will" : "always";
+  return foundFallbackOnObject ? true : undefined;
+}
+
+function isSymbolToPrimitiveMethod(context: Context, node: ts.Declaration) {
+  return (
+    ts.isMethodSignature(node)
+    && ts.isComputedPropertyName(node.name)
+    && ts.isPropertyAccessExpression(node.name.expression)
+    && ts.isIdentifier(node.name.expression.expression)
+    && node.name.expression.expression.text === "Symbol"
+    && ts.isIdentifier(node.name.expression.name)
+    && node.name.expression.name.text === "toPrimitive"
+    && context.checker
+      .getSymbolAtLocation(node.name.expression.expression)
+      ?.valueDeclaration?.getSourceFile().hasNoDefaultLib
+  );
 }
 
 function isBuiltInStringCall(
