@@ -18,8 +18,7 @@ import type { Context } from "./types.ts";
 
 export interface SourceFile extends Node {
   readonly kind: SyntaxKind.SourceFile;
-  // parent is actually undefined, see comment for NullNode
-  readonly parent: NullNode;
+
   readonly statements: NodeArray<Statement>;
   readonly endOfFileToken: Token<SyntaxKind.EndOfFileToken, SourceFile>;
   fileName: string;
@@ -64,6 +63,7 @@ export interface SourceFile extends Node {
   getLineStarts(): readonly number[];
   getPositionOfLineAndCharacter(line: number, character: number): number;
   update(newText: string, textChangeRange: TextChangeRange): SourceFile;
+  readonly parent: Node;
   _declarationBrand: any;
   _localsContainerBrand: any;
 }
@@ -101,7 +101,7 @@ export type DeclarationStatement =
   | ExportAssignment;
 export interface FunctionDeclaration extends Node {
   readonly kind: SyntaxKind.FunctionDeclaration;
-  readonly parent: StatementParent;
+
   readonly modifiers?: NodeArray<ModifierLike>;
   readonly name?: Identifier;
   readonly body?: FunctionBody;
@@ -111,6 +111,7 @@ export interface FunctionDeclaration extends Node {
   readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
   readonly parameters: NodeArray<ParameterDeclaration>;
   readonly type?: TypeNode | undefined;
+  readonly parent: Node;
   _functionLikeDeclarationBrand: any;
   _declarationBrand: any;
   _jsdocContainerBrand: any;
@@ -136,99 +137,338 @@ export type Modifier =
   | StaticKeyword;
 export interface AbstractKeyword extends Node {
   readonly kind: SyntaxKind.AbstractKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface AccessorKeyword extends Node {
   readonly kind: SyntaxKind.AccessorKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface AsyncKeyword extends Node {
   readonly kind: SyntaxKind.AsyncKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface ConstKeyword extends Node {
   readonly kind: SyntaxKind.ConstKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface DeclareKeyword extends Node {
   readonly kind: SyntaxKind.DeclareKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface DefaultKeyword extends Node {
   readonly kind: SyntaxKind.DefaultKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface ExportKeyword extends Node {
   readonly kind: SyntaxKind.ExportKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface InKeyword extends Node {
   readonly kind: SyntaxKind.InKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface PrivateKeyword extends Node {
   readonly kind: SyntaxKind.PrivateKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface ProtectedKeyword extends Node {
   readonly kind: SyntaxKind.ProtectedKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface PublicKeyword extends Node {
   readonly kind: SyntaxKind.PublicKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface OutKeyword extends Node {
   readonly kind: SyntaxKind.OutKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface OverrideKeyword extends Node {
   readonly kind: SyntaxKind.OverrideKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface ReadonlyKeyword extends Node {
   readonly kind: SyntaxKind.ReadonlyKeyword;
-  readonly parent: ModifierParent | MappedTypeNode;
+  readonly parent: Node;
 }
 export interface StaticKeyword extends Node {
   readonly kind: SyntaxKind.StaticKeyword;
-  readonly parent: ModifierParent;
+  readonly parent: Node;
 }
 export interface Decorator extends Node {
   readonly kind: SyntaxKind.Decorator;
-  readonly parent:
-    | AccessorDeclaration
-    | ParameterDeclaration
-    | IndexSignatureDeclaration
-    | MethodDeclaration
-    | ClassExpression
-    | PropertyDeclaration
-    | ConstructorDeclaration
-    | FunctionDeclaration
-    | ClassDeclaration
-    | InterfaceDeclaration
-    | TypeAliasDeclaration
-    | EnumDeclaration
-    | ModuleDeclaration
-    | NamespaceDeclaration
-    | JSDocNamespaceDeclaration
-    | ImportEqualsDeclaration
-    | ExportDeclaration
-    | ExportAssignment
-    | VariableStatement
-    | ImportDeclaration;
+
+  readonly parent: NamedDeclaration;
   readonly expression: LeftHandSideExpression;
 }
-export type LeftHandSideExpression = PartiallyEmittedExpression | MemberExpression | CallExpression | NonNullExpression;
-export interface PartiallyEmittedExpression extends Node {
-  readonly kind: SyntaxKind.PartiallyEmittedExpression;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly expression: Expression;
+export type NamedDeclaration =
+  | DeclarationStatement
+  | TypeParameterDeclaration
+  | SignatureDeclarationBase
+  | VariableDeclaration
+  | ParameterDeclaration
+  | BindingElement
+  | ObjectLiteralElement
+  | PropertyAccessExpression
+  | ClassLikeDeclarationBase
+  | ClassElement
+  | TypeElement
+  | EnumMember
+  | ImportClause
+  | NamespaceImport
+  | NamespaceExport
+  | ImportSpecifier
+  | ExportSpecifier
+  | JSDocTypedefTag
+  | JSDocCallbackTag;
+export interface TypeParameterDeclaration extends Node {
+  readonly kind: SyntaxKind.TypeParameter;
+
+  readonly parent: DeclarationWithTypeParameterChildren | InferTypeNode;
+  readonly modifiers?: NodeArray<Modifier>;
+  readonly name: Identifier;
+  /** Note: Consider calling `getEffectiveConstraintOfTypeParameter` */
+  readonly constraint?: TypeNode;
+  readonly default?: TypeNode;
+  expression?: Expression;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+}
+export type DeclarationWithTypeParameterChildren =
+  | SignatureDeclaration
+  | ClassLikeDeclaration
+  | InterfaceDeclaration
+  | TypeAliasDeclaration
+  | JSDocTemplateTag;
+export type SignatureDeclaration =
+  | CallSignatureDeclaration
+  | ConstructSignatureDeclaration
+  | MethodSignature
+  | IndexSignatureDeclaration
+  | FunctionTypeNode
+  | ConstructorTypeNode
+  | JSDocFunctionType
+  | FunctionDeclaration
+  | MethodDeclaration
+  | ConstructorDeclaration
+  | AccessorDeclaration
+  | FunctionExpression
+  | ArrowFunction;
+export interface CallSignatureDeclaration extends Node {
+  readonly kind: SyntaxKind.CallSignature;
+
+  readonly name?: PropertyName;
+  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
+  readonly parameters: NodeArray<ParameterDeclaration>;
+  readonly type?: TypeNode | undefined;
+  readonly parent: Node;
+  readonly questionToken?: QuestionToken | undefined;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+  _typeElementBrand: any;
+  _localsContainerBrand: any;
+}
+export type PropertyName =
+  | Identifier
+  | StringLiteral
+  | NoSubstitutionTemplateLiteral
+  | NumericLiteral
+  | ComputedPropertyName
+  | PrivateIdentifier
+  | BigIntLiteral;
+export interface Identifier extends Node {
+  readonly kind: SyntaxKind.Identifier;
+
+  /**
+   * Prefer to use `id.unescapedText`. (Note: This is available only in services, not internally to the TypeScript compiler.)
+   * Text of identifier, but if the identifier begins with two underscores, this will begin with three.
+   */
+  readonly escapedText: __String;
+  readonly text: string;
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
   _leftHandSideExpressionBrand: any;
   _updateExpressionBrand: any;
   _unaryExpressionBrand: any;
   _expressionBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+  _flowContainerBrand: any;
 }
+export interface StringLiteral extends Node {
+  readonly kind: SyntaxKind.StringLiteral;
+
+  text: string;
+  isUnterminated?: boolean;
+  hasExtendedUnicodeEscape?: boolean;
+  readonly parent: Node;
+  _literalExpressionBrand: any;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _declarationBrand: any;
+}
+export interface NoSubstitutionTemplateLiteral extends Node {
+  readonly kind: SyntaxKind.NoSubstitutionTemplateLiteral;
+
+  text: string;
+  isUnterminated?: boolean;
+  hasExtendedUnicodeEscape?: boolean;
+  readonly parent: Node;
+  rawText?: string;
+  _literalExpressionBrand: any;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _declarationBrand: any;
+}
+export interface NumericLiteral extends Node {
+  readonly kind: SyntaxKind.NumericLiteral;
+
+  text: string;
+  isUnterminated?: boolean;
+  hasExtendedUnicodeEscape?: boolean;
+  readonly parent: Node;
+  _literalExpressionBrand: any;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _declarationBrand: any;
+}
+export interface ComputedPropertyName extends Node {
+  readonly kind: SyntaxKind.ComputedPropertyName;
+
+  readonly parent: Declaration;
+  readonly expression: Expression;
+}
+export type Declaration =
+  | Identifier
+  | NamedDeclaration
+  | TypeLiteralNode
+  | NamedTupleMember
+  | MappedTypeNode
+  | StringLiteral
+  | BinaryExpression
+  | NoSubstitutionTemplateLiteral
+  | NumericLiteral
+  | ObjectLiteralExpressionBase
+  | ElementAccessExpression
+  | CallExpression
+  | NewExpression
+  | JsxAttributes
+  | JsxAttribute
+  | JSDocEnumTag
+  | JSDocSignature
+  | JSDocPropertyLikeTag
+  | JSDocTypeLiteral
+  | SourceFile;
+export interface TypeLiteralNode extends Node {
+  readonly kind: SyntaxKind.TypeLiteral;
+
+  readonly members: NodeArray<TypeElement>;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+  _declarationBrand: any;
+}
+export type TypeElement =
+  | CallSignatureDeclaration
+  | ConstructSignatureDeclaration
+  | PropertySignature
+  | MethodSignature
+  | GetAccessorDeclaration
+  | SetAccessorDeclaration
+  | IndexSignatureDeclaration
+  | NotEmittedTypeElement;
+export interface ConstructSignatureDeclaration extends Node {
+  readonly kind: SyntaxKind.ConstructSignature;
+
+  readonly name?: PropertyName;
+  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
+  readonly parameters: NodeArray<ParameterDeclaration>;
+  readonly type?: TypeNode | undefined;
+  readonly parent: Node;
+  readonly questionToken?: QuestionToken | undefined;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+  _typeElementBrand: any;
+  _localsContainerBrand: any;
+}
+export interface ParameterDeclaration extends Node {
+  readonly kind: SyntaxKind.Parameter;
+
+  readonly parent: SignatureDeclaration;
+  readonly modifiers?: NodeArray<ModifierLike>;
+  readonly dotDotDotToken?: DotDotDotToken;
+  readonly name: BindingName;
+  readonly questionToken?: QuestionToken;
+  readonly type?: TypeNode;
+  readonly initializer?: Expression;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+}
+export interface DotDotDotToken extends Node {
+  readonly kind: SyntaxKind.DotDotDotToken;
+  readonly parent: Node;
+}
+export type BindingName = Identifier | BindingPattern;
+export type BindingPattern = ObjectBindingPattern | ArrayBindingPattern;
+export interface ObjectBindingPattern extends Node {
+  readonly kind: SyntaxKind.ObjectBindingPattern;
+
+  readonly parent: VariableDeclaration | ParameterDeclaration | BindingElement;
+  readonly elements: NodeArray<BindingElement>;
+}
+export interface VariableDeclaration extends Node {
+  readonly kind: SyntaxKind.VariableDeclaration;
+
+  readonly parent: VariableDeclarationList | CatchClause;
+  readonly name: BindingName;
+  readonly exclamationToken?: ExclamationToken;
+  readonly type?: TypeNode;
+  readonly initializer?: Expression;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+}
+export interface VariableDeclarationList extends Node {
+  readonly kind: SyntaxKind.VariableDeclarationList;
+
+  readonly parent: VariableStatement | ForStatement | ForOfStatement | ForInStatement;
+  readonly declarations: NodeArray<VariableDeclaration>;
+}
+export interface VariableStatement extends Node {
+  readonly kind: SyntaxKind.VariableStatement;
+
+  readonly modifiers?: NodeArray<ModifierLike>;
+  readonly declarationList: VariableDeclarationList;
+  readonly parent: Node;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+  _flowContainerBrand: any;
+}
+export interface ForStatement extends Node {
+  readonly kind: SyntaxKind.ForStatement;
+
+  readonly initializer?: ForInitializer;
+  readonly condition?: Expression;
+  readonly incrementor?: Expression;
+  readonly statement: Statement;
+  readonly parent: Node;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+  _localsContainerBrand: any;
+  _flowContainerBrand: any;
+}
+export type ForInitializer = VariableDeclarationList | Expression;
 export type Expression =
   | OmittedExpression
   | UnaryExpression
@@ -247,7 +487,8 @@ export type Expression =
   | CommaListExpression;
 export interface OmittedExpression extends Node {
   readonly kind: SyntaxKind.OmittedExpression;
-  readonly parent: ExpressionParent | ArrayBindingPattern;
+
+  readonly parent: Node;
   _expressionBrand: any;
 }
 export type UnaryExpression =
@@ -260,17 +501,10 @@ export type UnaryExpression =
 export type UpdateExpression = PrefixUnaryExpression | PostfixUnaryExpression | LeftHandSideExpression;
 export interface PrefixUnaryExpression extends Node {
   readonly kind: SyntaxKind.PrefixUnaryExpression;
-  readonly parent:
-    | ExpressionParent
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | TypeAssertion
-    | LiteralTypeNode;
+
   readonly operator: PrefixUnaryOperator;
   readonly operand: UnaryExpression;
+  readonly parent: Node;
   _updateExpressionBrand: any;
   _unaryExpressionBrand: any;
   _expressionBrand: any;
@@ -284,91 +518,181 @@ export type PrefixUnaryOperator =
   | SyntaxKind.ExclamationToken;
 export interface PostfixUnaryExpression extends Node {
   readonly kind: SyntaxKind.PostfixUnaryExpression;
-  readonly parent:
-    | ExpressionParent
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | TypeAssertion;
+
   readonly operand: LeftHandSideExpression;
   readonly operator: PostfixUnaryOperator;
+  readonly parent: Node;
   _updateExpressionBrand: any;
   _unaryExpressionBrand: any;
   _expressionBrand: any;
 }
-export type PostfixUnaryOperator = SyntaxKind.PlusPlusToken | SyntaxKind.MinusMinusToken;
-export interface DeleteExpression extends Node {
-  readonly kind: SyntaxKind.DeleteExpression;
-  readonly parent:
-    | ExpressionParent
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | TypeAssertion;
-  readonly expression: UnaryExpression;
+export type LeftHandSideExpression = PartiallyEmittedExpression | MemberExpression | CallExpression | NonNullExpression;
+export interface PartiallyEmittedExpression extends Node {
+  readonly kind: SyntaxKind.PartiallyEmittedExpression;
+
+  readonly expression: Expression;
+  readonly parent: Node;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
   _unaryExpressionBrand: any;
   _expressionBrand: any;
 }
-export interface TypeOfExpression extends Node {
-  readonly kind: SyntaxKind.TypeOfExpression;
-  readonly parent:
-    | ExpressionParent
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | TypeAssertion;
-  readonly expression: UnaryExpression;
+export type MemberExpression =
+  | PrimaryExpression
+  | PropertyAccessExpression
+  | ElementAccessExpression
+  | ExpressionWithTypeArguments
+  | TaggedTemplateExpression;
+export type PrimaryExpression =
+  | Identifier
+  | PrivateIdentifier
+  | NullLiteral
+  | TrueLiteral
+  | FalseLiteral
+  | ThisExpression
+  | SuperExpression
+  | ImportExpression
+  | FunctionExpression
+  | LiteralExpression
+  | TemplateExpression
+  | ParenthesizedExpression
+  | ArrayLiteralExpression
+  | ObjectLiteralExpressionBase
+  | NewExpression
+  | MetaProperty
+  | JsxElement
+  | JsxAttributes
+  | JsxSelfClosingElement
+  | JsxFragment
+  | MissingDeclaration
+  | ClassExpression;
+export interface PrivateIdentifier extends Node {
+  readonly kind: SyntaxKind.PrivateIdentifier;
+
+  readonly escapedText: __String;
+  readonly text: string;
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
   _unaryExpressionBrand: any;
   _expressionBrand: any;
 }
-export interface VoidExpression extends Node {
-  readonly kind: SyntaxKind.VoidExpression;
-  readonly parent:
-    | ExpressionParent
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | TypeAssertion;
-  readonly expression: UnaryExpression;
+export interface NullLiteral extends Node {
+  readonly kind: SyntaxKind.NullKeyword;
+
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
   _unaryExpressionBrand: any;
   _expressionBrand: any;
 }
-export interface AwaitExpression extends Node {
-  readonly kind: SyntaxKind.AwaitExpression;
-  readonly parent:
-    | ExpressionParent
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | TypeAssertion;
-  readonly expression: UnaryExpression;
+export interface TrueLiteral extends Node {
+  readonly kind: SyntaxKind.TrueKeyword;
+
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
   _unaryExpressionBrand: any;
   _expressionBrand: any;
 }
-export interface TypeAssertion extends Node {
-  readonly kind: SyntaxKind.TypeAssertionExpression;
-  readonly parent:
-    | ExpressionParent
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | TypeAssertion;
-  readonly type: TypeNode;
-  readonly expression: UnaryExpression;
+export interface FalseLiteral extends Node {
+  readonly kind: SyntaxKind.FalseKeyword;
+
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
   _unaryExpressionBrand: any;
   _expressionBrand: any;
+}
+export interface ThisExpression extends Node {
+  readonly kind: SyntaxKind.ThisKeyword;
+
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _flowContainerBrand: any;
+}
+export interface SuperExpression extends Node {
+  readonly kind: SyntaxKind.SuperKeyword;
+
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _flowContainerBrand: any;
+}
+export interface ImportExpression extends Node {
+  readonly kind: SyntaxKind.ImportKeyword;
+
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export interface FunctionExpression extends Node {
+  readonly kind: SyntaxKind.FunctionExpression;
+
+  readonly modifiers?: NodeArray<Modifier>;
+  readonly name?: Identifier;
+  readonly body: FunctionBody;
+  readonly parent: Node;
+  readonly asteriskToken?: AsteriskToken | undefined;
+  readonly questionToken?: QuestionToken | undefined;
+  readonly exclamationToken?: ExclamationToken | undefined;
+  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
+  readonly parameters: NodeArray<ParameterDeclaration>;
+  readonly type?: TypeNode | undefined;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _functionLikeDeclarationBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+  _localsContainerBrand: any;
+  _flowContainerBrand: any;
+}
+export type FunctionBody = Block;
+export interface Block extends Node {
+  readonly kind: SyntaxKind.Block;
+
+  readonly statements: NodeArray<Statement>;
+  readonly parent: Node;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+  _localsContainerBrand: any;
+}
+export interface AsteriskToken extends Node {
+  readonly kind: SyntaxKind.AsteriskToken;
+  readonly parent: Node;
+}
+export interface QuestionToken extends Node {
+  readonly kind: SyntaxKind.QuestionToken;
+  readonly parent: Node;
+}
+export interface ExclamationToken extends Node {
+  readonly kind: SyntaxKind.ExclamationToken;
+  readonly parent: Node;
 }
 export type TypeNode =
   | AnyKeyword
@@ -408,74 +732,76 @@ export type TypeNode =
   | JSDocType;
 export interface AnyKeyword extends Node {
   readonly kind: SyntaxKind.AnyKeyword;
-  readonly parent: TypeNodeParent;
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export interface BigIntKeyword extends Node {
   readonly kind: SyntaxKind.BigIntKeyword;
-  readonly parent: TypeNodeParent;
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export interface BooleanKeyword extends Node {
   readonly kind: SyntaxKind.BooleanKeyword;
-  readonly parent: TypeNodeParent;
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export interface IntrinsicKeyword extends Node {
   readonly kind: SyntaxKind.IntrinsicKeyword;
-  readonly parent: TypeNodeParent;
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export interface NeverKeyword extends Node {
   readonly kind: SyntaxKind.NeverKeyword;
-  readonly parent: TypeNodeParent;
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export interface NumberKeyword extends Node {
   readonly kind: SyntaxKind.NumberKeyword;
-  readonly parent: TypeNodeParent;
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export interface ObjectKeyword extends Node {
   readonly kind: SyntaxKind.ObjectKeyword;
-  readonly parent: TypeNodeParent;
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export interface StringKeyword extends Node {
   readonly kind: SyntaxKind.StringKeyword;
-  readonly parent: TypeNodeParent;
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export interface SymbolKeyword extends Node {
   readonly kind: SyntaxKind.SymbolKeyword;
-  readonly parent: TypeNodeParent;
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export interface UndefinedKeyword extends Node {
   readonly kind: SyntaxKind.UndefinedKeyword;
-  readonly parent: TypeNodeParent;
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export interface UnknownKeyword extends Node {
   readonly kind: SyntaxKind.UnknownKeyword;
-  readonly parent: TypeNodeParent;
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export interface VoidKeyword extends Node {
   readonly kind: SyntaxKind.VoidKeyword;
-  readonly parent: TypeNodeParent;
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export interface ThisTypeNode extends Node {
   readonly kind: SyntaxKind.ThisType;
-  readonly parent: TypeNodeParent;
+
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export type FunctionOrConstructorTypeNodeBase = FunctionTypeNode | ConstructorTypeNode;
 export interface FunctionTypeNode extends Node {
   readonly kind: SyntaxKind.FunctionType;
-  readonly parent: TypeNodeParent;
+
   readonly type: TypeNode;
+  readonly parent: Node;
   readonly name?: PropertyName;
   readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
   readonly parameters: NodeArray<ParameterDeclaration>;
@@ -484,411 +810,12 @@ export interface FunctionTypeNode extends Node {
   _jsdocContainerBrand: any;
   _localsContainerBrand: any;
 }
-export type PropertyName =
-  | Identifier
-  | StringLiteral
-  | NoSubstitutionTemplateLiteral
-  | NumericLiteral
-  | ComputedPropertyName
-  | PrivateIdentifier
-  | BigIntLiteral;
-export interface Identifier extends Node {
-  readonly kind: SyntaxKind.Identifier;
-  readonly parent:
-    | IterationStatement
-    | JsxAttributeLike
-    | JSDocPropertyLikeTag
-    | TypeElement
-    | NodeWithTypeArguments
-    | FunctionOrConstructorTypeNodeBase
-    | DeclarationStatement
-    | BindingElement
-    | JSDocFunctionType
-    | PropertyAssignment
-    | SpreadAssignment
-    | MethodDeclaration
-    | PropertyDeclaration
-    | ConstructorDeclaration
-    | SemicolonClassElement
-    | ClassStaticBlockDeclaration
-    | EnumMember
-    | TypeParameterDeclaration
-    | ParameterDeclaration
-    | VariableDeclaration
-    | ImportAttribute
-    | QualifiedName
-    | JSDocLink
-    | JSDocMemberName
-    | JSDocLinkCode
-    | JSDocLinkPlain
-    | TypePredicateNode
-    | NamedTupleMember
-    | JSDocTemplateTag
-    | JSDocReturnTag
-    | JsxOpeningElement
-    | JsxSelfClosingElement
-    | JsxClosingElement
-    | JsxTagNamePropertyAccess
-    | PropertyAccessExpression
-    | JsxNamespacedName
-    | PostfixUnaryExpression
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | TypeAssertion
-    | ComputedPropertyName
-    | YieldExpression
-    | BinaryExpression
-    | ConditionalExpression
-    | ArrowFunction
-    | SpreadElement
-    | AsExpression
-    | SatisfiesExpression
-    | JsxExpression
-    | CommaListExpression
-    | PartiallyEmittedExpression
-    | TemplateSpan
-    | ParenthesizedExpression
-    | ArrayLiteralExpression
-    | ShorthandPropertyAssignment
-    | NewExpression
-    | ElementAccessExpression
-    | CallExpression
-    | NonNullExpression
-    | ExternalModuleReference
-    | ExpressionStatement
-    | IfStatement
-    | ReturnStatement
-    | WithStatement
-    | SwitchStatement
-    | CaseClause
-    | ThrowStatement
-    | ImportDeclaration
-    | TaggedTemplateExpression
-    | Decorator
-    | FunctionExpression
-    | MetaProperty
-    | ClassExpression
-    | NamespaceDeclaration
-    | JSDocNamespaceDeclaration
-    | NamespaceExport
-    | ExportSpecifier
-    | ImportSpecifier
-    | BreakStatement
-    | ContinueStatement
-    | LabeledStatement
-    | ImportClause
-    | NamespaceImport;
-  /**
-   * Prefer to use `id.unescapedText`. (Note: This is available only in services, not internally to the TypeScript compiler.)
-   * Text of identifier, but if the identifier begins with two underscores, this will begin with three.
-   */
-  readonly escapedText: __String;
-  readonly text: string;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export interface StringLiteral extends Node {
-  readonly kind: SyntaxKind.StringLiteral;
-  readonly parent:
-    | IterationStatement
-    | JsxAttributeLike
-    | TypeElement
-    | FunctionOrConstructorTypeNodeBase
-    | BindingElement
-    | JSDocFunctionType
-    | PropertyAssignment
-    | SpreadAssignment
-    | MethodDeclaration
-    | PropertyDeclaration
-    | ConstructorDeclaration
-    | SemicolonClassElement
-    | ClassStaticBlockDeclaration
-    | EnumMember
-    | ImportAttribute
-    | LiteralTypeNode
-    | PostfixUnaryExpression
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | TypeAssertion
-    | ComputedPropertyName
-    | TypeParameterDeclaration
-    | ParameterDeclaration
-    | YieldExpression
-    | BinaryExpression
-    | ConditionalExpression
-    | ArrowFunction
-    | SpreadElement
-    | AsExpression
-    | SatisfiesExpression
-    | JsxExpression
-    | CommaListExpression
-    | PartiallyEmittedExpression
-    | TemplateSpan
-    | ParenthesizedExpression
-    | ArrayLiteralExpression
-    | ShorthandPropertyAssignment
-    | NewExpression
-    | ElementAccessExpression
-    | CallExpression
-    | NonNullExpression
-    | ExternalModuleReference
-    | ExportDeclaration
-    | ExportAssignment
-    | VariableDeclaration
-    | ExpressionStatement
-    | IfStatement
-    | ReturnStatement
-    | WithStatement
-    | SwitchStatement
-    | CaseClause
-    | ThrowStatement
-    | ImportDeclaration
-    | ExpressionWithTypeArguments
-    | PropertyAccessExpression
-    | TaggedTemplateExpression
-    | Decorator
-    | ModuleDeclaration
-    | NamespaceExport
-    | ExportSpecifier
-    | ImportSpecifier;
-  text: string;
-  isUnterminated?: boolean;
-  hasExtendedUnicodeEscape?: boolean;
-  _literalExpressionBrand: any;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _declarationBrand: any;
-}
-export interface NoSubstitutionTemplateLiteral extends Node {
-  readonly kind: SyntaxKind.NoSubstitutionTemplateLiteral;
-  readonly parent:
-    | LeftHandSideExpressionParent
-    | TypeElement
-    | FunctionOrConstructorTypeNodeBase
-    | JSDocFunctionType
-    | MethodDeclaration
-    | ConstructorDeclaration
-    | SemicolonClassElement
-    | ClassStaticBlockDeclaration
-    | LiteralTypeNode;
-  text: string;
-  isUnterminated?: boolean;
-  hasExtendedUnicodeEscape?: boolean;
-  rawText?: string;
-  _literalExpressionBrand: any;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _declarationBrand: any;
-}
-export interface NumericLiteral extends Node {
-  readonly kind: SyntaxKind.NumericLiteral;
-  readonly parent:
-    | LeftHandSideExpressionParent
-    | TypeElement
-    | FunctionOrConstructorTypeNodeBase
-    | JSDocFunctionType
-    | MethodDeclaration
-    | ConstructorDeclaration
-    | SemicolonClassElement
-    | ClassStaticBlockDeclaration
-    | LiteralTypeNode;
-  text: string;
-  isUnterminated?: boolean;
-  hasExtendedUnicodeEscape?: boolean;
-  _literalExpressionBrand: any;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _declarationBrand: any;
-}
-export interface ComputedPropertyName extends Node {
-  readonly kind: SyntaxKind.ComputedPropertyName;
-  readonly parent:
-    | TypeElement
-    | FunctionOrConstructorTypeNodeBase
-    | BindingElement
-    | JSDocFunctionType
-    | JsxSpreadAttribute
-    | PropertyAssignment
-    | SpreadAssignment
-    | MethodDeclaration
-    | PropertyDeclaration
-    | ConstructorDeclaration
-    | SemicolonClassElement
-    | ClassStaticBlockDeclaration
-    | EnumMember;
-  readonly expression: Expression;
-}
-export interface PrivateIdentifier extends Node {
-  readonly kind: SyntaxKind.PrivateIdentifier;
-  readonly parent:
-    | LeftHandSideExpressionParent
-    | TypeElement
-    | FunctionOrConstructorTypeNodeBase
-    | JSDocFunctionType
-    | MethodDeclaration
-    | ConstructorDeclaration
-    | SemicolonClassElement
-    | ClassStaticBlockDeclaration
-    | JsxTagNamePropertyAccess;
-  readonly escapedText: __String;
-  readonly text: string;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export interface BigIntLiteral extends Node {
-  readonly kind: SyntaxKind.BigIntLiteral;
-  readonly parent:
-    | LeftHandSideExpressionParent
-    | TypeElement
-    | FunctionOrConstructorTypeNodeBase
-    | JSDocFunctionType
-    | MethodDeclaration
-    | ConstructorDeclaration
-    | SemicolonClassElement
-    | ClassStaticBlockDeclaration
-    | LiteralTypeNode;
-  text: string;
-  isUnterminated?: boolean;
-  hasExtendedUnicodeEscape?: boolean;
-  _literalExpressionBrand: any;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export interface TypeParameterDeclaration extends Node {
-  readonly kind: SyntaxKind.TypeParameter;
-  readonly parent:
-    | AccessorDeclaration
-    | FunctionOrConstructorTypeNodeBase
-    | CallSignatureDeclaration
-    | ConstructSignatureDeclaration
-    | MethodSignature
-    | IndexSignatureDeclaration
-    | InferTypeNode
-    | MappedTypeNode
-    | JSDocFunctionType
-    | JSDocTemplateTag
-    | ArrowFunction
-    | FunctionExpression
-    | MethodDeclaration
-    | ClassExpression
-    | ConstructorDeclaration
-    | FunctionDeclaration
-    | ClassDeclaration
-    | InterfaceDeclaration
-    | TypeAliasDeclaration;
-  readonly modifiers?: NodeArray<Modifier>;
-  readonly name: Identifier;
-  /** Note: Consider calling `getEffectiveConstraintOfTypeParameter` */
-  readonly constraint?: TypeNode;
-  readonly default?: TypeNode;
-  expression?: Expression;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface ParameterDeclaration extends Node {
-  readonly kind: SyntaxKind.Parameter;
-  readonly parent:
-    | AccessorDeclaration
-    | FunctionOrConstructorTypeNodeBase
-    | CallSignatureDeclaration
-    | ConstructSignatureDeclaration
-    | MethodSignature
-    | IndexSignatureDeclaration
-    | JSDocFunctionType
-    | SyntheticExpression
-    | ArrowFunction
-    | FunctionExpression
-    | MethodDeclaration
-    | ConstructorDeclaration
-    | FunctionDeclaration;
-  readonly modifiers?: NodeArray<ModifierLike>;
-  readonly dotDotDotToken?: DotDotDotToken;
-  readonly name: BindingName;
-  readonly questionToken?: QuestionToken;
-  readonly type?: TypeNode;
-  readonly initializer?: Expression;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface DotDotDotToken extends Node {
-  readonly kind: SyntaxKind.DotDotDotToken;
-  readonly parent: ParameterDeclaration | BindingElement;
-}
-export type BindingName = Identifier | BindingPattern;
-export type BindingPattern = ObjectBindingPattern | ArrayBindingPattern;
-export interface ObjectBindingPattern extends Node {
-  readonly kind: SyntaxKind.ObjectBindingPattern;
-  readonly parent: BindingElement | ParameterDeclaration | VariableDeclaration;
-  readonly elements: NodeArray<BindingElement>;
-}
-export interface BindingElement extends Node {
-  readonly kind: SyntaxKind.BindingElement;
-  readonly parent: BindingPattern;
-  readonly propertyName?: PropertyName;
-  readonly dotDotDotToken?: DotDotDotToken;
-  readonly name: BindingName;
-  readonly initializer?: Expression;
-  _declarationBrand: any;
-  _flowContainerBrand: any;
-}
-export interface ArrayBindingPattern extends Node {
-  readonly kind: SyntaxKind.ArrayBindingPattern;
-  readonly parent: BindingElement | ParameterDeclaration | VariableDeclaration;
-  readonly elements: NodeArray<ArrayBindingElement>;
-}
-export type ArrayBindingElement = BindingElement | OmittedExpression;
-export interface QuestionToken extends Node {
-  readonly kind: SyntaxKind.QuestionToken;
-  readonly parent:
-    | TypeElement
-    | ParameterDeclaration
-    | MappedTypeNode
-    | ConditionalExpression
-    | ArrowFunction
-    | FunctionExpression
-    | MethodDeclaration
-    | PropertyDeclaration
-    | ConstructorDeclaration
-    | FunctionDeclaration;
-}
 export interface ConstructorTypeNode extends Node {
   readonly kind: SyntaxKind.ConstructorType;
-  readonly parent: TypeNodeParent;
+
   readonly modifiers?: NodeArray<Modifier>;
   readonly type: TypeNode;
+  readonly parent: Node;
   readonly name?: PropertyName;
   readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
   readonly parameters: NodeArray<ParameterDeclaration>;
@@ -900,244 +827,181 @@ export interface ConstructorTypeNode extends Node {
 export type NodeWithTypeArguments = ImportTypeNode | TypeReferenceNode | TypeQueryNode | ExpressionWithTypeArguments;
 export interface ImportTypeNode extends Node {
   readonly kind: SyntaxKind.ImportType;
-  readonly parent: TypeNodeParent;
+
   readonly isTypeOf: boolean;
   readonly argument: TypeNode;
   readonly attributes?: ImportAttributes;
   readonly qualifier?: EntityName;
   readonly typeArguments?: NodeArray<TypeNode>;
+  readonly parent: Node;
   _typeNodeBrand: any;
 }
 export interface ImportAttributes extends Node {
   readonly kind: SyntaxKind.ImportAttributes;
-  readonly parent: ImportTypeNode | ExportDeclaration | ImportDeclaration;
+
   readonly token: SyntaxKind.WithKeyword | SyntaxKind.AssertKeyword;
+  readonly parent: ImportDeclaration | ExportDeclaration;
   readonly elements: NodeArray<ImportAttribute>;
   readonly multiLine?: boolean;
 }
-export interface ImportAttribute extends Node {
-  readonly kind: SyntaxKind.ImportAttribute;
-  readonly parent: ImportAttributes;
-  readonly name: ImportAttributeName;
-  readonly value: Expression;
+export interface ImportDeclaration extends Node {
+  readonly kind: SyntaxKind.ImportDeclaration;
+
+  readonly parent: SourceFile | ModuleBlock;
+  readonly modifiers?: NodeArray<ModifierLike>;
+  readonly importClause?: ImportClause;
+  /** If this is not a StringLiteral it will be a grammar error. */
+  readonly moduleSpecifier: Expression;
+  readonly attributes?: ImportAttributes;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
 }
-export type ImportAttributeName = Identifier | StringLiteral;
-export type EntityName = Identifier | QualifiedName;
-export interface QualifiedName extends Node {
-  readonly kind: SyntaxKind.QualifiedName;
-  readonly parent:
-    | JSDocPropertyLikeTag
-    | QualifiedName
-    | ImportTypeNode
-    | TypeReferenceNode
-    | TypeQueryNode
-    | JSDocLink
-    | JSDocMemberName
-    | JSDocLinkCode
-    | JSDocLinkPlain
-    | ImportEqualsDeclaration;
-  readonly left: EntityName;
-  readonly right: Identifier;
-  _flowContainerBrand: any;
+export interface ModuleBlock extends Node {
+  readonly kind: SyntaxKind.ModuleBlock;
+
+  readonly parent: ModuleDeclaration;
+  readonly statements: NodeArray<Statement>;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
 }
-export interface TypeReferenceNode extends Node {
-  readonly kind: SyntaxKind.TypeReference;
-  readonly parent: TypeNodeParent;
-  readonly typeName: EntityName;
-  readonly typeArguments?: NodeArray<TypeNode>;
-  _typeNodeBrand: any;
+export interface ModuleDeclaration extends Node {
+  readonly kind: SyntaxKind.ModuleDeclaration;
+
+  readonly parent: ModuleBody | SourceFile;
+  readonly modifiers?: NodeArray<ModifierLike>;
+  readonly name: ModuleName;
+  readonly body?: ModuleBody | JSDocNamespaceDeclaration;
+  _declarationBrand: any;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+  _localsContainerBrand: any;
 }
-export interface TypeQueryNode extends Node {
-  readonly kind: SyntaxKind.TypeQuery;
-  readonly parent: TypeNodeParent;
-  readonly exprName: EntityName;
-  readonly typeArguments?: NodeArray<TypeNode>;
-  _typeNodeBrand: any;
+export type ModuleBody = NamespaceBody | JSDocNamespaceBody;
+export type NamespaceBody = ModuleBlock | NamespaceDeclaration;
+export interface NamespaceDeclaration extends Node {
+  readonly kind: SyntaxKind.ModuleDeclaration;
+
+  readonly name: Identifier;
+  readonly body: NamespaceBody;
+  readonly parent: ModuleBody | SourceFile;
+  readonly modifiers?: NodeArray<ModifierLike>;
+  _declarationBrand: any;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+  _localsContainerBrand: any;
 }
-export interface ExpressionWithTypeArguments extends Node {
-  readonly kind: SyntaxKind.ExpressionWithTypeArguments;
-  readonly parent:
-    | IterationStatement
-    | ObjectLiteralElementLike
-    | NodeWithTypeArguments
-    | FunctionOrConstructorTypeNodeBase
-    | TypeParameterDeclaration
-    | ParameterDeclaration
-    | TypePredicateNode
-    | CallSignatureDeclaration
-    | ConstructSignatureDeclaration
-    | PropertySignature
-    | MethodSignature
-    | IndexSignatureDeclaration
-    | ArrayTypeNode
-    | TupleTypeNode
-    | NamedTupleMember
-    | OptionalTypeNode
-    | RestTypeNode
-    | UnionTypeNode
-    | IntersectionTypeNode
-    | ConditionalTypeNode
-    | ParenthesizedTypeNode
-    | TypeOperatorNode
-    | IndexedAccessTypeNode
-    | MappedTypeNode
-    | TemplateLiteralTypeSpan
-    | JSDocTypeExpression
-    | JSDocNonNullableType
-    | JSDocNullableType
-    | JSDocOptionalType
-    | JSDocFunctionType
-    | JSDocVariadicType
-    | JSDocNamepathType
-    | TypeAssertion
-    | ArrowFunction
-    | AsExpression
-    | SatisfiesExpression
-    | JsxOpeningElement
-    | JsxSelfClosingElement
-    | FunctionExpression
-    | NewExpression
-    | PropertyDeclaration
-    | ConstructorDeclaration
-    | TaggedTemplateExpression
-    | CallExpression
-    | FunctionDeclaration
-    | TypeAliasDeclaration
-    | VariableDeclaration
-    | HeritageClause
-    | PostfixUnaryExpression
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | ComputedPropertyName
-    | BindingElement
-    | ImportAttribute
-    | YieldExpression
-    | BinaryExpression
-    | ConditionalExpression
-    | SpreadElement
-    | JsxExpression
-    | JsxSpreadAttribute
-    | CommaListExpression
-    | PartiallyEmittedExpression
-    | TemplateSpan
-    | ParenthesizedExpression
-    | ArrayLiteralExpression
-    | ElementAccessExpression
-    | NonNullExpression
-    | EnumMember
-    | ExternalModuleReference
-    | ExportDeclaration
-    | ExportAssignment
-    | ExpressionStatement
-    | IfStatement
-    | ReturnStatement
-    | WithStatement
-    | SwitchStatement
-    | CaseClause
-    | ThrowStatement
-    | ImportDeclaration
-    | PropertyAccessExpression
-    | Decorator;
-  readonly expression: LeftHandSideExpression;
-  readonly typeArguments?: NodeArray<TypeNode>;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _typeNodeBrand: any;
+export type JSDocNamespaceBody = Identifier | JSDocNamespaceDeclaration;
+export interface JSDocNamespaceDeclaration extends Node {
+  readonly kind: SyntaxKind.ModuleDeclaration;
+
+  readonly name: Identifier;
+  readonly body?: JSDocNamespaceBody;
+  readonly parent: ModuleBody | SourceFile;
+  readonly modifiers?: NodeArray<ModifierLike>;
+  _declarationBrand: any;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+  _localsContainerBrand: any;
 }
-export interface TypePredicateNode extends Node {
-  readonly kind: SyntaxKind.TypePredicate;
-  readonly parent: TypeNodeParent;
-  readonly assertsModifier?: AssertsKeyword;
-  readonly parameterName: Identifier | ThisTypeNode;
-  readonly type?: TypeNode;
-  _typeNodeBrand: any;
-}
-export interface AssertsKeyword extends Node {
-  readonly kind: SyntaxKind.AssertsKeyword;
-  readonly parent: TypePredicateNode;
-}
-export interface TypeLiteralNode extends Node {
-  readonly kind: SyntaxKind.TypeLiteral;
-  readonly parent: TypeNodeParent;
-  readonly members: NodeArray<TypeElement>;
-  _typeNodeBrand: any;
+export type ModuleName = Identifier | StringLiteral;
+export interface ImportClause extends Node {
+  readonly kind: SyntaxKind.ImportClause;
+
+  readonly parent: ImportDeclaration | JSDocImportTag;
+  /** @deprecated Use `phaseModifier` instead */
+  readonly isTypeOnly: boolean;
+  readonly phaseModifier: undefined | ImportPhaseModifierSyntaxKind;
+  readonly name?: Identifier;
+  readonly namedBindings?: NamedImportBindings;
   _declarationBrand: any;
 }
-export type TypeElement =
+export interface JSDocImportTag extends Node {
+  readonly kind: SyntaxKind.JSDocImportTag;
+
+  readonly parent: JSDoc;
+  readonly importClause?: ImportClause;
+  readonly moduleSpecifier: Expression;
+  readonly attributes?: ImportAttributes;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDoc extends Node {
+  readonly kind: SyntaxKind.JSDoc;
+
+  readonly parent: HasJSDoc;
+  readonly tags?: NodeArray<JSDocTag>;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export type HasJSDoc =
+  | AccessorDeclaration
+  | ArrowFunction
+  | BinaryExpression
+  | Block
+  | BreakStatement
   | CallSignatureDeclaration
+  | CaseClause
+  | ClassLikeDeclaration
+  | ClassStaticBlockDeclaration
+  | ConstructorDeclaration
+  | ConstructorTypeNode
   | ConstructSignatureDeclaration
-  | PropertySignature
-  | MethodSignature
-  | GetAccessorDeclaration
-  | SetAccessorDeclaration
+  | ContinueStatement
+  | DebuggerStatement
+  | DoStatement
+  | ElementAccessExpression
+  | EmptyStatement
+  | EndOfFileToken
+  | EnumDeclaration
+  | EnumMember
+  | ExportAssignment
+  | ExportDeclaration
+  | ExportSpecifier
+  | ExpressionStatement
+  | ForInStatement
+  | ForOfStatement
+  | ForStatement
+  | FunctionDeclaration
+  | FunctionExpression
+  | FunctionTypeNode
+  | Identifier
+  | IfStatement
+  | ImportDeclaration
+  | ImportEqualsDeclaration
   | IndexSignatureDeclaration
-  | NotEmittedTypeElement;
-export interface CallSignatureDeclaration extends Node {
-  readonly kind: SyntaxKind.CallSignature;
-  readonly parent: TypeLiteralNode | MappedTypeNode | InterfaceDeclaration;
-  readonly name?: PropertyName;
-  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
-  readonly parameters: NodeArray<ParameterDeclaration>;
-  readonly type?: TypeNode | undefined;
-  readonly questionToken?: QuestionToken | undefined;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-  _typeElementBrand: any;
-  _localsContainerBrand: any;
-}
-export interface ConstructSignatureDeclaration extends Node {
-  readonly kind: SyntaxKind.ConstructSignature;
-  readonly parent: TypeLiteralNode | MappedTypeNode | InterfaceDeclaration;
-  readonly name?: PropertyName;
-  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
-  readonly parameters: NodeArray<ParameterDeclaration>;
-  readonly type?: TypeNode | undefined;
-  readonly questionToken?: QuestionToken | undefined;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-  _typeElementBrand: any;
-  _localsContainerBrand: any;
-}
-export interface PropertySignature extends Node {
-  readonly kind: SyntaxKind.PropertySignature;
-  readonly parent: TypeLiteralNode | MappedTypeNode | InterfaceDeclaration;
-  readonly modifiers?: NodeArray<Modifier>;
-  readonly name: PropertyName;
-  readonly questionToken?: QuestionToken;
-  readonly type?: TypeNode;
-  _typeElementBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface MethodSignature extends Node {
-  readonly kind: SyntaxKind.MethodSignature;
-  readonly parent: TypeLiteralNode | MappedTypeNode | InterfaceDeclaration;
-  readonly modifiers?: NodeArray<Modifier>;
-  readonly name: PropertyName;
-  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
-  readonly parameters: NodeArray<ParameterDeclaration>;
-  readonly type?: TypeNode | undefined;
-  readonly questionToken?: QuestionToken | undefined;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-  _typeElementBrand: any;
-  _localsContainerBrand: any;
-}
+  | InterfaceDeclaration
+  | JSDocFunctionType
+  | JSDocSignature
+  | LabeledStatement
+  | MethodDeclaration
+  | MethodSignature
+  | ModuleDeclaration
+  | NamedTupleMember
+  | NamespaceExportDeclaration
+  | ObjectLiteralExpression
+  | ParameterDeclaration
+  | ParenthesizedExpression
+  | PropertyAccessExpression
+  | PropertyAssignment
+  | PropertyDeclaration
+  | PropertySignature
+  | ReturnStatement
+  | SemicolonClassElement
+  | ShorthandPropertyAssignment
+  | SpreadAssignment
+  | SwitchStatement
+  | ThrowStatement
+  | TryStatement
+  | TypeAliasDeclaration
+  | TypeParameterDeclaration
+  | VariableDeclaration
+  | VariableStatement
+  | WhileStatement
+  | WithStatement;
+export type AccessorDeclaration = GetAccessorDeclaration | SetAccessorDeclaration;
 export interface GetAccessorDeclaration extends Node {
   readonly kind: SyntaxKind.GetAccessor;
-  readonly parent:
-    | ObjectLiteralExpressionBase
-    | TypeLiteralNode
-    | MappedTypeNode
-    | InterfaceDeclaration
-    | ClassExpression
-    | ClassDeclaration;
+
+  readonly parent: ClassLikeDeclaration | ObjectLiteralExpression | TypeLiteralNode | InterfaceDeclaration;
   readonly modifiers?: NodeArray<ModifierLike>;
   readonly name: PropertyName;
   readonly body?: FunctionBody;
@@ -1156,57 +1020,185 @@ export interface GetAccessorDeclaration extends Node {
   _localsContainerBrand: any;
   _flowContainerBrand: any;
 }
-export type FunctionBody = Block;
-export interface Block extends Node {
-  readonly kind: SyntaxKind.Block;
-  readonly parent:
-    | StatementParent
-    | AccessorDeclaration
-    | ArrowFunction
-    | FunctionExpression
-    | MethodDeclaration
-    | ConstructorDeclaration
-    | FunctionDeclaration
-    | ClassStaticBlockDeclaration
-    | TryStatement
-    | CatchClause;
-  readonly statements: NodeArray<Statement>;
+export type ClassLikeDeclaration = ClassDeclaration | ClassExpression;
+export interface ClassDeclaration extends Node {
+  readonly kind: SyntaxKind.ClassDeclaration;
+
+  readonly modifiers?: NodeArray<ModifierLike>;
+  /** May be undefined in `export default class { ... }`. */
+  readonly name?: Identifier;
+  readonly typeParameters?: NodeArray<TypeParameterDeclaration>;
+  readonly heritageClauses?: NodeArray<HeritageClause>;
+  readonly members: NodeArray<ClassElement>;
+  readonly parent: Node;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+  _statementBrand: any;
+}
+export interface HeritageClause extends Node {
+  readonly kind: SyntaxKind.HeritageClause;
+
+  readonly parent: InterfaceDeclaration | ClassLikeDeclaration;
+  readonly token: SyntaxKind.ExtendsKeyword | SyntaxKind.ImplementsKeyword;
+  readonly types: NodeArray<ExpressionWithTypeArguments>;
+}
+export interface InterfaceDeclaration extends Node {
+  readonly kind: SyntaxKind.InterfaceDeclaration;
+
+  readonly modifiers?: NodeArray<ModifierLike>;
+  readonly name: Identifier;
+  readonly typeParameters?: NodeArray<TypeParameterDeclaration>;
+  readonly heritageClauses?: NodeArray<HeritageClause>;
+  readonly members: NodeArray<TypeElement>;
+  readonly parent: Node;
+  _declarationBrand: any;
   _statementBrand: any;
   _jsdocContainerBrand: any;
+}
+export interface ExpressionWithTypeArguments extends Node {
+  readonly kind: SyntaxKind.ExpressionWithTypeArguments;
+
+  readonly expression: LeftHandSideExpression;
+  readonly parent: Node;
+  readonly typeArguments?: NodeArray<TypeNode>;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _typeNodeBrand: any;
+}
+export type ClassElement =
+  | PropertyDeclaration
+  | MethodDeclaration
+  | ConstructorDeclaration
+  | SemicolonClassElement
+  | GetAccessorDeclaration
+  | SetAccessorDeclaration
+  | IndexSignatureDeclaration
+  | ClassStaticBlockDeclaration;
+export interface PropertyDeclaration extends Node {
+  readonly kind: SyntaxKind.PropertyDeclaration;
+
+  readonly parent: ClassLikeDeclaration;
+  readonly modifiers?: NodeArray<ModifierLike>;
+  readonly name: PropertyName;
+  readonly questionToken?: QuestionToken;
+  readonly exclamationToken?: ExclamationToken;
+  readonly type?: TypeNode;
+  readonly initializer?: Expression;
+  _classElementBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+}
+export interface MethodDeclaration extends Node {
+  readonly kind: SyntaxKind.MethodDeclaration;
+
+  readonly parent: ClassLikeDeclaration | ObjectLiteralExpression;
+  readonly modifiers?: NodeArray<ModifierLike> | undefined;
+  readonly name: PropertyName;
+  readonly body?: FunctionBody | undefined;
+  readonly asteriskToken?: AsteriskToken | undefined;
+  readonly questionToken?: QuestionToken | undefined;
+  readonly exclamationToken?: ExclamationToken | undefined;
+  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
+  readonly parameters: NodeArray<ParameterDeclaration>;
+  readonly type?: TypeNode | undefined;
+  _functionLikeDeclarationBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+  _classElementBrand: any;
+  _objectLiteralBrand: any;
+  _localsContainerBrand: any;
+  _flowContainerBrand: any;
+}
+export interface ObjectLiteralExpression extends Node {
+  readonly kind: SyntaxKind.ObjectLiteralExpression;
+
+  readonly properties: NodeArray<ObjectLiteralElementLike>;
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+}
+export type ObjectLiteralElementLike =
+  | PropertyAssignment
+  | ShorthandPropertyAssignment
+  | SpreadAssignment
+  | MethodDeclaration
+  | AccessorDeclaration;
+export interface PropertyAssignment extends Node {
+  readonly kind: SyntaxKind.PropertyAssignment;
+
+  readonly parent: ObjectLiteralExpression;
+  readonly name: PropertyName;
+  readonly initializer: Expression;
+  _objectLiteralBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+}
+export interface ShorthandPropertyAssignment extends Node {
+  readonly kind: SyntaxKind.ShorthandPropertyAssignment;
+
+  readonly parent: ObjectLiteralExpression;
+  readonly name: Identifier;
+  readonly equalsToken?: EqualsToken;
+  readonly objectAssignmentInitializer?: Expression;
+  _objectLiteralBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+}
+export interface EqualsToken extends Node {
+  readonly kind: SyntaxKind.EqualsToken;
+  readonly parent: Node;
+}
+export interface SpreadAssignment extends Node {
+  readonly kind: SyntaxKind.SpreadAssignment;
+
+  readonly parent: ObjectLiteralExpression;
+  readonly expression: Expression;
+  readonly name?: PropertyName;
+  _objectLiteralBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+}
+export interface ConstructorDeclaration extends Node {
+  readonly kind: SyntaxKind.Constructor;
+
+  readonly parent: ClassLikeDeclaration;
+  readonly modifiers?: NodeArray<ModifierLike> | undefined;
+  readonly body?: FunctionBody | undefined;
+  readonly asteriskToken?: AsteriskToken | undefined;
+  readonly questionToken?: QuestionToken | undefined;
+  readonly exclamationToken?: ExclamationToken | undefined;
+  readonly name?: PropertyName;
+  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
+  readonly parameters: NodeArray<ParameterDeclaration>;
+  readonly type?: TypeNode | undefined;
+  _functionLikeDeclarationBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+  _classElementBrand: any;
   _localsContainerBrand: any;
 }
-export interface AsteriskToken extends Node {
-  readonly kind: SyntaxKind.AsteriskToken;
-  readonly parent:
-    | AccessorDeclaration
-    | YieldExpression
-    | ArrowFunction
-    | FunctionExpression
-    | MethodDeclaration
-    | ConstructorDeclaration
-    | FunctionDeclaration;
-}
-export interface ExclamationToken extends Node {
-  readonly kind: SyntaxKind.ExclamationToken;
-  readonly parent:
-    | AccessorDeclaration
-    | ArrowFunction
-    | FunctionExpression
-    | MethodDeclaration
-    | PropertyDeclaration
-    | ConstructorDeclaration
-    | FunctionDeclaration
-    | VariableDeclaration;
+export interface SemicolonClassElement extends Node {
+  readonly kind: SyntaxKind.SemicolonClassElement;
+
+  readonly parent: ClassLikeDeclaration;
+  readonly name?: PropertyName;
+  _classElementBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
 }
 export interface SetAccessorDeclaration extends Node {
   readonly kind: SyntaxKind.SetAccessor;
-  readonly parent:
-    | ObjectLiteralExpressionBase
-    | TypeLiteralNode
-    | MappedTypeNode
-    | InterfaceDeclaration
-    | ClassExpression
-    | ClassDeclaration;
+
+  readonly parent: ClassLikeDeclaration | ObjectLiteralExpression | TypeLiteralNode | InterfaceDeclaration;
   readonly modifiers?: NodeArray<ModifierLike>;
   readonly name: PropertyName;
   readonly body?: FunctionBody;
@@ -1227,7 +1219,8 @@ export interface SetAccessorDeclaration extends Node {
 }
 export interface IndexSignatureDeclaration extends Node {
   readonly kind: SyntaxKind.IndexSignature;
-  readonly parent: TypeLiteralNode | MappedTypeNode | InterfaceDeclaration | ClassExpression | ClassDeclaration;
+
+  readonly parent: ObjectTypeDeclaration;
   readonly modifiers?: NodeArray<ModifierLike>;
   readonly type: TypeNode;
   readonly name?: PropertyName;
@@ -1240,128 +1233,29 @@ export interface IndexSignatureDeclaration extends Node {
   _typeElementBrand: any;
   _localsContainerBrand: any;
 }
-export interface NotEmittedTypeElement extends Node {
-  readonly kind: SyntaxKind.NotEmittedTypeElement;
-  readonly parent: TypeLiteralNode | MappedTypeNode | InterfaceDeclaration;
+export type ObjectTypeDeclaration = ClassLikeDeclaration | InterfaceDeclaration | TypeLiteralNode;
+export interface ClassStaticBlockDeclaration extends Node {
+  readonly kind: SyntaxKind.ClassStaticBlockDeclaration;
+
+  readonly parent: ClassDeclaration | ClassExpression;
+  readonly body: Block;
   readonly name?: PropertyName;
-  readonly questionToken?: QuestionToken | undefined;
-  _typeElementBrand: any;
-  _declarationBrand: any;
-}
-export interface ArrayTypeNode extends Node {
-  readonly kind: SyntaxKind.ArrayType;
-  readonly parent: TypeNodeParent;
-  readonly elementType: TypeNode;
-  _typeNodeBrand: any;
-}
-export interface TupleTypeNode extends Node {
-  readonly kind: SyntaxKind.TupleType;
-  readonly parent: TypeNodeParent;
-  readonly elements: NodeArray<TypeNode | NamedTupleMember>;
-  _typeNodeBrand: any;
-}
-export interface NamedTupleMember extends Node {
-  readonly kind: SyntaxKind.NamedTupleMember;
-  readonly parent: TypeNodeParent | SyntheticExpression;
-  readonly dotDotDotToken?: Token<SyntaxKind.DotDotDotToken, NamedTupleMember>;
-  readonly name: Identifier;
-  readonly questionToken?: Token<SyntaxKind.QuestionToken, NamedTupleMember>;
-  readonly type: TypeNode;
-  _typeNodeBrand: any;
+  _classElementBrand: any;
   _declarationBrand: any;
   _jsdocContainerBrand: any;
-}
-export interface OptionalTypeNode extends Node {
-  readonly kind: SyntaxKind.OptionalType;
-  readonly parent: TypeNodeParent;
-  readonly type: TypeNode;
-  _typeNodeBrand: any;
-}
-export interface RestTypeNode extends Node {
-  readonly kind: SyntaxKind.RestType;
-  readonly parent: TypeNodeParent;
-  readonly type: TypeNode;
-  _typeNodeBrand: any;
-}
-export interface UnionTypeNode extends Node {
-  readonly kind: SyntaxKind.UnionType;
-  readonly parent: TypeNodeParent;
-  readonly types: NodeArray<TypeNode>;
-  _typeNodeBrand: any;
-}
-export interface IntersectionTypeNode extends Node {
-  readonly kind: SyntaxKind.IntersectionType;
-  readonly parent: TypeNodeParent;
-  readonly types: NodeArray<TypeNode>;
-  _typeNodeBrand: any;
-}
-export interface ConditionalTypeNode extends Node {
-  readonly kind: SyntaxKind.ConditionalType;
-  readonly parent: TypeNodeParent;
-  readonly checkType: TypeNode;
-  readonly extendsType: TypeNode;
-  readonly trueType: TypeNode;
-  readonly falseType: TypeNode;
-  _typeNodeBrand: any;
   _localsContainerBrand: any;
 }
-export interface InferTypeNode extends Node {
-  readonly kind: SyntaxKind.InferType;
-  readonly parent: TypeNodeParent;
-  readonly typeParameter: TypeParameterDeclaration;
-  _typeNodeBrand: any;
-}
-export interface ParenthesizedTypeNode extends Node {
-  readonly kind: SyntaxKind.ParenthesizedType;
-  readonly parent: TypeNodeParent;
-  readonly type: TypeNode;
-  _typeNodeBrand: any;
-}
-export interface TypeOperatorNode extends Node {
-  readonly kind: SyntaxKind.TypeOperator;
-  readonly parent: TypeNodeParent;
-  readonly operator: SyntaxKind.KeyOfKeyword | SyntaxKind.UniqueKeyword | SyntaxKind.ReadonlyKeyword;
-  readonly type: TypeNode;
-  _typeNodeBrand: any;
-}
-export interface IndexedAccessTypeNode extends Node {
-  readonly kind: SyntaxKind.IndexedAccessType;
-  readonly parent: TypeNodeParent;
-  readonly objectType: TypeNode;
-  readonly indexType: TypeNode;
-  _typeNodeBrand: any;
-}
-export interface MappedTypeNode extends Node {
-  readonly kind: SyntaxKind.MappedType;
-  readonly parent: TypeNodeParent;
-  readonly readonlyToken?: ReadonlyKeyword | PlusToken | MinusToken;
-  readonly typeParameter: TypeParameterDeclaration;
-  readonly nameType?: TypeNode;
-  readonly questionToken?: QuestionToken | PlusToken | MinusToken;
-  readonly type?: TypeNode;
-  /** Used only to produce grammar errors */
-  readonly members?: NodeArray<TypeElement>;
-  _typeNodeBrand: any;
+export interface ClassExpression extends Node {
+  readonly kind: SyntaxKind.ClassExpression;
+
+  readonly modifiers?: NodeArray<ModifierLike>;
+  readonly name?: Identifier;
+  readonly typeParameters?: NodeArray<TypeParameterDeclaration>;
+  readonly heritageClauses?: NodeArray<HeritageClause>;
+  readonly members: NodeArray<ClassElement>;
+  readonly parent: Node;
   _declarationBrand: any;
-  _localsContainerBrand: any;
-}
-export interface PlusToken extends Node {
-  readonly kind: SyntaxKind.PlusToken;
-  readonly parent: MappedTypeNode;
-}
-export interface MinusToken extends Node {
-  readonly kind: SyntaxKind.MinusToken;
-  readonly parent: MappedTypeNode;
-}
-export interface LiteralTypeNode extends Node {
-  readonly kind: SyntaxKind.LiteralType;
-  readonly parent: TypeNodeParent;
-  readonly literal: NullLiteral | BooleanLiteral | LiteralExpression | PrefixUnaryExpression;
-  _typeNodeBrand: any;
-}
-export interface NullLiteral extends Node {
-  readonly kind: SyntaxKind.NullKeyword;
-  readonly parent: LeftHandSideExpressionParent | LiteralTypeNode;
+  _jsdocContainerBrand: any;
   _primaryExpressionBrand: any;
   _memberExpressionBrand: any;
   _leftHandSideExpressionBrand: any;
@@ -1369,284 +1263,46 @@ export interface NullLiteral extends Node {
   _unaryExpressionBrand: any;
   _expressionBrand: any;
 }
-export type BooleanLiteral = TrueLiteral | FalseLiteral;
-export interface TrueLiteral extends Node {
-  readonly kind: SyntaxKind.TrueKeyword;
-  readonly parent: LeftHandSideExpressionParent | LiteralTypeNode;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export interface FalseLiteral extends Node {
-  readonly kind: SyntaxKind.FalseKeyword;
-  readonly parent: LeftHandSideExpressionParent | LiteralTypeNode;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export type LiteralExpression =
-  | StringLiteral
-  | RegularExpressionLiteral
-  | NoSubstitutionTemplateLiteral
-  | NumericLiteral
-  | BigIntLiteral;
-export interface RegularExpressionLiteral extends Node {
-  readonly kind: SyntaxKind.RegularExpressionLiteral;
-  readonly parent: LeftHandSideExpressionParent | LiteralTypeNode;
-  text: string;
-  isUnterminated?: boolean;
-  hasExtendedUnicodeEscape?: boolean;
-  _literalExpressionBrand: any;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export interface TemplateLiteralTypeNode extends Node {
-  readonly kind: SyntaxKind.TemplateLiteralType;
-  readonly parent: TypeNodeParent;
-  readonly head: TemplateHead;
-  readonly templateSpans: NodeArray<TemplateLiteralTypeSpan>;
-  _typeNodeBrand: any;
-}
-export interface TemplateHead extends Node {
-  readonly kind: SyntaxKind.TemplateHead;
-  readonly parent: TemplateLiteralTypeNode | TemplateExpression;
-  rawText?: string;
-  text: string;
-  isUnterminated?: boolean;
-  hasExtendedUnicodeEscape?: boolean;
-}
-export interface TemplateLiteralTypeSpan extends Node {
-  readonly kind: SyntaxKind.TemplateLiteralTypeSpan;
-  readonly parent: TypeNodeParent | TemplateLiteralTypeNode;
-  readonly type: TypeNode;
-  readonly literal: TemplateMiddle | TemplateTail;
-  _typeNodeBrand: any;
-}
-export interface TemplateMiddle extends Node {
-  readonly kind: SyntaxKind.TemplateMiddle;
-  readonly parent: TemplateLiteralTypeSpan | TemplateSpan;
-  rawText?: string;
-  text: string;
-  isUnterminated?: boolean;
-  hasExtendedUnicodeEscape?: boolean;
-}
-export interface TemplateTail extends Node {
-  readonly kind: SyntaxKind.TemplateTail;
-  readonly parent: TemplateLiteralTypeSpan | TemplateSpan;
-  rawText?: string;
-  text: string;
-  isUnterminated?: boolean;
-  hasExtendedUnicodeEscape?: boolean;
-}
-export interface JSDocTypeExpression extends Node {
-  readonly kind: SyntaxKind.JSDocTypeExpression;
-  readonly parent: TypeNodeParent | JSDocPropertyLikeTag | JSDocTemplateTag | JSDocReturnTag;
-  readonly type: TypeNode;
-  _typeNodeBrand: any;
-}
-export type JSDocType =
-  | JSDocAllType
-  | JSDocUnknownType
-  | JSDocNonNullableType
-  | JSDocNullableType
-  | JSDocOptionalType
-  | JSDocFunctionType
-  | JSDocVariadicType
-  | JSDocNamepathType
-  | JSDocSignature
-  | JSDocTypeLiteral;
-export interface JSDocAllType extends Node {
-  readonly kind: SyntaxKind.JSDocAllType;
-  readonly parent: TypeNodeParent;
-  _jsDocTypeBrand: any;
-  _typeNodeBrand: any;
-}
-export interface JSDocUnknownType extends Node {
-  readonly kind: SyntaxKind.JSDocUnknownType;
-  readonly parent: TypeNodeParent;
-  _jsDocTypeBrand: any;
-  _typeNodeBrand: any;
-}
-export interface JSDocNonNullableType extends Node {
-  readonly kind: SyntaxKind.JSDocNonNullableType;
-  readonly parent: TypeNodeParent;
-  readonly type: TypeNode;
-  readonly postfix: boolean;
-  _jsDocTypeBrand: any;
-  _typeNodeBrand: any;
-}
-export interface JSDocNullableType extends Node {
-  readonly kind: SyntaxKind.JSDocNullableType;
-  readonly parent: TypeNodeParent;
-  readonly type: TypeNode;
-  readonly postfix: boolean;
-  _jsDocTypeBrand: any;
-  _typeNodeBrand: any;
-}
-export interface JSDocOptionalType extends Node {
-  readonly kind: SyntaxKind.JSDocOptionalType;
-  readonly parent: TypeNodeParent;
-  readonly type: TypeNode;
-  _jsDocTypeBrand: any;
-  _typeNodeBrand: any;
-}
-export interface JSDocFunctionType extends Node {
-  readonly kind: SyntaxKind.JSDocFunctionType;
-  readonly parent: TypeNodeParent;
-  readonly name?: PropertyName;
+export interface ArrowFunction extends Node {
+  readonly kind: SyntaxKind.ArrowFunction;
+
+  readonly modifiers?: NodeArray<Modifier>;
+  readonly equalsGreaterThanToken: EqualsGreaterThanToken;
+  readonly body: ConciseBody;
+  readonly name: never;
+  readonly parent: Node;
+  readonly asteriskToken?: AsteriskToken | undefined;
+  readonly questionToken?: QuestionToken | undefined;
+  readonly exclamationToken?: ExclamationToken | undefined;
   readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
   readonly parameters: NodeArray<ParameterDeclaration>;
   readonly type?: TypeNode | undefined;
-  _jsDocTypeBrand: any;
-  _typeNodeBrand: any;
+  _expressionBrand: any;
+  _functionLikeDeclarationBrand: any;
   _declarationBrand: any;
   _jsdocContainerBrand: any;
   _localsContainerBrand: any;
+  _flowContainerBrand: any;
 }
-export interface JSDocVariadicType extends Node {
-  readonly kind: SyntaxKind.JSDocVariadicType;
-  readonly parent: TypeNodeParent;
-  readonly type: TypeNode;
-  _jsDocTypeBrand: any;
-  _typeNodeBrand: any;
+export interface EqualsGreaterThanToken extends Node {
+  readonly kind: SyntaxKind.EqualsGreaterThanToken;
+  readonly parent: Node;
 }
-export interface JSDocNamepathType extends Node {
-  readonly kind: SyntaxKind.JSDocNamepathType;
-  readonly parent: TypeNodeParent;
-  readonly type: TypeNode;
-  _jsDocTypeBrand: any;
-  _typeNodeBrand: any;
-}
-export interface JSDocSignature extends Node {
-  readonly kind: SyntaxKind.JSDocSignature;
-  readonly parent: TypeNodeParent;
-  readonly typeParameters?: readonly JSDocTemplateTag[];
-  readonly parameters: readonly JSDocParameterTag[];
-  readonly type: JSDocReturnTag | undefined;
-  _jsDocTypeBrand: any;
-  _typeNodeBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-  _localsContainerBrand: any;
-}
-export interface JSDocTemplateTag extends Node {
-  readonly kind: SyntaxKind.JSDocTemplateTag;
-  readonly parent: JSDocSignature;
-  readonly constraint: JSDocTypeExpression | undefined;
-  readonly typeParameters: NodeArray<TypeParameterDeclaration>;
-  readonly tagName: Identifier;
-  readonly comment?: string | NodeArray<JSDocComment>;
-}
-export type JSDocComment = JSDocText | JSDocLink | JSDocLinkCode | JSDocLinkPlain;
-export interface JSDocText extends Node {
-  readonly kind: SyntaxKind.JSDocText;
-  readonly parent: JSDocPropertyLikeTag | JSDocTemplateTag | JSDocReturnTag;
-  text: string;
-}
-export interface JSDocLink extends Node {
-  readonly kind: SyntaxKind.JSDocLink;
-  readonly parent: JSDocPropertyLikeTag | JSDocTemplateTag | JSDocReturnTag;
-  readonly name?: EntityName | JSDocMemberName;
-  text: string;
-}
-export interface JSDocMemberName extends Node {
-  readonly kind: SyntaxKind.JSDocMemberName;
-  readonly parent: JSDocMemberName | JSDocLink | JSDocLinkCode | JSDocLinkPlain;
-  readonly left: EntityName | JSDocMemberName;
-  readonly right: Identifier;
-}
-export interface JSDocLinkCode extends Node {
-  readonly kind: SyntaxKind.JSDocLinkCode;
-  readonly parent: JSDocPropertyLikeTag | JSDocTemplateTag | JSDocReturnTag;
-  readonly name?: EntityName | JSDocMemberName;
-  text: string;
-}
-export interface JSDocLinkPlain extends Node {
-  readonly kind: SyntaxKind.JSDocLinkPlain;
-  readonly parent: JSDocPropertyLikeTag | JSDocTemplateTag | JSDocReturnTag;
-  readonly name?: EntityName | JSDocMemberName;
-  text: string;
-}
-export interface JSDocParameterTag extends Node {
-  readonly kind: SyntaxKind.JSDocParameterTag;
-  readonly parent: JSDocSignature | JSDocTypeLiteral;
-  readonly name: EntityName;
-  readonly typeExpression?: JSDocTypeExpression;
-  /** Whether the property name came before the type -- non-standard for JSDoc, but Typescript-like */
-  readonly isNameFirst: boolean;
-  readonly isBracketed: boolean;
-  readonly tagName: Identifier;
-  readonly comment?: string | NodeArray<JSDocComment>;
-  _declarationBrand: any;
-}
-export interface JSDocReturnTag extends Node {
-  readonly kind: SyntaxKind.JSDocReturnTag;
-  readonly parent: JSDocSignature;
-  readonly typeExpression?: JSDocTypeExpression;
-  readonly tagName: Identifier;
-  readonly comment?: string | NodeArray<JSDocComment>;
-}
-export interface JSDocTypeLiteral extends Node {
-  readonly kind: SyntaxKind.JSDocTypeLiteral;
-  readonly parent: TypeNodeParent;
-  readonly jsDocPropertyTags?: readonly JSDocPropertyLikeTag[];
-  /** If true, then this type literal represents an *array* of its type. */
-  readonly isArrayType: boolean;
-  _jsDocTypeBrand: any;
-  _typeNodeBrand: any;
-  _declarationBrand: any;
-}
-export type JSDocPropertyLikeTag = JSDocPropertyTag | JSDocParameterTag;
-export interface JSDocPropertyTag extends Node {
-  readonly kind: SyntaxKind.JSDocPropertyTag;
-  readonly parent: JSDocTypeLiteral;
-  readonly name: EntityName;
-  readonly typeExpression?: JSDocTypeExpression;
-  /** Whether the property name came before the type -- non-standard for JSDoc, but Typescript-like */
-  readonly isNameFirst: boolean;
-  readonly isBracketed: boolean;
-  readonly tagName: Identifier;
-  readonly comment?: string | NodeArray<JSDocComment>;
-  _declarationBrand: any;
-}
-export interface YieldExpression extends Node {
-  readonly kind: SyntaxKind.YieldExpression;
-  readonly parent: ExpressionParent;
-  readonly asteriskToken?: AsteriskToken;
-  readonly expression?: Expression;
-  _expressionBrand: any;
-}
-export interface SyntheticExpression extends Node {
-  readonly kind: SyntaxKind.SyntheticExpression;
-  readonly parent: ExpressionParent;
-  readonly isSpread: boolean;
-  readonly type: Type;
-  readonly tupleNameSource?: ParameterDeclaration | NamedTupleMember;
-  _expressionBrand: any;
-}
+export type ConciseBody = FunctionBody | Expression;
 export interface BinaryExpression extends Node {
   readonly kind: SyntaxKind.BinaryExpression;
-  readonly parent: ExpressionParent;
+
   readonly left: Expression;
   readonly operatorToken: BinaryOperatorToken;
   readonly right: Expression;
+  readonly parent: Node;
   _expressionBrand: any;
   _declarationBrand: any;
   _jsdocContainerBrand: any;
 }
 export interface BinaryOperatorToken extends Node {
   readonly kind: BinaryOperator;
-  readonly parent: BinaryExpression;
+  readonly parent: Node;
 }
 export type BinaryOperator = AssignmentOperatorOrHigher | SyntaxKind.CommaToken;
 export type AssignmentOperatorOrHigher = SyntaxKind.QuestionQuestionToken | LogicalOperatorOrHigher | AssignmentOperator;
@@ -1695,96 +1351,82 @@ export type CompoundAssignmentOperator =
   | SyntaxKind.BarBarEqualsToken
   | SyntaxKind.AmpersandAmpersandEqualsToken
   | SyntaxKind.QuestionQuestionEqualsToken;
-export interface ConditionalExpression extends Node {
-  readonly kind: SyntaxKind.ConditionalExpression;
-  readonly parent: ExpressionParent;
-  readonly condition: Expression;
-  readonly questionToken: QuestionToken;
-  readonly whenTrue: Expression;
-  readonly colonToken: ColonToken;
-  readonly whenFalse: Expression;
-  _expressionBrand: any;
-}
-export interface ColonToken extends Node {
-  readonly kind: SyntaxKind.ColonToken;
-  readonly parent: ConditionalExpression;
-}
-export interface ArrowFunction extends Node {
-  readonly kind: SyntaxKind.ArrowFunction;
-  readonly parent: ExpressionParent;
-  readonly modifiers?: NodeArray<Modifier>;
-  readonly equalsGreaterThanToken: EqualsGreaterThanToken;
-  readonly body: ConciseBody;
-  readonly name: never;
-  readonly asteriskToken?: AsteriskToken | undefined;
-  readonly questionToken?: QuestionToken | undefined;
-  readonly exclamationToken?: ExclamationToken | undefined;
-  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
-  readonly parameters: NodeArray<ParameterDeclaration>;
-  readonly type?: TypeNode | undefined;
-  _expressionBrand: any;
-  _functionLikeDeclarationBrand: any;
-  _declarationBrand: any;
+export interface BreakStatement extends Node {
+  readonly kind: SyntaxKind.BreakStatement;
+
+  readonly label?: Identifier;
+  readonly parent: Node;
+  _statementBrand: any;
   _jsdocContainerBrand: any;
+  _flowContainerBrand: any;
+}
+export interface CaseClause extends Node {
+  readonly kind: SyntaxKind.CaseClause;
+
+  readonly parent: CaseBlock;
+  readonly expression: Expression;
+  readonly statements: NodeArray<Statement>;
+  _jsdocContainerBrand: any;
+}
+export interface CaseBlock extends Node {
+  readonly kind: SyntaxKind.CaseBlock;
+
+  readonly parent: SwitchStatement;
+  readonly clauses: NodeArray<CaseOrDefaultClause>;
   _localsContainerBrand: any;
+}
+export interface SwitchStatement extends Node {
+  readonly kind: SyntaxKind.SwitchStatement;
+
+  readonly expression: Expression;
+  readonly caseBlock: CaseBlock;
+  possiblyExhaustive?: boolean;
+  readonly parent: Node;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
   _flowContainerBrand: any;
 }
-export interface EqualsGreaterThanToken extends Node {
-  readonly kind: SyntaxKind.EqualsGreaterThanToken;
-  readonly parent: ArrowFunction;
+export type CaseOrDefaultClause = CaseClause | DefaultClause;
+export interface DefaultClause extends Node {
+  readonly kind: SyntaxKind.DefaultClause;
+
+  readonly parent: CaseBlock;
+  readonly statements: NodeArray<Statement>;
 }
-export type ConciseBody = FunctionBody | Expression;
-export interface SpreadElement extends Node {
-  readonly kind: SyntaxKind.SpreadElement;
-  readonly parent: ExpressionParent;
-  readonly expression: Expression;
-  _expressionBrand: any;
-}
-export interface AsExpression extends Node {
-  readonly kind: SyntaxKind.AsExpression;
-  readonly parent: ExpressionParent;
-  readonly expression: Expression;
-  readonly type: TypeNode;
-  _expressionBrand: any;
-}
-export interface SatisfiesExpression extends Node {
-  readonly kind: SyntaxKind.SatisfiesExpression;
-  readonly parent: ExpressionParent;
-  readonly expression: Expression;
-  readonly type: TypeNode;
-  _expressionBrand: any;
-}
-export interface JsxOpeningElement extends Node {
-  readonly kind: SyntaxKind.JsxOpeningElement;
-  readonly parent: ExpressionParent | JsxElement;
-  readonly tagName: JsxTagNameExpression;
-  readonly typeArguments?: NodeArray<TypeNode>;
-  readonly attributes: JsxAttributes;
-  _expressionBrand: any;
-}
-export type JsxTagNameExpression = Identifier | ThisExpression | JsxTagNamePropertyAccess | JsxNamespacedName;
-export interface ThisExpression extends Node {
-  readonly kind: SyntaxKind.ThisKeyword;
-  readonly parent:
-    | LeftHandSideExpressionParent
-    | JsxOpeningElement
-    | JsxSelfClosingElement
-    | JsxClosingElement
-    | JsxTagNamePropertyAccess;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
+export interface ContinueStatement extends Node {
+  readonly kind: SyntaxKind.ContinueStatement;
+
+  readonly label?: Identifier;
+  readonly parent: Node;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
   _flowContainerBrand: any;
 }
-export interface JsxTagNamePropertyAccess extends Node {
-  readonly kind: SyntaxKind.PropertyAccessExpression;
-  readonly parent: JsxTagNamePropertyAccess | JsxOpeningElement | JsxSelfClosingElement | JsxClosingElement;
-  readonly expression: Identifier | ThisExpression | JsxTagNamePropertyAccess;
+export interface DebuggerStatement extends Node {
+  readonly kind: SyntaxKind.DebuggerStatement;
+
+  readonly parent: Node;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+  _flowContainerBrand: any;
+}
+export interface DoStatement extends Node {
+  readonly kind: SyntaxKind.DoStatement;
+
+  readonly expression: Expression;
+  readonly statement: Statement;
+  readonly parent: Node;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+  _flowContainerBrand: any;
+}
+export interface ElementAccessExpression extends Node {
+  readonly kind: SyntaxKind.ElementAccessExpression;
+
+  readonly expression: LeftHandSideExpression;
   readonly questionDotToken?: QuestionDotToken;
-  readonly name: MemberName;
+  readonly argumentExpression: Expression;
+  readonly parent: Node;
   _memberExpressionBrand: any;
   _leftHandSideExpressionBrand: any;
   _updateExpressionBrand: any;
@@ -1796,886 +1438,51 @@ export interface JsxTagNamePropertyAccess extends Node {
 }
 export interface QuestionDotToken extends Node {
   readonly kind: SyntaxKind.QuestionDotToken;
-  readonly parent: JsxTagNamePropertyAccess | PropertyAccessExpression | ElementAccessExpression | CallExpression;
+  readonly parent: Node;
 }
-export type MemberName = Identifier | PrivateIdentifier;
-export interface JsxNamespacedName extends Node {
-  readonly kind: SyntaxKind.JsxNamespacedName;
-  readonly parent: JsxOpeningElement | JsxSelfClosingElement | JsxClosingElement | JsxAttribute;
-  readonly name: Identifier;
-  readonly namespace: Identifier;
-}
-export interface JsxAttributes extends Node {
-  readonly kind: SyntaxKind.JsxAttributes;
-  readonly parent: LeftHandSideExpressionParent | JsxSelfClosingElement | JsxOpeningElement;
-  readonly properties: NodeArray<JsxAttributeLike>;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _declarationBrand: any;
-}
-export type JsxAttributeLike = JsxAttribute | JsxSpreadAttribute;
-export interface JsxAttribute extends Node {
-  readonly kind: SyntaxKind.JsxAttribute;
-  readonly parent: JsxAttributes;
-  readonly name: JsxAttributeName;
-  readonly initializer?: JsxAttributeValue;
-  _declarationBrand: any;
-}
-export type JsxAttributeName = Identifier | JsxNamespacedName;
-export type JsxAttributeValue = StringLiteral | JsxExpression | JsxElement | JsxSelfClosingElement | JsxFragment;
-export interface JsxExpression extends Node {
-  readonly kind: SyntaxKind.JsxExpression;
-  readonly parent:
-    | IterationStatement
-    | JsxAttributeLike
-    | JsxFragment
-    | JsxElement
-    | ComputedPropertyName
-    | TypeParameterDeclaration
-    | BindingElement
-    | ParameterDeclaration
-    | ImportAttribute
-    | YieldExpression
-    | BinaryExpression
-    | ConditionalExpression
-    | ArrowFunction
-    | SpreadElement
-    | AsExpression
-    | SatisfiesExpression
-    | JsxExpression
-    | CommaListExpression
-    | PartiallyEmittedExpression
-    | TemplateSpan
-    | ParenthesizedExpression
-    | ArrayLiteralExpression
-    | PropertyAssignment
-    | ShorthandPropertyAssignment
-    | SpreadAssignment
-    | NewExpression
-    | PropertyDeclaration
-    | ElementAccessExpression
-    | CallExpression
-    | NonNullExpression
-    | EnumMember
-    | ExternalModuleReference
-    | ExportDeclaration
-    | ExportAssignment
-    | VariableDeclaration
-    | ExpressionStatement
-    | IfStatement
-    | ReturnStatement
-    | WithStatement
-    | SwitchStatement
-    | CaseClause
-    | ThrowStatement
-    | ImportDeclaration;
-  readonly dotDotDotToken?: Token<SyntaxKind.DotDotDotToken, JsxExpression>;
-  readonly expression?: Expression;
-  _expressionBrand: any;
-}
-export interface JsxElement extends Node {
-  readonly kind: SyntaxKind.JsxElement;
-  readonly parent:
-    | IterationStatement
-    | JsxAttributeLike
-    | JsxFragment
-    | JsxElement
-    | PostfixUnaryExpression
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | TypeAssertion
-    | ComputedPropertyName
-    | TypeParameterDeclaration
-    | BindingElement
-    | ParameterDeclaration
-    | ImportAttribute
-    | YieldExpression
-    | BinaryExpression
-    | ConditionalExpression
-    | ArrowFunction
-    | SpreadElement
-    | AsExpression
-    | SatisfiesExpression
-    | JsxExpression
-    | CommaListExpression
-    | PartiallyEmittedExpression
-    | TemplateSpan
-    | ParenthesizedExpression
-    | ArrayLiteralExpression
-    | PropertyAssignment
-    | ShorthandPropertyAssignment
-    | SpreadAssignment
-    | NewExpression
-    | PropertyDeclaration
-    | ElementAccessExpression
-    | CallExpression
-    | NonNullExpression
-    | EnumMember
-    | ExternalModuleReference
-    | ExportDeclaration
-    | ExportAssignment
-    | VariableDeclaration
-    | ExpressionStatement
-    | IfStatement
-    | ReturnStatement
-    | WithStatement
-    | SwitchStatement
-    | CaseClause
-    | ThrowStatement
-    | ImportDeclaration
-    | ExpressionWithTypeArguments
-    | PropertyAccessExpression
-    | TaggedTemplateExpression
-    | Decorator;
-  readonly openingElement: JsxOpeningElement;
-  readonly children: NodeArray<JsxChild>;
-  readonly closingElement: JsxClosingElement;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export type JsxChild = JsxText | JsxExpression | JsxElement | JsxSelfClosingElement | JsxFragment;
-export interface JsxText extends Node {
-  readonly kind: SyntaxKind.JsxText;
-  readonly parent: JsxFragment | JsxElement;
-  readonly containsOnlyTriviaWhiteSpaces: boolean;
-  text: string;
-  isUnterminated?: boolean;
-  hasExtendedUnicodeEscape?: boolean;
-}
-export interface JsxSelfClosingElement extends Node {
-  readonly kind: SyntaxKind.JsxSelfClosingElement;
-  readonly parent:
-    | IterationStatement
-    | JsxAttributeLike
-    | JsxFragment
-    | JsxElement
-    | PostfixUnaryExpression
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | TypeAssertion
-    | ComputedPropertyName
-    | TypeParameterDeclaration
-    | BindingElement
-    | ParameterDeclaration
-    | ImportAttribute
-    | YieldExpression
-    | BinaryExpression
-    | ConditionalExpression
-    | ArrowFunction
-    | SpreadElement
-    | AsExpression
-    | SatisfiesExpression
-    | JsxExpression
-    | CommaListExpression
-    | PartiallyEmittedExpression
-    | TemplateSpan
-    | ParenthesizedExpression
-    | ArrayLiteralExpression
-    | PropertyAssignment
-    | ShorthandPropertyAssignment
-    | SpreadAssignment
-    | NewExpression
-    | PropertyDeclaration
-    | ElementAccessExpression
-    | CallExpression
-    | NonNullExpression
-    | EnumMember
-    | ExternalModuleReference
-    | ExportDeclaration
-    | ExportAssignment
-    | VariableDeclaration
-    | ExpressionStatement
-    | IfStatement
-    | ReturnStatement
-    | WithStatement
-    | SwitchStatement
-    | CaseClause
-    | ThrowStatement
-    | ImportDeclaration
-    | ExpressionWithTypeArguments
-    | PropertyAccessExpression
-    | TaggedTemplateExpression
-    | Decorator;
-  readonly tagName: JsxTagNameExpression;
-  readonly typeArguments?: NodeArray<TypeNode>;
-  readonly attributes: JsxAttributes;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export interface JsxFragment extends Node {
-  readonly kind: SyntaxKind.JsxFragment;
-  readonly parent:
-    | IterationStatement
-    | JsxAttributeLike
-    | JsxFragment
-    | JsxElement
-    | PostfixUnaryExpression
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | TypeAssertion
-    | ComputedPropertyName
-    | TypeParameterDeclaration
-    | BindingElement
-    | ParameterDeclaration
-    | ImportAttribute
-    | YieldExpression
-    | BinaryExpression
-    | ConditionalExpression
-    | ArrowFunction
-    | SpreadElement
-    | AsExpression
-    | SatisfiesExpression
-    | JsxExpression
-    | CommaListExpression
-    | PartiallyEmittedExpression
-    | TemplateSpan
-    | ParenthesizedExpression
-    | ArrayLiteralExpression
-    | PropertyAssignment
-    | ShorthandPropertyAssignment
-    | SpreadAssignment
-    | NewExpression
-    | PropertyDeclaration
-    | ElementAccessExpression
-    | CallExpression
-    | NonNullExpression
-    | EnumMember
-    | ExternalModuleReference
-    | ExportDeclaration
-    | ExportAssignment
-    | VariableDeclaration
-    | ExpressionStatement
-    | IfStatement
-    | ReturnStatement
-    | WithStatement
-    | SwitchStatement
-    | CaseClause
-    | ThrowStatement
-    | ImportDeclaration
-    | ExpressionWithTypeArguments
-    | PropertyAccessExpression
-    | TaggedTemplateExpression
-    | Decorator;
-  readonly openingFragment: JsxOpeningFragment;
-  readonly children: NodeArray<JsxChild>;
-  readonly closingFragment: JsxClosingFragment;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export interface JsxOpeningFragment extends Node {
-  readonly kind: SyntaxKind.JsxOpeningFragment;
-  readonly parent: ExpressionParent | JsxFragment;
-  _expressionBrand: any;
-}
-export interface JsxClosingFragment extends Node {
-  readonly kind: SyntaxKind.JsxClosingFragment;
-  readonly parent: ExpressionParent | JsxFragment;
-  _expressionBrand: any;
-}
-export interface JsxClosingElement extends Node {
-  readonly kind: SyntaxKind.JsxClosingElement;
-  readonly parent: JsxElement;
-  readonly tagName: JsxTagNameExpression;
-}
-export interface JsxSpreadAttribute extends Node {
-  readonly kind: SyntaxKind.JsxSpreadAttribute;
-  readonly parent: JsxAttributes;
-  readonly expression: Expression;
-  readonly name?: PropertyName;
-  _objectLiteralBrand: any;
-  _declarationBrand: any;
-}
-export interface CommaListExpression extends Node {
-  readonly kind: SyntaxKind.CommaListExpression;
-  readonly parent: ExpressionParent;
-  readonly elements: NodeArray<Expression>;
-  _expressionBrand: any;
-}
-export type MemberExpression =
-  | PrimaryExpression
-  | PropertyAccessExpression
-  | ElementAccessExpression
-  | ExpressionWithTypeArguments
-  | TaggedTemplateExpression;
-export type PrimaryExpression =
-  | Identifier
-  | PrivateIdentifier
-  | NullLiteral
-  | TrueLiteral
-  | FalseLiteral
-  | ThisExpression
-  | SuperExpression
-  | ImportExpression
-  | FunctionExpression
-  | LiteralExpression
-  | TemplateExpression
-  | ParenthesizedExpression
-  | ArrayLiteralExpression
-  | ObjectLiteralExpressionBase
-  | NewExpression
-  | MetaProperty
-  | JsxElement
-  | JsxAttributes
-  | JsxSelfClosingElement
-  | JsxFragment
-  | MissingDeclaration
-  | ClassExpression;
-export interface SuperExpression extends Node {
-  readonly kind: SyntaxKind.SuperKeyword;
-  readonly parent: LeftHandSideExpressionParent;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _flowContainerBrand: any;
-}
-export interface ImportExpression extends Node {
-  readonly kind: SyntaxKind.ImportKeyword;
-  readonly parent: LeftHandSideExpressionParent;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export interface FunctionExpression extends Node {
-  readonly kind: SyntaxKind.FunctionExpression;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly modifiers?: NodeArray<Modifier>;
-  readonly name?: Identifier;
-  readonly body: FunctionBody;
-  readonly asteriskToken?: AsteriskToken | undefined;
-  readonly questionToken?: QuestionToken | undefined;
-  readonly exclamationToken?: ExclamationToken | undefined;
-  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
-  readonly parameters: NodeArray<ParameterDeclaration>;
-  readonly type?: TypeNode | undefined;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _functionLikeDeclarationBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-  _localsContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export interface TemplateExpression extends Node {
-  readonly kind: SyntaxKind.TemplateExpression;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly head: TemplateHead;
-  readonly templateSpans: NodeArray<TemplateSpan>;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export interface TemplateSpan extends Node {
-  readonly kind: SyntaxKind.TemplateSpan;
-  readonly parent: TemplateExpression;
-  readonly expression: Expression;
-  readonly literal: TemplateMiddle | TemplateTail;
-}
-export interface ParenthesizedExpression extends Node {
-  readonly kind: SyntaxKind.ParenthesizedExpression;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly expression: Expression;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface ArrayLiteralExpression extends Node {
-  readonly kind: SyntaxKind.ArrayLiteralExpression;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly elements: NodeArray<Expression>;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export type ObjectLiteralExpressionBase = ObjectLiteralExpression;
-export interface ObjectLiteralExpression extends Node {
-  readonly kind: SyntaxKind.ObjectLiteralExpression;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly properties: NodeArray<ObjectLiteralElementLike>;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-}
-export type ObjectLiteralElementLike =
-  | PropertyAssignment
-  | ShorthandPropertyAssignment
-  | SpreadAssignment
-  | MethodDeclaration
-  | AccessorDeclaration;
-export interface PropertyAssignment extends Node {
-  readonly kind: SyntaxKind.PropertyAssignment;
-  readonly parent: ObjectLiteralExpressionBase;
-  readonly name: PropertyName;
-  readonly initializer: Expression;
-  _objectLiteralBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface ShorthandPropertyAssignment extends Node {
-  readonly kind: SyntaxKind.ShorthandPropertyAssignment;
-  readonly parent: ObjectLiteralExpressionBase;
-  readonly name: Identifier;
-  readonly equalsToken?: EqualsToken;
-  readonly objectAssignmentInitializer?: Expression;
-  _objectLiteralBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface EqualsToken extends Node {
-  readonly kind: SyntaxKind.EqualsToken;
-  readonly parent: ShorthandPropertyAssignment;
-}
-export interface SpreadAssignment extends Node {
-  readonly kind: SyntaxKind.SpreadAssignment;
-  readonly parent: ObjectLiteralExpressionBase;
-  readonly expression: Expression;
-  readonly name?: PropertyName;
-  _objectLiteralBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface MethodDeclaration extends Node {
-  readonly kind: SyntaxKind.MethodDeclaration;
-  readonly parent: ObjectLiteralExpressionBase | ClassExpression | ClassDeclaration;
-  readonly modifiers?: NodeArray<ModifierLike> | undefined;
-  readonly name: PropertyName;
-  readonly body?: FunctionBody | undefined;
-  readonly asteriskToken?: AsteriskToken | undefined;
-  readonly questionToken?: QuestionToken | undefined;
-  readonly exclamationToken?: ExclamationToken | undefined;
-  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
-  readonly parameters: NodeArray<ParameterDeclaration>;
-  readonly type?: TypeNode | undefined;
-  _functionLikeDeclarationBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-  _classElementBrand: any;
-  _objectLiteralBrand: any;
-  _localsContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export type AccessorDeclaration = GetAccessorDeclaration | SetAccessorDeclaration;
-export interface NewExpression extends Node {
-  readonly kind: SyntaxKind.NewExpression;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly expression: LeftHandSideExpression;
-  readonly typeArguments?: NodeArray<TypeNode>;
-  readonly arguments?: NodeArray<Expression>;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _declarationBrand: any;
-}
-export interface MetaProperty extends Node {
-  readonly kind: SyntaxKind.MetaProperty;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly keywordToken: SyntaxKind.NewKeyword | SyntaxKind.ImportKeyword;
-  readonly name: Identifier;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _flowContainerBrand: any;
-}
-export interface MissingDeclaration extends Node {
-  readonly kind: SyntaxKind.MissingDeclaration;
-  readonly parent:
-    | StatementParent
-    | PostfixUnaryExpression
-    | PrefixUnaryExpression
-    | DeleteExpression
-    | TypeOfExpression
-    | VoidExpression
-    | AwaitExpression
-    | TypeAssertion
-    | ComputedPropertyName
-    | TypeParameterDeclaration
-    | BindingElement
-    | ParameterDeclaration
-    | ImportAttribute
-    | YieldExpression
-    | BinaryExpression
-    | ConditionalExpression
-    | ArrowFunction
-    | SpreadElement
-    | AsExpression
-    | SatisfiesExpression
-    | JsxExpression
-    | JsxSpreadAttribute
-    | CommaListExpression
-    | PartiallyEmittedExpression
-    | TemplateSpan
-    | ParenthesizedExpression
-    | ArrayLiteralExpression
-    | PropertyAssignment
-    | ShorthandPropertyAssignment
-    | SpreadAssignment
-    | NewExpression
-    | PropertyDeclaration
-    | ElementAccessExpression
-    | CallExpression
-    | NonNullExpression
-    | EnumMember
-    | ExternalModuleReference
-    | ExportDeclaration
-    | ExportAssignment
-    | VariableDeclaration
-    | ExpressionStatement
-    | ReturnStatement
-    | SwitchStatement
-    | ThrowStatement
-    | ImportDeclaration
-    | ExpressionWithTypeArguments
-    | PropertyAccessExpression
-    | TaggedTemplateExpression
-    | Decorator;
-  readonly name?: Identifier;
-  _declarationBrand: any;
+export interface EmptyStatement extends Node {
+  readonly kind: SyntaxKind.EmptyStatement;
+
+  readonly parent: Node;
   _statementBrand: any;
   _jsdocContainerBrand: any;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export interface ClassExpression extends Node {
-  readonly kind: SyntaxKind.ClassExpression;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly modifiers?: NodeArray<ModifierLike>;
-  readonly name?: Identifier;
-  readonly typeParameters?: NodeArray<TypeParameterDeclaration>;
-  readonly heritageClauses?: NodeArray<HeritageClause>;
-  readonly members: NodeArray<ClassElement>;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-  _primaryExpressionBrand: any;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export interface HeritageClause extends Node {
-  readonly kind: SyntaxKind.HeritageClause;
-  readonly parent: ClassExpression | ClassDeclaration | InterfaceDeclaration;
-  readonly token: SyntaxKind.ExtendsKeyword | SyntaxKind.ImplementsKeyword;
-  readonly types: NodeArray<ExpressionWithTypeArguments>;
-}
-export type ClassElement =
-  | PropertyDeclaration
-  | MethodDeclaration
-  | ConstructorDeclaration
-  | SemicolonClassElement
-  | GetAccessorDeclaration
-  | SetAccessorDeclaration
-  | IndexSignatureDeclaration
-  | ClassStaticBlockDeclaration;
-export interface PropertyDeclaration extends Node {
-  readonly kind: SyntaxKind.PropertyDeclaration;
-  readonly parent: ClassExpression | ClassDeclaration;
-  readonly modifiers?: NodeArray<ModifierLike>;
-  readonly name: PropertyName;
-  readonly questionToken?: QuestionToken;
-  readonly exclamationToken?: ExclamationToken;
-  readonly type?: TypeNode;
-  readonly initializer?: Expression;
-  _classElementBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface ConstructorDeclaration extends Node {
-  readonly kind: SyntaxKind.Constructor;
-  readonly parent: ClassExpression | ClassDeclaration;
-  readonly modifiers?: NodeArray<ModifierLike> | undefined;
-  readonly body?: FunctionBody | undefined;
-  readonly asteriskToken?: AsteriskToken | undefined;
-  readonly questionToken?: QuestionToken | undefined;
-  readonly exclamationToken?: ExclamationToken | undefined;
-  readonly name?: PropertyName;
-  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
-  readonly parameters: NodeArray<ParameterDeclaration>;
-  readonly type?: TypeNode | undefined;
-  _functionLikeDeclarationBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-  _classElementBrand: any;
-  _localsContainerBrand: any;
-}
-export interface SemicolonClassElement extends Node {
-  readonly kind: SyntaxKind.SemicolonClassElement;
-  readonly parent: ClassExpression | ClassDeclaration;
-  readonly name?: PropertyName;
-  _classElementBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface ClassStaticBlockDeclaration extends Node {
-  readonly kind: SyntaxKind.ClassStaticBlockDeclaration;
-  readonly parent: ClassExpression | ClassDeclaration;
-  readonly body: Block;
-  readonly name?: PropertyName;
-  _classElementBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-  _localsContainerBrand: any;
-}
-export interface PropertyAccessExpression extends Node {
-  readonly kind: SyntaxKind.PropertyAccessExpression;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly expression: LeftHandSideExpression;
-  readonly questionDotToken?: QuestionDotToken;
-  readonly name: MemberName;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export interface ElementAccessExpression extends Node {
-  readonly kind: SyntaxKind.ElementAccessExpression;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly expression: LeftHandSideExpression;
-  readonly questionDotToken?: QuestionDotToken;
-  readonly argumentExpression: Expression;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export interface TaggedTemplateExpression extends Node {
-  readonly kind: SyntaxKind.TaggedTemplateExpression;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly tag: LeftHandSideExpression;
-  readonly typeArguments?: NodeArray<TypeNode>;
-  readonly template: TemplateLiteral;
-  _memberExpressionBrand: any;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export type TemplateLiteral = TemplateExpression | NoSubstitutionTemplateLiteral;
-export interface CallExpression extends Node {
-  readonly kind: SyntaxKind.CallExpression;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly expression: LeftHandSideExpression;
-  readonly questionDotToken?: QuestionDotToken;
-  readonly typeArguments?: NodeArray<TypeNode>;
-  readonly arguments: NodeArray<Expression>;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-  _declarationBrand: any;
-}
-export interface NonNullExpression extends Node {
-  readonly kind: SyntaxKind.NonNullExpression;
-  readonly parent: LeftHandSideExpressionParent;
-  readonly expression: Expression;
-  _leftHandSideExpressionBrand: any;
-  _updateExpressionBrand: any;
-  _unaryExpressionBrand: any;
-  _expressionBrand: any;
-}
-export interface ClassDeclaration extends Node {
-  readonly kind: SyntaxKind.ClassDeclaration;
-  readonly parent: StatementParent;
-  readonly modifiers?: NodeArray<ModifierLike>;
-  /** May be undefined in `export default class { ... }`. */
-  readonly name?: Identifier;
-  readonly typeParameters?: NodeArray<TypeParameterDeclaration>;
-  readonly heritageClauses?: NodeArray<HeritageClause>;
-  readonly members: NodeArray<ClassElement>;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-  _statementBrand: any;
-}
-export interface InterfaceDeclaration extends Node {
-  readonly kind: SyntaxKind.InterfaceDeclaration;
-  readonly parent: StatementParent;
-  readonly modifiers?: NodeArray<ModifierLike>;
-  readonly name: Identifier;
-  readonly typeParameters?: NodeArray<TypeParameterDeclaration>;
-  readonly heritageClauses?: NodeArray<HeritageClause>;
-  readonly members: NodeArray<TypeElement>;
-  _declarationBrand: any;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface TypeAliasDeclaration extends Node {
-  readonly kind: SyntaxKind.TypeAliasDeclaration;
-  readonly parent: StatementParent;
-  readonly modifiers?: NodeArray<ModifierLike>;
-  readonly name: Identifier;
-  readonly typeParameters?: NodeArray<TypeParameterDeclaration>;
-  readonly type: TypeNode;
-  _declarationBrand: any;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _localsContainerBrand: any;
 }
 export interface EnumDeclaration extends Node {
   readonly kind: SyntaxKind.EnumDeclaration;
-  readonly parent: StatementParent;
+
   readonly modifiers?: NodeArray<ModifierLike>;
   readonly name: Identifier;
   readonly members: NodeArray<EnumMember>;
+  readonly parent: Node;
   _declarationBrand: any;
   _statementBrand: any;
   _jsdocContainerBrand: any;
 }
 export interface EnumMember extends Node {
   readonly kind: SyntaxKind.EnumMember;
+
   readonly parent: EnumDeclaration;
   readonly name: PropertyName;
   readonly initializer?: Expression;
   _declarationBrand: any;
   _jsdocContainerBrand: any;
 }
-export interface ModuleDeclaration extends Node {
-  readonly kind: SyntaxKind.ModuleDeclaration;
-  readonly parent: StatementParent;
+export interface ExportAssignment extends Node {
+  readonly kind: SyntaxKind.ExportAssignment;
+
+  readonly parent: SourceFile;
   readonly modifiers?: NodeArray<ModifierLike>;
-  readonly name: ModuleName;
-  readonly body?: ModuleBody | JSDocNamespaceDeclaration;
-  _declarationBrand: any;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _localsContainerBrand: any;
-}
-export type ModuleName = Identifier | StringLiteral;
-export type ModuleBody = NamespaceBody | JSDocNamespaceBody;
-export type NamespaceBody = ModuleBlock | NamespaceDeclaration;
-export interface ModuleBlock extends Node {
-  readonly kind: SyntaxKind.ModuleBlock;
-  readonly parent:
-    | CaseOrDefaultClause
-    | IterationStatement
-    | NamespaceBody
-    | ModuleDeclaration
-    | Block
-    | IfStatement
-    | WithStatement
-    | LabeledStatement
-    | SourceFile;
-  readonly statements: NodeArray<Statement>;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface NamespaceDeclaration extends Node {
-  readonly kind: SyntaxKind.ModuleDeclaration;
-  readonly parent: NamespaceDeclaration | ModuleDeclaration;
-  readonly name: Identifier;
-  readonly body: NamespaceBody;
-  readonly modifiers?: NodeArray<ModifierLike>;
-  _declarationBrand: any;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _localsContainerBrand: any;
-}
-export type JSDocNamespaceBody = Identifier | JSDocNamespaceDeclaration;
-export interface JSDocNamespaceDeclaration extends Node {
-  readonly kind: SyntaxKind.ModuleDeclaration;
-  readonly parent: JSDocNamespaceDeclaration | ModuleDeclaration;
-  readonly name: Identifier;
-  readonly body?: JSDocNamespaceBody;
-  readonly modifiers?: NodeArray<ModifierLike>;
-  _declarationBrand: any;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _localsContainerBrand: any;
-}
-export interface ImportEqualsDeclaration extends Node {
-  readonly kind: SyntaxKind.ImportEqualsDeclaration;
-  readonly parent: StatementParent;
-  readonly modifiers?: NodeArray<ModifierLike>;
-  readonly name: Identifier;
-  readonly isTypeOnly: boolean;
-  readonly moduleReference: ModuleReference;
-  _declarationBrand: any;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-}
-export type ModuleReference = EntityName | ExternalModuleReference;
-export interface ExternalModuleReference extends Node {
-  readonly kind: SyntaxKind.ExternalModuleReference;
-  readonly parent: ImportEqualsDeclaration;
+  readonly isExportEquals?: boolean;
   readonly expression: Expression;
-}
-export interface NamespaceExportDeclaration extends Node {
-  readonly kind: SyntaxKind.NamespaceExportDeclaration;
-  readonly parent: StatementParent;
-  readonly name: Identifier;
+  readonly name?: Identifier | StringLiteral | NumericLiteral;
   _declarationBrand: any;
   _statementBrand: any;
   _jsdocContainerBrand: any;
 }
 export interface ExportDeclaration extends Node {
   readonly kind: SyntaxKind.ExportDeclaration;
-  readonly parent: StatementParent;
+
+  readonly parent: SourceFile | ModuleBlock;
   readonly modifiers?: NodeArray<ModifierLike>;
   readonly isTypeOnly: boolean;
   /** Will not be assigned in the case of `export * from "foo";` */
@@ -2691,6 +1498,7 @@ export interface ExportDeclaration extends Node {
 export type NamedExportBindings = NamespaceExport | NamedExports;
 export interface NamespaceExport extends Node {
   readonly kind: SyntaxKind.NamespaceExport;
+
   readonly parent: ExportDeclaration;
   readonly name: ModuleExportName;
   _declarationBrand: any;
@@ -2698,11 +1506,13 @@ export interface NamespaceExport extends Node {
 export type ModuleExportName = Identifier | StringLiteral;
 export interface NamedExports extends Node {
   readonly kind: SyntaxKind.NamedExports;
+
   readonly parent: ExportDeclaration;
   readonly elements: NodeArray<ExportSpecifier>;
 }
 export interface ExportSpecifier extends Node {
   readonly kind: SyntaxKind.ExportSpecifier;
+
   readonly parent: NamedExports;
   readonly isTypeOnly: boolean;
   readonly propertyName?: ModuleExportName;
@@ -2710,116 +1520,22 @@ export interface ExportSpecifier extends Node {
   _declarationBrand: any;
   _jsdocContainerBrand: any;
 }
-export interface ExportAssignment extends Node {
-  readonly kind: SyntaxKind.ExportAssignment;
-  readonly parent: StatementParent;
-  readonly modifiers?: NodeArray<ModifierLike>;
-  readonly isExportEquals?: boolean;
-  readonly expression: Expression;
-  readonly name?: Identifier | StringLiteral | NumericLiteral;
-  _declarationBrand: any;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface NotEmittedStatement extends Node {
-  readonly kind: SyntaxKind.NotEmittedStatement;
-  readonly parent: StatementParent;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface EmptyStatement extends Node {
-  readonly kind: SyntaxKind.EmptyStatement;
-  readonly parent: StatementParent;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-}
-export interface DebuggerStatement extends Node {
-  readonly kind: SyntaxKind.DebuggerStatement;
-  readonly parent: StatementParent;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export interface VariableStatement extends Node {
-  readonly kind: SyntaxKind.VariableStatement;
-  readonly parent: StatementParent;
-  readonly modifiers?: NodeArray<ModifierLike>;
-  readonly declarationList: VariableDeclarationList;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export interface VariableDeclarationList extends Node {
-  readonly kind: SyntaxKind.VariableDeclarationList;
-  readonly parent: VariableStatement | ForStatement | ForInStatement | ForOfStatement;
-  readonly declarations: NodeArray<VariableDeclaration>;
-}
-export interface VariableDeclaration extends Node {
-  readonly kind: SyntaxKind.VariableDeclaration;
-  readonly parent: VariableDeclarationList | CatchClause;
-  readonly name: BindingName;
-  readonly exclamationToken?: ExclamationToken;
-  readonly type?: TypeNode;
-  readonly initializer?: Expression;
-  _declarationBrand: any;
-  _jsdocContainerBrand: any;
-}
 export interface ExpressionStatement extends Node {
   readonly kind: SyntaxKind.ExpressionStatement;
-  readonly parent: StatementParent;
+
   readonly expression: Expression;
+  readonly parent: Node;
   _statementBrand: any;
   _jsdocContainerBrand: any;
   _flowContainerBrand: any;
 }
-export interface IfStatement extends Node {
-  readonly kind: SyntaxKind.IfStatement;
-  readonly parent: StatementParent;
-  readonly expression: Expression;
-  readonly thenStatement: Statement;
-  readonly elseStatement?: Statement;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export type IterationStatement = DoStatement | WhileStatement | ForStatement | ForInStatement | ForOfStatement;
-export interface DoStatement extends Node {
-  readonly kind: SyntaxKind.DoStatement;
-  readonly parent: StatementParent;
-  readonly expression: Expression;
-  readonly statement: Statement;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export interface WhileStatement extends Node {
-  readonly kind: SyntaxKind.WhileStatement;
-  readonly parent: StatementParent;
-  readonly expression: Expression;
-  readonly statement: Statement;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export interface ForStatement extends Node {
-  readonly kind: SyntaxKind.ForStatement;
-  readonly parent: StatementParent;
-  readonly initializer?: ForInitializer;
-  readonly condition?: Expression;
-  readonly incrementor?: Expression;
-  readonly statement: Statement;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _localsContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export type ForInitializer = VariableDeclarationList | Expression;
 export interface ForInStatement extends Node {
   readonly kind: SyntaxKind.ForInStatement;
-  readonly parent: StatementParent;
+
   readonly initializer: ForInitializer;
   readonly expression: Expression;
   readonly statement: Statement;
+  readonly parent: Node;
   _statementBrand: any;
   _jsdocContainerBrand: any;
   _localsContainerBrand: any;
@@ -2827,11 +1543,12 @@ export interface ForInStatement extends Node {
 }
 export interface ForOfStatement extends Node {
   readonly kind: SyntaxKind.ForOfStatement;
-  readonly parent: StatementParent;
+
   readonly awaitModifier?: AwaitKeyword;
   readonly initializer: ForInitializer;
   readonly expression: Expression;
   readonly statement: Statement;
+  readonly parent: Node;
   _statementBrand: any;
   _jsdocContainerBrand: any;
   _localsContainerBrand: any;
@@ -2839,160 +1556,1276 @@ export interface ForOfStatement extends Node {
 }
 export interface AwaitKeyword extends Node {
   readonly kind: SyntaxKind.AwaitKeyword;
-  readonly parent: ForOfStatement;
+  readonly parent: Node;
 }
-export interface BreakStatement extends Node {
-  readonly kind: SyntaxKind.BreakStatement;
-  readonly parent: StatementParent;
-  readonly label?: Identifier;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export interface ContinueStatement extends Node {
-  readonly kind: SyntaxKind.ContinueStatement;
-  readonly parent: StatementParent;
-  readonly label?: Identifier;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export interface ReturnStatement extends Node {
-  readonly kind: SyntaxKind.ReturnStatement;
-  readonly parent: StatementParent;
-  readonly expression?: Expression;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _flowContainerBrand: any;
-}
-export interface WithStatement extends Node {
-  readonly kind: SyntaxKind.WithStatement;
-  readonly parent: StatementParent;
+export interface IfStatement extends Node {
+  readonly kind: SyntaxKind.IfStatement;
+
   readonly expression: Expression;
-  readonly statement: Statement;
+  readonly thenStatement: Statement;
+  readonly elseStatement?: Statement;
+  readonly parent: Node;
   _statementBrand: any;
   _jsdocContainerBrand: any;
   _flowContainerBrand: any;
 }
-export interface SwitchStatement extends Node {
-  readonly kind: SyntaxKind.SwitchStatement;
-  readonly parent: StatementParent;
+export interface ImportEqualsDeclaration extends Node {
+  readonly kind: SyntaxKind.ImportEqualsDeclaration;
+
+  readonly parent: SourceFile | ModuleBlock;
+  readonly modifiers?: NodeArray<ModifierLike>;
+  readonly name: Identifier;
+  readonly isTypeOnly: boolean;
+  readonly moduleReference: ModuleReference;
+  _declarationBrand: any;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+}
+export type ModuleReference = EntityName | ExternalModuleReference;
+export type EntityName = Identifier | QualifiedName;
+export interface QualifiedName extends Node {
+  readonly kind: SyntaxKind.QualifiedName;
+
+  readonly left: EntityName;
+  readonly right: Identifier;
+  readonly parent: Node;
+  _flowContainerBrand: any;
+}
+export interface ExternalModuleReference extends Node {
+  readonly kind: SyntaxKind.ExternalModuleReference;
+
+  readonly parent: ImportEqualsDeclaration;
   readonly expression: Expression;
-  readonly caseBlock: CaseBlock;
-  possiblyExhaustive?: boolean;
-  _statementBrand: any;
-  _jsdocContainerBrand: any;
-  _flowContainerBrand: any;
 }
-export interface CaseBlock extends Node {
-  readonly kind: SyntaxKind.CaseBlock;
-  readonly parent: SwitchStatement;
-  readonly clauses: NodeArray<CaseOrDefaultClause>;
+export interface JSDocFunctionType extends Node {
+  readonly kind: SyntaxKind.JSDocFunctionType;
+
+  readonly parent: Node;
+  readonly name?: PropertyName;
+  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
+  readonly parameters: NodeArray<ParameterDeclaration>;
+  readonly type?: TypeNode | undefined;
+  _jsDocTypeBrand: any;
+  _typeNodeBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
   _localsContainerBrand: any;
 }
-export type CaseOrDefaultClause = CaseClause | DefaultClause;
-export interface CaseClause extends Node {
-  readonly kind: SyntaxKind.CaseClause;
-  readonly parent: CaseBlock;
-  readonly expression: Expression;
-  readonly statements: NodeArray<Statement>;
+export interface JSDocSignature extends Node {
+  readonly kind: SyntaxKind.JSDocSignature;
+
+  readonly typeParameters?: readonly JSDocTemplateTag[];
+  readonly parameters: readonly JSDocParameterTag[];
+  readonly type: JSDocReturnTag | undefined;
+  readonly parent: Node;
+  _jsDocTypeBrand: any;
+  _typeNodeBrand: any;
+  _declarationBrand: any;
   _jsdocContainerBrand: any;
+  _localsContainerBrand: any;
 }
-export interface DefaultClause extends Node {
-  readonly kind: SyntaxKind.DefaultClause;
-  readonly parent: CaseBlock;
-  readonly statements: NodeArray<Statement>;
+export interface JSDocTemplateTag extends Node {
+  readonly kind: SyntaxKind.JSDocTemplateTag;
+
+  readonly constraint: JSDocTypeExpression | undefined;
+  readonly typeParameters: NodeArray<TypeParameterDeclaration>;
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocTypeExpression extends Node {
+  readonly kind: SyntaxKind.JSDocTypeExpression;
+
+  readonly type: TypeNode;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface JSDocTypeLiteral extends Node {
+  readonly kind: SyntaxKind.JSDocTypeLiteral;
+
+  readonly jsDocPropertyTags?: readonly JSDocPropertyLikeTag[];
+  /** If true, then this type literal represents an *array* of its type. */
+  readonly isArrayType: boolean;
+  readonly parent: Node;
+  _jsDocTypeBrand: any;
+  _typeNodeBrand: any;
+  _declarationBrand: any;
+}
+export type JSDocPropertyLikeTag = JSDocPropertyTag | JSDocParameterTag;
+export interface JSDocPropertyTag extends Node {
+  readonly kind: SyntaxKind.JSDocPropertyTag;
+
+  readonly parent: JSDoc;
+  readonly name: EntityName;
+  readonly typeExpression?: JSDocTypeExpression;
+  /** Whether the property name came before the type -- non-standard for JSDoc, but Typescript-like */
+  readonly isNameFirst: boolean;
+  readonly isBracketed: boolean;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+  _declarationBrand: any;
+}
+export type JSDocComment = JSDocText | JSDocLink | JSDocLinkCode | JSDocLinkPlain;
+export interface JSDocText extends Node {
+  readonly kind: SyntaxKind.JSDocText;
+
+  text: string;
+  readonly parent: Node;
+}
+export interface JSDocLink extends Node {
+  readonly kind: SyntaxKind.JSDocLink;
+
+  readonly name?: EntityName | JSDocMemberName;
+  text: string;
+  readonly parent: Node;
+}
+export interface JSDocMemberName extends Node {
+  readonly kind: SyntaxKind.JSDocMemberName;
+
+  readonly left: EntityName | JSDocMemberName;
+  readonly right: Identifier;
+  readonly parent: Node;
+}
+export interface JSDocLinkCode extends Node {
+  readonly kind: SyntaxKind.JSDocLinkCode;
+
+  readonly name?: EntityName | JSDocMemberName;
+  text: string;
+  readonly parent: Node;
+}
+export interface JSDocLinkPlain extends Node {
+  readonly kind: SyntaxKind.JSDocLinkPlain;
+
+  readonly name?: EntityName | JSDocMemberName;
+  text: string;
+  readonly parent: Node;
+}
+export interface JSDocParameterTag extends Node {
+  readonly kind: SyntaxKind.JSDocParameterTag;
+
+  readonly parent: JSDoc;
+  readonly name: EntityName;
+  readonly typeExpression?: JSDocTypeExpression;
+  /** Whether the property name came before the type -- non-standard for JSDoc, but Typescript-like */
+  readonly isNameFirst: boolean;
+  readonly isBracketed: boolean;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+  _declarationBrand: any;
+}
+export interface JSDocReturnTag extends Node {
+  readonly kind: SyntaxKind.JSDocReturnTag;
+
+  readonly typeExpression?: JSDocTypeExpression;
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
 }
 export interface LabeledStatement extends Node {
   readonly kind: SyntaxKind.LabeledStatement;
-  readonly parent: StatementParent;
+
   readonly label: Identifier;
   readonly statement: Statement;
+  readonly parent: Node;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+  _flowContainerBrand: any;
+}
+export interface MethodSignature extends Node {
+  readonly kind: SyntaxKind.MethodSignature;
+
+  readonly parent: TypeLiteralNode | InterfaceDeclaration;
+  readonly modifiers?: NodeArray<Modifier>;
+  readonly name: PropertyName;
+  readonly typeParameters?: NodeArray<TypeParameterDeclaration> | undefined;
+  readonly parameters: NodeArray<ParameterDeclaration>;
+  readonly type?: TypeNode | undefined;
+  readonly questionToken?: QuestionToken | undefined;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+  _typeElementBrand: any;
+  _localsContainerBrand: any;
+}
+export interface NamedTupleMember extends Node {
+  readonly kind: SyntaxKind.NamedTupleMember;
+
+  readonly dotDotDotToken?: Token<SyntaxKind.DotDotDotToken, NamedTupleMember>;
+  readonly name: Identifier;
+  readonly questionToken?: Token<SyntaxKind.QuestionToken, NamedTupleMember>;
+  readonly type: TypeNode;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+}
+export interface NamespaceExportDeclaration extends Node {
+  readonly kind: SyntaxKind.NamespaceExportDeclaration;
+
+  readonly name: Identifier;
+  readonly parent: Node;
+  _declarationBrand: any;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+}
+export interface ParenthesizedExpression extends Node {
+  readonly kind: SyntaxKind.ParenthesizedExpression;
+
+  readonly expression: Expression;
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _jsdocContainerBrand: any;
+}
+export interface PropertyAccessExpression extends Node {
+  readonly kind: SyntaxKind.PropertyAccessExpression;
+
+  readonly expression: LeftHandSideExpression;
+  readonly questionDotToken?: QuestionDotToken;
+  readonly name: MemberName;
+  readonly parent: Node;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+  _flowContainerBrand: any;
+}
+export type MemberName = Identifier | PrivateIdentifier;
+export interface PropertySignature extends Node {
+  readonly kind: SyntaxKind.PropertySignature;
+
+  readonly parent: TypeLiteralNode | InterfaceDeclaration;
+  readonly modifiers?: NodeArray<Modifier>;
+  readonly name: PropertyName;
+  readonly questionToken?: QuestionToken;
+  readonly type?: TypeNode;
+  _typeElementBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+}
+export interface ReturnStatement extends Node {
+  readonly kind: SyntaxKind.ReturnStatement;
+
+  readonly expression?: Expression;
+  readonly parent: Node;
   _statementBrand: any;
   _jsdocContainerBrand: any;
   _flowContainerBrand: any;
 }
 export interface ThrowStatement extends Node {
   readonly kind: SyntaxKind.ThrowStatement;
-  readonly parent: StatementParent;
+
   readonly expression: Expression;
+  readonly parent: Node;
   _statementBrand: any;
   _jsdocContainerBrand: any;
   _flowContainerBrand: any;
 }
 export interface TryStatement extends Node {
   readonly kind: SyntaxKind.TryStatement;
-  readonly parent: StatementParent;
+
   readonly tryBlock: Block;
   readonly catchClause?: CatchClause;
   readonly finallyBlock?: Block;
+  readonly parent: Node;
   _statementBrand: any;
   _jsdocContainerBrand: any;
   _flowContainerBrand: any;
 }
 export interface CatchClause extends Node {
   readonly kind: SyntaxKind.CatchClause;
+
   readonly parent: TryStatement;
   readonly variableDeclaration?: VariableDeclaration;
   readonly block: Block;
   _localsContainerBrand: any;
 }
-export interface ImportDeclaration extends Node {
-  readonly kind: SyntaxKind.ImportDeclaration;
-  readonly parent: StatementParent;
+export interface TypeAliasDeclaration extends Node {
+  readonly kind: SyntaxKind.TypeAliasDeclaration;
+
   readonly modifiers?: NodeArray<ModifierLike>;
-  readonly importClause?: ImportClause;
-  /** If this is not a StringLiteral it will be a grammar error. */
-  readonly moduleSpecifier: Expression;
-  readonly attributes?: ImportAttributes;
+  readonly name: Identifier;
+  readonly typeParameters?: NodeArray<TypeParameterDeclaration>;
+  readonly type: TypeNode;
+  readonly parent: Node;
+  _declarationBrand: any;
   _statementBrand: any;
   _jsdocContainerBrand: any;
+  _localsContainerBrand: any;
 }
-export interface ImportClause extends Node {
-  readonly kind: SyntaxKind.ImportClause;
-  readonly parent: ImportDeclaration;
-  /** @deprecated Use `phaseModifier` instead */
-  readonly isTypeOnly: boolean;
-  readonly phaseModifier: undefined | ImportPhaseModifierSyntaxKind;
-  readonly name?: Identifier;
-  readonly namedBindings?: NamedImportBindings;
+export interface WhileStatement extends Node {
+  readonly kind: SyntaxKind.WhileStatement;
+
+  readonly expression: Expression;
+  readonly statement: Statement;
+  readonly parent: Node;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+  _flowContainerBrand: any;
+}
+export interface WithStatement extends Node {
+  readonly kind: SyntaxKind.WithStatement;
+
+  readonly expression: Expression;
+  readonly statement: Statement;
+  readonly parent: Node;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+  _flowContainerBrand: any;
+}
+export type JSDocTag =
+  | JSDocUnknownTag
+  | JSDocAugmentsTag
+  | JSDocImplementsTag
+  | JSDocAuthorTag
+  | JSDocDeprecatedTag
+  | JSDocClassTag
+  | JSDocPublicTag
+  | JSDocPrivateTag
+  | JSDocProtectedTag
+  | JSDocReadonlyTag
+  | JSDocOverrideTag
+  | JSDocEnumTag
+  | JSDocThisTag
+  | JSDocTemplateTag
+  | JSDocSeeTag
+  | JSDocReturnTag
+  | JSDocTypeTag
+  | JSDocTypedefTag
+  | JSDocCallbackTag
+  | JSDocOverloadTag
+  | JSDocThrowsTag
+  | JSDocPropertyLikeTag
+  | JSDocSatisfiesTag
+  | JSDocImportTag;
+export interface JSDocUnknownTag extends Node {
+  readonly kind: SyntaxKind.JSDocTag;
+
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocAugmentsTag extends Node {
+  readonly kind: SyntaxKind.JSDocAugmentsTag;
+
+  readonly class: ExpressionWithTypeArguments & {
+    readonly expression: Identifier | PropertyAccessEntityNameExpression;
+  };
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface PropertyAccessEntityNameExpression extends Node {
+  readonly kind: SyntaxKind.PropertyAccessExpression;
+
+  readonly expression: EntityNameExpression;
+  readonly name: Identifier;
+  readonly questionDotToken?: QuestionDotToken;
+  readonly parent: Node;
+  _propertyAccessExpressionLikeQualifiedNameBrand?: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
   _declarationBrand: any;
+  _jsdocContainerBrand: any;
+  _flowContainerBrand: any;
+}
+export type EntityNameExpression = Identifier | PropertyAccessEntityNameExpression;
+export interface JSDocImplementsTag extends Node {
+  readonly kind: SyntaxKind.JSDocImplementsTag;
+
+  readonly class: ExpressionWithTypeArguments & {
+    readonly expression: Identifier | PropertyAccessEntityNameExpression;
+  };
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocAuthorTag extends Node {
+  readonly kind: SyntaxKind.JSDocAuthorTag;
+
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocDeprecatedTag extends Node {
+  readonly kind: SyntaxKind.JSDocDeprecatedTag;
+
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocClassTag extends Node {
+  readonly kind: SyntaxKind.JSDocClassTag;
+
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocPublicTag extends Node {
+  readonly kind: SyntaxKind.JSDocPublicTag;
+
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocPrivateTag extends Node {
+  readonly kind: SyntaxKind.JSDocPrivateTag;
+
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocProtectedTag extends Node {
+  readonly kind: SyntaxKind.JSDocProtectedTag;
+
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocReadonlyTag extends Node {
+  readonly kind: SyntaxKind.JSDocReadonlyTag;
+
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocOverrideTag extends Node {
+  readonly kind: SyntaxKind.JSDocOverrideTag;
+
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocEnumTag extends Node {
+  readonly kind: SyntaxKind.JSDocEnumTag;
+
+  readonly parent: JSDoc;
+  readonly typeExpression: JSDocTypeExpression;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+  _declarationBrand: any;
+  _localsContainerBrand: any;
+}
+export interface JSDocThisTag extends Node {
+  readonly kind: SyntaxKind.JSDocThisTag;
+
+  readonly typeExpression: JSDocTypeExpression;
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocSeeTag extends Node {
+  readonly kind: SyntaxKind.JSDocSeeTag;
+
+  readonly name?: JSDocNameReference;
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocNameReference extends Node {
+  readonly kind: SyntaxKind.JSDocNameReference;
+
+  readonly name: EntityName | JSDocMemberName;
+  readonly parent: Node;
+}
+export interface JSDocTypeTag extends Node {
+  readonly kind: SyntaxKind.JSDocTypeTag;
+
+  readonly typeExpression: JSDocTypeExpression;
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocTypedefTag extends Node {
+  readonly kind: SyntaxKind.JSDocTypedefTag;
+
+  readonly parent: JSDoc;
+  readonly fullName?: JSDocNamespaceDeclaration | Identifier;
+  readonly name?: Identifier;
+  readonly typeExpression?: JSDocTypeExpression | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+  _declarationBrand: any;
+  _localsContainerBrand: any;
+}
+export interface JSDocCallbackTag extends Node {
+  readonly kind: SyntaxKind.JSDocCallbackTag;
+
+  readonly parent: JSDoc;
+  readonly fullName?: JSDocNamespaceDeclaration | Identifier;
+  readonly name?: Identifier;
+  readonly typeExpression: JSDocSignature;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+  _declarationBrand: any;
+  _localsContainerBrand: any;
+}
+export interface JSDocOverloadTag extends Node {
+  readonly kind: SyntaxKind.JSDocOverloadTag;
+
+  readonly parent: JSDoc;
+  readonly typeExpression: JSDocSignature;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocThrowsTag extends Node {
+  readonly kind: SyntaxKind.JSDocThrowsTag;
+
+  readonly typeExpression?: JSDocTypeExpression;
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
+}
+export interface JSDocSatisfiesTag extends Node {
+  readonly kind: SyntaxKind.JSDocSatisfiesTag;
+
+  readonly typeExpression: JSDocTypeExpression;
+  readonly parent: JSDoc | JSDocTypeLiteral;
+  readonly tagName: Identifier;
+  readonly comment?: string | NodeArray<JSDocComment>;
 }
 export type ImportPhaseModifierSyntaxKind = SyntaxKind.TypeKeyword | SyntaxKind.DeferKeyword;
 export type NamedImportBindings = NamespaceImport | NamedImports;
 export interface NamespaceImport extends Node {
   readonly kind: SyntaxKind.NamespaceImport;
+
   readonly parent: ImportClause;
   readonly name: Identifier;
   _declarationBrand: any;
 }
 export interface NamedImports extends Node {
   readonly kind: SyntaxKind.NamedImports;
+
   readonly parent: ImportClause;
   readonly elements: NodeArray<ImportSpecifier>;
 }
 export interface ImportSpecifier extends Node {
   readonly kind: SyntaxKind.ImportSpecifier;
+
   readonly parent: NamedImports;
   readonly propertyName?: ModuleExportName;
   readonly name: Identifier;
   readonly isTypeOnly: boolean;
   _declarationBrand: any;
 }
+export interface ImportAttribute extends Node {
+  readonly kind: SyntaxKind.ImportAttribute;
+
+  readonly parent: ImportAttributes;
+  readonly name: ImportAttributeName;
+  readonly value: Expression;
+}
+export type ImportAttributeName = Identifier | StringLiteral;
+export interface TypeReferenceNode extends Node {
+  readonly kind: SyntaxKind.TypeReference;
+
+  readonly typeName: EntityName;
+  readonly typeArguments?: NodeArray<TypeNode>;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface TypeQueryNode extends Node {
+  readonly kind: SyntaxKind.TypeQuery;
+
+  readonly exprName: EntityName;
+  readonly typeArguments?: NodeArray<TypeNode>;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface TypePredicateNode extends Node {
+  readonly kind: SyntaxKind.TypePredicate;
+
+  readonly parent: SignatureDeclaration | JSDocTypeExpression;
+  readonly assertsModifier?: AssertsKeyword;
+  readonly parameterName: Identifier | ThisTypeNode;
+  readonly type?: TypeNode;
+  _typeNodeBrand: any;
+}
+export interface AssertsKeyword extends Node {
+  readonly kind: SyntaxKind.AssertsKeyword;
+  readonly parent: Node;
+}
+export interface ArrayTypeNode extends Node {
+  readonly kind: SyntaxKind.ArrayType;
+
+  readonly elementType: TypeNode;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface TupleTypeNode extends Node {
+  readonly kind: SyntaxKind.TupleType;
+
+  readonly elements: NodeArray<TypeNode | NamedTupleMember>;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface OptionalTypeNode extends Node {
+  readonly kind: SyntaxKind.OptionalType;
+
+  readonly type: TypeNode;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface RestTypeNode extends Node {
+  readonly kind: SyntaxKind.RestType;
+
+  readonly type: TypeNode;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface UnionTypeNode extends Node {
+  readonly kind: SyntaxKind.UnionType;
+
+  readonly types: NodeArray<TypeNode>;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface IntersectionTypeNode extends Node {
+  readonly kind: SyntaxKind.IntersectionType;
+
+  readonly types: NodeArray<TypeNode>;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface ConditionalTypeNode extends Node {
+  readonly kind: SyntaxKind.ConditionalType;
+
+  readonly checkType: TypeNode;
+  readonly extendsType: TypeNode;
+  readonly trueType: TypeNode;
+  readonly falseType: TypeNode;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+  _localsContainerBrand: any;
+}
+export interface InferTypeNode extends Node {
+  readonly kind: SyntaxKind.InferType;
+
+  readonly typeParameter: TypeParameterDeclaration;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface ParenthesizedTypeNode extends Node {
+  readonly kind: SyntaxKind.ParenthesizedType;
+
+  readonly type: TypeNode;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface TypeOperatorNode extends Node {
+  readonly kind: SyntaxKind.TypeOperator;
+
+  readonly operator: SyntaxKind.KeyOfKeyword | SyntaxKind.UniqueKeyword | SyntaxKind.ReadonlyKeyword;
+  readonly type: TypeNode;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface IndexedAccessTypeNode extends Node {
+  readonly kind: SyntaxKind.IndexedAccessType;
+
+  readonly objectType: TypeNode;
+  readonly indexType: TypeNode;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface MappedTypeNode extends Node {
+  readonly kind: SyntaxKind.MappedType;
+
+  readonly readonlyToken?: ReadonlyKeyword | PlusToken | MinusToken;
+  readonly typeParameter: TypeParameterDeclaration;
+  readonly nameType?: TypeNode;
+  readonly questionToken?: QuestionToken | PlusToken | MinusToken;
+  readonly type?: TypeNode;
+  /** Used only to produce grammar errors */
+  readonly members?: NodeArray<TypeElement>;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+  _declarationBrand: any;
+  _localsContainerBrand: any;
+}
+export interface PlusToken extends Node {
+  readonly kind: SyntaxKind.PlusToken;
+  readonly parent: Node;
+}
+export interface MinusToken extends Node {
+  readonly kind: SyntaxKind.MinusToken;
+  readonly parent: Node;
+}
+export interface LiteralTypeNode extends Node {
+  readonly kind: SyntaxKind.LiteralType;
+
+  readonly literal: NullLiteral | BooleanLiteral | LiteralExpression | PrefixUnaryExpression;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export type BooleanLiteral = TrueLiteral | FalseLiteral;
+export type LiteralExpression =
+  | StringLiteral
+  | RegularExpressionLiteral
+  | NoSubstitutionTemplateLiteral
+  | NumericLiteral
+  | BigIntLiteral;
+export interface RegularExpressionLiteral extends Node {
+  readonly kind: SyntaxKind.RegularExpressionLiteral;
+
+  text: string;
+  isUnterminated?: boolean;
+  hasExtendedUnicodeEscape?: boolean;
+  readonly parent: Node;
+  _literalExpressionBrand: any;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export interface BigIntLiteral extends Node {
+  readonly kind: SyntaxKind.BigIntLiteral;
+
+  text: string;
+  isUnterminated?: boolean;
+  hasExtendedUnicodeEscape?: boolean;
+  readonly parent: Node;
+  _literalExpressionBrand: any;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export interface TemplateLiteralTypeNode extends Node {
+  readonly kind: SyntaxKind.TemplateLiteralType;
+
+  readonly head: TemplateHead;
+  readonly templateSpans: NodeArray<TemplateLiteralTypeSpan>;
+  readonly parent: Node;
+  _typeNodeBrand: any;
+}
+export interface TemplateHead extends Node {
+  readonly kind: SyntaxKind.TemplateHead;
+
+  readonly parent: TemplateExpression | TemplateLiteralTypeNode;
+  rawText?: string;
+  text: string;
+  isUnterminated?: boolean;
+  hasExtendedUnicodeEscape?: boolean;
+}
+export interface TemplateExpression extends Node {
+  readonly kind: SyntaxKind.TemplateExpression;
+
+  readonly head: TemplateHead;
+  readonly templateSpans: NodeArray<TemplateSpan>;
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export interface TemplateSpan extends Node {
+  readonly kind: SyntaxKind.TemplateSpan;
+
+  readonly parent: TemplateExpression;
+  readonly expression: Expression;
+  readonly literal: TemplateMiddle | TemplateTail;
+}
+export interface TemplateMiddle extends Node {
+  readonly kind: SyntaxKind.TemplateMiddle;
+
+  readonly parent: TemplateSpan | TemplateLiteralTypeSpan;
+  rawText?: string;
+  text: string;
+  isUnterminated?: boolean;
+  hasExtendedUnicodeEscape?: boolean;
+}
+export interface TemplateLiteralTypeSpan extends Node {
+  readonly kind: SyntaxKind.TemplateLiteralTypeSpan;
+
+  readonly parent: TemplateLiteralTypeNode;
+  readonly type: TypeNode;
+  readonly literal: TemplateMiddle | TemplateTail;
+  _typeNodeBrand: any;
+}
+export interface TemplateTail extends Node {
+  readonly kind: SyntaxKind.TemplateTail;
+
+  readonly parent: TemplateSpan | TemplateLiteralTypeSpan;
+  rawText?: string;
+  text: string;
+  isUnterminated?: boolean;
+  hasExtendedUnicodeEscape?: boolean;
+}
+export type JSDocType =
+  | JSDocAllType
+  | JSDocUnknownType
+  | JSDocNonNullableType
+  | JSDocNullableType
+  | JSDocOptionalType
+  | JSDocFunctionType
+  | JSDocVariadicType
+  | JSDocNamepathType
+  | JSDocSignature
+  | JSDocTypeLiteral;
+export interface JSDocAllType extends Node {
+  readonly kind: SyntaxKind.JSDocAllType;
+
+  readonly parent: Node;
+  _jsDocTypeBrand: any;
+  _typeNodeBrand: any;
+}
+export interface JSDocUnknownType extends Node {
+  readonly kind: SyntaxKind.JSDocUnknownType;
+
+  readonly parent: Node;
+  _jsDocTypeBrand: any;
+  _typeNodeBrand: any;
+}
+export interface JSDocNonNullableType extends Node {
+  readonly kind: SyntaxKind.JSDocNonNullableType;
+
+  readonly type: TypeNode;
+  readonly postfix: boolean;
+  readonly parent: Node;
+  _jsDocTypeBrand: any;
+  _typeNodeBrand: any;
+}
+export interface JSDocNullableType extends Node {
+  readonly kind: SyntaxKind.JSDocNullableType;
+
+  readonly type: TypeNode;
+  readonly postfix: boolean;
+  readonly parent: Node;
+  _jsDocTypeBrand: any;
+  _typeNodeBrand: any;
+}
+export interface JSDocOptionalType extends Node {
+  readonly kind: SyntaxKind.JSDocOptionalType;
+
+  readonly type: TypeNode;
+  readonly parent: Node;
+  _jsDocTypeBrand: any;
+  _typeNodeBrand: any;
+}
+export interface JSDocVariadicType extends Node {
+  readonly kind: SyntaxKind.JSDocVariadicType;
+
+  readonly type: TypeNode;
+  readonly parent: Node;
+  _jsDocTypeBrand: any;
+  _typeNodeBrand: any;
+}
+export interface JSDocNamepathType extends Node {
+  readonly kind: SyntaxKind.JSDocNamepathType;
+
+  readonly type: TypeNode;
+  readonly parent: Node;
+  _jsDocTypeBrand: any;
+  _typeNodeBrand: any;
+}
+export interface ArrayLiteralExpression extends Node {
+  readonly kind: SyntaxKind.ArrayLiteralExpression;
+
+  readonly elements: NodeArray<Expression>;
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export type ObjectLiteralExpressionBase = ObjectLiteralExpression;
+export interface NewExpression extends Node {
+  readonly kind: SyntaxKind.NewExpression;
+
+  readonly expression: LeftHandSideExpression;
+  readonly typeArguments?: NodeArray<TypeNode>;
+  readonly arguments?: NodeArray<Expression>;
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _declarationBrand: any;
+}
+export interface MetaProperty extends Node {
+  readonly kind: SyntaxKind.MetaProperty;
+
+  readonly keywordToken: SyntaxKind.NewKeyword | SyntaxKind.ImportKeyword;
+  readonly name: Identifier;
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _flowContainerBrand: any;
+}
+export interface JsxElement extends Node {
+  readonly kind: SyntaxKind.JsxElement;
+
+  readonly openingElement: JsxOpeningElement;
+  readonly children: NodeArray<JsxChild>;
+  readonly closingElement: JsxClosingElement;
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export interface JsxOpeningElement extends Node {
+  readonly kind: SyntaxKind.JsxOpeningElement;
+
+  readonly parent: JsxElement;
+  readonly tagName: JsxTagNameExpression;
+  readonly typeArguments?: NodeArray<TypeNode>;
+  readonly attributes: JsxAttributes;
+  _expressionBrand: any;
+}
+export type JsxTagNameExpression = Identifier | ThisExpression | JsxTagNamePropertyAccess | JsxNamespacedName;
+export interface JsxTagNamePropertyAccess extends Node {
+  readonly kind: SyntaxKind.PropertyAccessExpression;
+
+  readonly expression: Identifier | ThisExpression | JsxTagNamePropertyAccess;
+  readonly questionDotToken?: QuestionDotToken;
+  readonly name: MemberName;
+  readonly parent: Node;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _declarationBrand: any;
+  _jsdocContainerBrand: any;
+  _flowContainerBrand: any;
+}
+export interface JsxNamespacedName extends Node {
+  readonly kind: SyntaxKind.JsxNamespacedName;
+
+  readonly name: Identifier;
+  readonly namespace: Identifier;
+  readonly parent: Node;
+}
+export interface JsxAttributes extends Node {
+  readonly kind: SyntaxKind.JsxAttributes;
+
+  readonly properties: NodeArray<JsxAttributeLike>;
+  readonly parent: JsxOpeningLikeElement;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _declarationBrand: any;
+}
+export type JsxAttributeLike = JsxAttribute | JsxSpreadAttribute;
+export interface JsxAttribute extends Node {
+  readonly kind: SyntaxKind.JsxAttribute;
+
+  readonly parent: JsxAttributes;
+  readonly name: JsxAttributeName;
+  readonly initializer?: JsxAttributeValue;
+  _declarationBrand: any;
+}
+export type JsxAttributeName = Identifier | JsxNamespacedName;
+export type JsxAttributeValue = StringLiteral | JsxExpression | JsxElement | JsxSelfClosingElement | JsxFragment;
+export interface JsxExpression extends Node {
+  readonly kind: SyntaxKind.JsxExpression;
+
+  readonly parent: JsxElement | JsxFragment | JsxAttributeLike;
+  readonly dotDotDotToken?: Token<SyntaxKind.DotDotDotToken, JsxExpression>;
+  readonly expression?: Expression;
+  _expressionBrand: any;
+}
+export interface JsxFragment extends Node {
+  readonly kind: SyntaxKind.JsxFragment;
+
+  readonly openingFragment: JsxOpeningFragment;
+  readonly children: NodeArray<JsxChild>;
+  readonly closingFragment: JsxClosingFragment;
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export interface JsxOpeningFragment extends Node {
+  readonly kind: SyntaxKind.JsxOpeningFragment;
+
+  readonly parent: JsxFragment;
+  _expressionBrand: any;
+}
+export type JsxChild = JsxText | JsxExpression | JsxElement | JsxSelfClosingElement | JsxFragment;
+export interface JsxText extends Node {
+  readonly kind: SyntaxKind.JsxText;
+
+  readonly parent: JsxElement | JsxFragment;
+  readonly containsOnlyTriviaWhiteSpaces: boolean;
+  text: string;
+  isUnterminated?: boolean;
+  hasExtendedUnicodeEscape?: boolean;
+}
+export interface JsxSelfClosingElement extends Node {
+  readonly kind: SyntaxKind.JsxSelfClosingElement;
+
+  readonly tagName: JsxTagNameExpression;
+  readonly typeArguments?: NodeArray<TypeNode>;
+  readonly attributes: JsxAttributes;
+  readonly parent: Node;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export interface JsxClosingFragment extends Node {
+  readonly kind: SyntaxKind.JsxClosingFragment;
+
+  readonly parent: JsxFragment;
+  _expressionBrand: any;
+}
+export interface JsxSpreadAttribute extends Node {
+  readonly kind: SyntaxKind.JsxSpreadAttribute;
+
+  readonly parent: JsxAttributes;
+  readonly expression: Expression;
+  readonly name?: PropertyName;
+  _objectLiteralBrand: any;
+  _declarationBrand: any;
+}
+export type JsxOpeningLikeElement = JsxSelfClosingElement | JsxOpeningElement;
+export interface JsxClosingElement extends Node {
+  readonly kind: SyntaxKind.JsxClosingElement;
+
+  readonly parent: JsxElement;
+  readonly tagName: JsxTagNameExpression;
+}
+export interface MissingDeclaration extends Node {
+  readonly kind: SyntaxKind.MissingDeclaration;
+
+  readonly name?: Identifier;
+  readonly parent: Node;
+  _declarationBrand: any;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+  _primaryExpressionBrand: any;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export interface TaggedTemplateExpression extends Node {
+  readonly kind: SyntaxKind.TaggedTemplateExpression;
+
+  readonly tag: LeftHandSideExpression;
+  readonly typeArguments?: NodeArray<TypeNode>;
+  readonly template: TemplateLiteral;
+  readonly parent: Node;
+  _memberExpressionBrand: any;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export type TemplateLiteral = TemplateExpression | NoSubstitutionTemplateLiteral;
+export interface CallExpression extends Node {
+  readonly kind: SyntaxKind.CallExpression;
+
+  readonly expression: LeftHandSideExpression;
+  readonly questionDotToken?: QuestionDotToken;
+  readonly typeArguments?: NodeArray<TypeNode>;
+  readonly arguments: NodeArray<Expression>;
+  readonly parent: Node;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+  _declarationBrand: any;
+}
+export interface NonNullExpression extends Node {
+  readonly kind: SyntaxKind.NonNullExpression;
+
+  readonly expression: Expression;
+  readonly parent: Node;
+  _leftHandSideExpressionBrand: any;
+  _updateExpressionBrand: any;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export type PostfixUnaryOperator = SyntaxKind.PlusPlusToken | SyntaxKind.MinusMinusToken;
+export interface DeleteExpression extends Node {
+  readonly kind: SyntaxKind.DeleteExpression;
+
+  readonly expression: UnaryExpression;
+  readonly parent: Node;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export interface TypeOfExpression extends Node {
+  readonly kind: SyntaxKind.TypeOfExpression;
+
+  readonly expression: UnaryExpression;
+  readonly parent: Node;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export interface VoidExpression extends Node {
+  readonly kind: SyntaxKind.VoidExpression;
+
+  readonly expression: UnaryExpression;
+  readonly parent: Node;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export interface AwaitExpression extends Node {
+  readonly kind: SyntaxKind.AwaitExpression;
+
+  readonly expression: UnaryExpression;
+  readonly parent: Node;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export interface TypeAssertion extends Node {
+  readonly kind: SyntaxKind.TypeAssertionExpression;
+
+  readonly type: TypeNode;
+  readonly expression: UnaryExpression;
+  readonly parent: Node;
+  _unaryExpressionBrand: any;
+  _expressionBrand: any;
+}
+export interface YieldExpression extends Node {
+  readonly kind: SyntaxKind.YieldExpression;
+
+  readonly asteriskToken?: AsteriskToken;
+  readonly expression?: Expression;
+  readonly parent: Node;
+  _expressionBrand: any;
+}
+export interface SyntheticExpression extends Node {
+  readonly kind: SyntaxKind.SyntheticExpression;
+
+  readonly isSpread: boolean;
+  readonly type: Type;
+  readonly tupleNameSource?: ParameterDeclaration | NamedTupleMember;
+  readonly parent: Node;
+  _expressionBrand: any;
+}
+export interface ConditionalExpression extends Node {
+  readonly kind: SyntaxKind.ConditionalExpression;
+
+  readonly condition: Expression;
+  readonly questionToken: QuestionToken;
+  readonly whenTrue: Expression;
+  readonly colonToken: ColonToken;
+  readonly whenFalse: Expression;
+  readonly parent: Node;
+  _expressionBrand: any;
+}
+export interface ColonToken extends Node {
+  readonly kind: SyntaxKind.ColonToken;
+  readonly parent: Node;
+}
+export interface SpreadElement extends Node {
+  readonly kind: SyntaxKind.SpreadElement;
+
+  readonly parent: ArrayLiteralExpression | CallExpression | NewExpression;
+  readonly expression: Expression;
+  _expressionBrand: any;
+}
+export interface AsExpression extends Node {
+  readonly kind: SyntaxKind.AsExpression;
+
+  readonly expression: Expression;
+  readonly type: TypeNode;
+  readonly parent: Node;
+  _expressionBrand: any;
+}
+export interface SatisfiesExpression extends Node {
+  readonly kind: SyntaxKind.SatisfiesExpression;
+
+  readonly expression: Expression;
+  readonly type: TypeNode;
+  readonly parent: Node;
+  _expressionBrand: any;
+}
+export interface CommaListExpression extends Node {
+  readonly kind: SyntaxKind.CommaListExpression;
+
+  readonly elements: NodeArray<Expression>;
+  readonly parent: Node;
+  _expressionBrand: any;
+}
+export interface BindingElement extends Node {
+  readonly kind: SyntaxKind.BindingElement;
+
+  readonly parent: BindingPattern;
+  readonly propertyName?: PropertyName;
+  readonly dotDotDotToken?: DotDotDotToken;
+  readonly name: BindingName;
+  readonly initializer?: Expression;
+  _declarationBrand: any;
+  _flowContainerBrand: any;
+}
+export interface ArrayBindingPattern extends Node {
+  readonly kind: SyntaxKind.ArrayBindingPattern;
+
+  readonly parent: VariableDeclaration | ParameterDeclaration | BindingElement;
+  readonly elements: NodeArray<ArrayBindingElement>;
+}
+export type ArrayBindingElement = BindingElement | OmittedExpression;
+export interface NotEmittedTypeElement extends Node {
+  readonly kind: SyntaxKind.NotEmittedTypeElement;
+
+  readonly name?: PropertyName;
+  readonly questionToken?: QuestionToken | undefined;
+  readonly parent: Node;
+  _typeElementBrand: any;
+  _declarationBrand: any;
+}
+export type ObjectLiteralElement =
+  | PropertyAssignment
+  | ShorthandPropertyAssignment
+  | SpreadAssignment
+  | MethodDeclaration
+  | GetAccessorDeclaration
+  | SetAccessorDeclaration
+  | JsxSpreadAttribute;
+export type ClassLikeDeclarationBase = ClassDeclaration | ClassExpression;
+export interface NotEmittedStatement extends Node {
+  readonly kind: SyntaxKind.NotEmittedStatement;
+
+  readonly parent: Node;
+  _statementBrand: any;
+  _jsdocContainerBrand: any;
+}
+export type IterationStatement = DoStatement | WhileStatement | ForStatement | ForInStatement | ForOfStatement;
 
 interface Token<Kind extends SyntaxKind, Parent extends Node> extends Node {
   readonly kind: Kind;
   readonly parent: Parent;
-}
-
-/*
- * This node doesn't exist, it just here so that SourceFile.parent is
- * defined for compatibility with base types and is not ts.Node to keep
- * narrowing working on node.parent.kind
- */
-interface NullNode extends Node {
-  readonly kind: SyntaxKind.NullKeyword;
-  readonly parent: NullNode;
 }
 
 export type AnyNode =
@@ -3066,25 +2899,48 @@ export type AnyNode =
   | InterfaceDeclaration
   | IntersectionTypeNode
   | IntrinsicKeyword
+  | JSDoc
   | JSDocAllType
+  | JSDocAugmentsTag
+  | JSDocAuthorTag
+  | JSDocCallbackTag
+  | JSDocClassTag
+  | JSDocDeprecatedTag
+  | JSDocEnumTag
   | JSDocFunctionType
+  | JSDocImplementsTag
+  | JSDocImportTag
   | JSDocLink
   | JSDocLinkCode
   | JSDocLinkPlain
   | JSDocMemberName
+  | JSDocNameReference
   | JSDocNamepathType
   | JSDocNamespaceDeclaration
   | JSDocNonNullableType
   | JSDocNullableType
   | JSDocOptionalType
+  | JSDocOverloadTag
+  | JSDocOverrideTag
   | JSDocParameterTag
+  | JSDocPrivateTag
   | JSDocPropertyTag
+  | JSDocProtectedTag
+  | JSDocPublicTag
+  | JSDocReadonlyTag
   | JSDocReturnTag
+  | JSDocSatisfiesTag
+  | JSDocSeeTag
   | JSDocSignature
   | JSDocTemplateTag
   | JSDocText
+  | JSDocThisTag
+  | JSDocThrowsTag
   | JSDocTypeExpression
   | JSDocTypeLiteral
+  | JSDocTypeTag
+  | JSDocTypedefTag
+  | JSDocUnknownTag
   | JSDocUnknownType
   | JSDocVariadicType
   | JsxAttribute
@@ -3138,6 +2994,7 @@ export type AnyNode =
   | PostfixUnaryExpression
   | PrefixUnaryExpression
   | PrivateIdentifier
+  | PropertyAccessEntityNameExpression
   | PropertyAccessExpression
   | PropertyAssignment
   | PropertyDeclaration
@@ -3193,147 +3050,6 @@ export type AnyNode =
   | WhileStatement
   | WithStatement
   | YieldExpression;
-
-/* Enums here just for factorisation */
-export type ExpressionParent =
-  | IterationStatement
-  | ComputedPropertyName
-  | TypeParameterDeclaration
-  | BindingElement
-  | ParameterDeclaration
-  | ImportAttribute
-  | YieldExpression
-  | BinaryExpression
-  | ConditionalExpression
-  | ArrowFunction
-  | SpreadElement
-  | AsExpression
-  | SatisfiesExpression
-  | JsxExpression
-  | JsxSpreadAttribute
-  | CommaListExpression
-  | PartiallyEmittedExpression
-  | TemplateSpan
-  | ParenthesizedExpression
-  | ArrayLiteralExpression
-  | PropertyAssignment
-  | ShorthandPropertyAssignment
-  | SpreadAssignment
-  | NewExpression
-  | PropertyDeclaration
-  | ElementAccessExpression
-  | CallExpression
-  | NonNullExpression
-  | EnumMember
-  | ExternalModuleReference
-  | ExportDeclaration
-  | ExportAssignment
-  | VariableDeclaration
-  | ExpressionStatement
-  | IfStatement
-  | ReturnStatement
-  | WithStatement
-  | SwitchStatement
-  | CaseClause
-  | ThrowStatement
-  | ImportDeclaration;
-export type TypeNodeParent =
-  | AccessorDeclaration
-  | NodeWithTypeArguments
-  | FunctionOrConstructorTypeNodeBase
-  | TypeParameterDeclaration
-  | ParameterDeclaration
-  | TypePredicateNode
-  | CallSignatureDeclaration
-  | ConstructSignatureDeclaration
-  | PropertySignature
-  | MethodSignature
-  | IndexSignatureDeclaration
-  | ArrayTypeNode
-  | TupleTypeNode
-  | NamedTupleMember
-  | OptionalTypeNode
-  | RestTypeNode
-  | UnionTypeNode
-  | IntersectionTypeNode
-  | ConditionalTypeNode
-  | ParenthesizedTypeNode
-  | TypeOperatorNode
-  | IndexedAccessTypeNode
-  | MappedTypeNode
-  | TemplateLiteralTypeSpan
-  | JSDocTypeExpression
-  | JSDocNonNullableType
-  | JSDocNullableType
-  | JSDocOptionalType
-  | JSDocFunctionType
-  | JSDocVariadicType
-  | JSDocNamepathType
-  | TypeAssertion
-  | ArrowFunction
-  | AsExpression
-  | SatisfiesExpression
-  | JsxOpeningElement
-  | JsxSelfClosingElement
-  | FunctionExpression
-  | MethodDeclaration
-  | NewExpression
-  | PropertyDeclaration
-  | ConstructorDeclaration
-  | TaggedTemplateExpression
-  | CallExpression
-  | FunctionDeclaration
-  | TypeAliasDeclaration
-  | VariableDeclaration;
-export type ModifierParent =
-  | AccessorDeclaration
-  | ParameterDeclaration
-  | IndexSignatureDeclaration
-  | MethodDeclaration
-  | ClassExpression
-  | PropertyDeclaration
-  | ConstructorDeclaration
-  | FunctionDeclaration
-  | ClassDeclaration
-  | InterfaceDeclaration
-  | TypeAliasDeclaration
-  | EnumDeclaration
-  | ModuleDeclaration
-  | NamespaceDeclaration
-  | JSDocNamespaceDeclaration
-  | ImportEqualsDeclaration
-  | ExportDeclaration
-  | ExportAssignment
-  | VariableStatement
-  | ImportDeclaration
-  | TypeParameterDeclaration
-  | ConstructorTypeNode
-  | PropertySignature
-  | MethodSignature
-  | ArrowFunction
-  | FunctionExpression;
-export type StatementParent =
-  | CaseOrDefaultClause
-  | IterationStatement
-  | Block
-  | ModuleBlock
-  | IfStatement
-  | WithStatement
-  | LabeledStatement
-  | SourceFile;
-export type LeftHandSideExpressionParent =
-  | ExpressionParent
-  | PostfixUnaryExpression
-  | PrefixUnaryExpression
-  | DeleteExpression
-  | TypeOfExpression
-  | VoidExpression
-  | AwaitExpression
-  | TypeAssertion
-  | ExpressionWithTypeArguments
-  | PropertyAccessExpression
-  | TaggedTemplateExpression
-  | Decorator;
 
 export type Visitor<Data = undefined> = {
   AnyKeyword?(context: Context<Data>, node: AnyKeyword): void;
@@ -3476,10 +3192,28 @@ export type Visitor<Data = undefined> = {
   IntersectionType_exit?(context: Context<Data>, node: IntersectionTypeNode): void;
   IntrinsicKeyword?(context: Context<Data>, node: IntrinsicKeyword): void;
   IntrinsicKeyword_exit?(context: Context<Data>, node: IntrinsicKeyword): void;
+  JSDoc?(context: Context<Data>, node: JSDoc): void;
+  JSDoc_exit?(context: Context<Data>, node: JSDoc): void;
   JSDocAllType?(context: Context<Data>, node: JSDocAllType): void;
   JSDocAllType_exit?(context: Context<Data>, node: JSDocAllType): void;
+  JSDocAugmentsTag?(context: Context<Data>, node: JSDocAugmentsTag): void;
+  JSDocAugmentsTag_exit?(context: Context<Data>, node: JSDocAugmentsTag): void;
+  JSDocAuthorTag?(context: Context<Data>, node: JSDocAuthorTag): void;
+  JSDocAuthorTag_exit?(context: Context<Data>, node: JSDocAuthorTag): void;
+  JSDocCallbackTag?(context: Context<Data>, node: JSDocCallbackTag): void;
+  JSDocCallbackTag_exit?(context: Context<Data>, node: JSDocCallbackTag): void;
+  JSDocClassTag?(context: Context<Data>, node: JSDocClassTag): void;
+  JSDocClassTag_exit?(context: Context<Data>, node: JSDocClassTag): void;
+  JSDocDeprecatedTag?(context: Context<Data>, node: JSDocDeprecatedTag): void;
+  JSDocDeprecatedTag_exit?(context: Context<Data>, node: JSDocDeprecatedTag): void;
+  JSDocEnumTag?(context: Context<Data>, node: JSDocEnumTag): void;
+  JSDocEnumTag_exit?(context: Context<Data>, node: JSDocEnumTag): void;
   JSDocFunctionType?(context: Context<Data>, node: JSDocFunctionType): void;
   JSDocFunctionType_exit?(context: Context<Data>, node: JSDocFunctionType): void;
+  JSDocImplementsTag?(context: Context<Data>, node: JSDocImplementsTag): void;
+  JSDocImplementsTag_exit?(context: Context<Data>, node: JSDocImplementsTag): void;
+  JSDocImportTag?(context: Context<Data>, node: JSDocImportTag): void;
+  JSDocImportTag_exit?(context: Context<Data>, node: JSDocImportTag): void;
   JSDocLink?(context: Context<Data>, node: JSDocLink): void;
   JSDocLink_exit?(context: Context<Data>, node: JSDocLink): void;
   JSDocLinkCode?(context: Context<Data>, node: JSDocLinkCode): void;
@@ -3488,6 +3222,8 @@ export type Visitor<Data = undefined> = {
   JSDocLinkPlain_exit?(context: Context<Data>, node: JSDocLinkPlain): void;
   JSDocMemberName?(context: Context<Data>, node: JSDocMemberName): void;
   JSDocMemberName_exit?(context: Context<Data>, node: JSDocMemberName): void;
+  JSDocNameReference?(context: Context<Data>, node: JSDocNameReference): void;
+  JSDocNameReference_exit?(context: Context<Data>, node: JSDocNameReference): void;
   JSDocNamepathType?(context: Context<Data>, node: JSDocNamepathType): void;
   JSDocNamepathType_exit?(context: Context<Data>, node: JSDocNamepathType): void;
   JSDocNonNullableType?(context: Context<Data>, node: JSDocNonNullableType): void;
@@ -3496,22 +3232,48 @@ export type Visitor<Data = undefined> = {
   JSDocNullableType_exit?(context: Context<Data>, node: JSDocNullableType): void;
   JSDocOptionalType?(context: Context<Data>, node: JSDocOptionalType): void;
   JSDocOptionalType_exit?(context: Context<Data>, node: JSDocOptionalType): void;
+  JSDocOverloadTag?(context: Context<Data>, node: JSDocOverloadTag): void;
+  JSDocOverloadTag_exit?(context: Context<Data>, node: JSDocOverloadTag): void;
+  JSDocOverrideTag?(context: Context<Data>, node: JSDocOverrideTag): void;
+  JSDocOverrideTag_exit?(context: Context<Data>, node: JSDocOverrideTag): void;
   JSDocParameterTag?(context: Context<Data>, node: JSDocParameterTag): void;
   JSDocParameterTag_exit?(context: Context<Data>, node: JSDocParameterTag): void;
+  JSDocPrivateTag?(context: Context<Data>, node: JSDocPrivateTag): void;
+  JSDocPrivateTag_exit?(context: Context<Data>, node: JSDocPrivateTag): void;
   JSDocPropertyTag?(context: Context<Data>, node: JSDocPropertyTag): void;
   JSDocPropertyTag_exit?(context: Context<Data>, node: JSDocPropertyTag): void;
+  JSDocProtectedTag?(context: Context<Data>, node: JSDocProtectedTag): void;
+  JSDocProtectedTag_exit?(context: Context<Data>, node: JSDocProtectedTag): void;
+  JSDocPublicTag?(context: Context<Data>, node: JSDocPublicTag): void;
+  JSDocPublicTag_exit?(context: Context<Data>, node: JSDocPublicTag): void;
+  JSDocReadonlyTag?(context: Context<Data>, node: JSDocReadonlyTag): void;
+  JSDocReadonlyTag_exit?(context: Context<Data>, node: JSDocReadonlyTag): void;
   JSDocReturnTag?(context: Context<Data>, node: JSDocReturnTag): void;
   JSDocReturnTag_exit?(context: Context<Data>, node: JSDocReturnTag): void;
+  JSDocSatisfiesTag?(context: Context<Data>, node: JSDocSatisfiesTag): void;
+  JSDocSatisfiesTag_exit?(context: Context<Data>, node: JSDocSatisfiesTag): void;
+  JSDocSeeTag?(context: Context<Data>, node: JSDocSeeTag): void;
+  JSDocSeeTag_exit?(context: Context<Data>, node: JSDocSeeTag): void;
   JSDocSignature?(context: Context<Data>, node: JSDocSignature): void;
   JSDocSignature_exit?(context: Context<Data>, node: JSDocSignature): void;
   JSDocTemplateTag?(context: Context<Data>, node: JSDocTemplateTag): void;
   JSDocTemplateTag_exit?(context: Context<Data>, node: JSDocTemplateTag): void;
   JSDocText?(context: Context<Data>, node: JSDocText): void;
   JSDocText_exit?(context: Context<Data>, node: JSDocText): void;
+  JSDocThisTag?(context: Context<Data>, node: JSDocThisTag): void;
+  JSDocThisTag_exit?(context: Context<Data>, node: JSDocThisTag): void;
+  JSDocThrowsTag?(context: Context<Data>, node: JSDocThrowsTag): void;
+  JSDocThrowsTag_exit?(context: Context<Data>, node: JSDocThrowsTag): void;
   JSDocTypeExpression?(context: Context<Data>, node: JSDocTypeExpression): void;
   JSDocTypeExpression_exit?(context: Context<Data>, node: JSDocTypeExpression): void;
   JSDocTypeLiteral?(context: Context<Data>, node: JSDocTypeLiteral): void;
   JSDocTypeLiteral_exit?(context: Context<Data>, node: JSDocTypeLiteral): void;
+  JSDocTypeTag?(context: Context<Data>, node: JSDocTypeTag): void;
+  JSDocTypeTag_exit?(context: Context<Data>, node: JSDocTypeTag): void;
+  JSDocTypedefTag?(context: Context<Data>, node: JSDocTypedefTag): void;
+  JSDocTypedefTag_exit?(context: Context<Data>, node: JSDocTypedefTag): void;
+  JSDocTag?(context: Context<Data>, node: JSDocUnknownTag): void;
+  JSDocTag_exit?(context: Context<Data>, node: JSDocUnknownTag): void;
   JSDocUnknownType?(context: Context<Data>, node: JSDocUnknownType): void;
   JSDocUnknownType_exit?(context: Context<Data>, node: JSDocUnknownType): void;
   JSDocVariadicType?(context: Context<Data>, node: JSDocVariadicType): void;
@@ -3614,6 +3376,8 @@ export type Visitor<Data = undefined> = {
   PrefixUnaryExpression_exit?(context: Context<Data>, node: PrefixUnaryExpression): void;
   PrivateIdentifier?(context: Context<Data>, node: PrivateIdentifier): void;
   PrivateIdentifier_exit?(context: Context<Data>, node: PrivateIdentifier): void;
+  PropertyAccessExpression?(context: Context<Data>, node: PropertyAccessEntityNameExpression): void;
+  PropertyAccessExpression_exit?(context: Context<Data>, node: PropertyAccessEntityNameExpression): void;
   PropertyAccessExpression?(context: Context<Data>, node: PropertyAccessExpression): void;
   PropertyAccessExpression_exit?(context: Context<Data>, node: PropertyAccessExpression): void;
   PropertyAssignment?(context: Context<Data>, node: PropertyAssignment): void;

@@ -60,7 +60,6 @@ const outputParts: (
 ];
 
 const visitedTypes = new Set<string>(importedTypes);
-const allLinks: [string, string][] = [];
 const nodes: string[] = [];
 const enums: { name: string; values: string[] }[] = [];
 
@@ -98,6 +97,8 @@ const visitType = (name: string): void => {
           return el.getText();
         }),
       );
+    } else if (ts.isIntersectionTypeNode(type.type)) {
+      return;
     } else if (ts.isTypeReferenceNode(type.type)) {
       const typeName = type.type.typeName.getText();
       if (
@@ -111,11 +112,9 @@ const visitType = (name: string): void => {
         const argName = arg.typeName.getText();
         outputParts.push({ name, kind: argName });
         visitType(argName);
-        allLinks.push([name, argName]);
       } else {
         outputParts.push(`export type ${name} = ${typeName};`);
         visitType(typeName);
-        allLinks.push([name, typeName]);
       }
     } else {
       throw new Error(`Unexpected type ${type.type.kind} for ${name}`);
@@ -136,14 +135,15 @@ const visitType = (name: string): void => {
     visitEnum(name);
     return;
   }
-  assert(ts.isTypeReferenceNode(kind.valueDeclaration.type));
+  if (!ts.isTypeReferenceNode(kind.valueDeclaration.type)) {
+    return;
+  }
 
   const allMembers: ts.TypeElement[] = [];
   const links: string[] = [];
   for (const p of props) {
     if (p === kind) continue;
     if (baseProps.includes(p)) continue;
-    if (p.name === "parent") continue;
     assert(p.valueDeclaration);
     if (p.valueDeclaration.getFullText().includes("/** @deprecated */")) {
       continue;
@@ -177,7 +177,6 @@ const visitType = (name: string): void => {
         );
         const argName = arg.typeName.getText();
         visitType(argName);
-        allLinks.push([name, argName]);
       } else {
         if (
           ts.isTypeReferenceNode(m.type)
@@ -292,7 +291,6 @@ const visitType = (name: string): void => {
 
   for (const link of links) {
     visitType(link);
-    allLinks.push([name, link]);
   }
 };
 
@@ -314,7 +312,6 @@ const visitEnumWithValues = (name: string, values: string[]): void => {
   addEnum(name, values);
   for (const valueName of values) {
     visitType(valueName);
-    allLinks.push([name, valueName]);
   }
 };
 const addEnum = (name: string, values: string[]): void => {
@@ -329,35 +326,6 @@ interface Token<Kind extends SyntaxKind, Parent extends Node> extends Node {
   readonly kind: Kind;
   readonly parent: Parent;
 }`);
-
-const getParents = (name: string): Set<string> => {
-  const parents = new Set<string>();
-  for (const link of allLinks) {
-    if (link[1] === name) {
-      if (nodes.includes(link[0])) {
-        parents.add(link[0]);
-      } else {
-        getParents(link[0]).forEach((p) => parents.add(p));
-      }
-    }
-  }
-  return parents;
-};
-
-const replaceWithEnums = (parents: Set<string>): Set<string> => {
-  for (const { name, values } of enums) {
-    if (values.every((v) => parents.has(v))) {
-      return replaceWithEnums(
-        new Set([name, ...[...parents].filter((p) => !values.includes(p))]),
-      );
-    }
-  }
-  return parents;
-};
-
-const getParentsWithEnums = (name: string) => [
-  ...replaceWithEnums(getParents(name)),
-];
 
 const nodeParts = outputParts.filter(
   (p): p is Exclude<typeof p, string> => typeof p !== "string",
@@ -379,34 +347,8 @@ const visitorNodes = nodes
   });
 
 outputParts.push(`
-/*
- * This node doesn't exist, it just here so that SourceFile.parent is
- * defined for compatibility with base types and is not ts.Node to keep
- * narrowing working on node.parent.kind
- */
-interface NullNode extends Node {
-  readonly kind: SyntaxKind.NullKeyword;
-  readonly parent: NullNode;
-}
-`);
-
-outputParts.push(`
 export type AnyNode = ${nodes.join(" | ")};
 `);
-
-outputParts.push("\n/* Enums here just for factorisation */");
-for (const enumWithLotOfParents of [
-  "Expression",
-  "TypeNode",
-  "Modifier",
-  "Statement",
-  "LeftHandSideExpression",
-]) {
-  addEnum(
-    `${enumWithLotOfParents}Parent`,
-    getParentsWithEnums(enumWithLotOfParents),
-  );
-}
 
 outputParts.push(`
 export type Visitor<Data = undefined> = {
@@ -423,19 +365,14 @@ for (const part of outputParts) {
   if (typeof part === "string") {
     typesOutput += `${part}\n`;
   } else {
+    const members = part.members?.map((m) =>
+      printer.printNode(ts.EmitHint.Unspecified, m, sourceFile),
+    );
+
     typesOutput += `export interface ${part.name} extends Node { 
   readonly kind: ${part.kind};
-  ${
-    part.name === "SourceFile"
-      ? "// parent is actually undefined, see comment for NullNode\n"
-        + "readonly parent: NullNode;"
-      : `readonly parent: ${getParentsWithEnums(part.name).join(" | ")}`
-  }
-  ${
-    part.members
-      ?.map((m) => printer.printNode(ts.EmitHint.Unspecified, m, sourceFile))
-      .join("\n") ?? ""
-  }
+  ${members?.some((m) => m.includes("parent:")) ? "" : "readonly parent: Node;"}
+  ${members?.join("\n") ?? ""}
 }\n`;
   }
 }
