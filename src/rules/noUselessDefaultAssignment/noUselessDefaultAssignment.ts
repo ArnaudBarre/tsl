@@ -1,5 +1,9 @@
 import ts, { SyntaxKind, TypeFlags } from "typescript";
-import { defineRule, isFunction } from "../_utils/index.ts";
+import {
+  defineRule,
+  isFunction,
+  isLogicalExpression,
+} from "../_utils/index.ts";
 import type { AST, Context, Suggestion } from "../../types.ts";
 
 export const messages = {
@@ -109,6 +113,12 @@ function getTypeOfProperty(
   if (!key) return null;
   const symbol = sourceType.getProperty(key);
   if (!symbol) return null;
+  if (
+    symbol.flags & ts.SymbolFlags.Optional
+    && hasConditionalInitializer(node.parent)
+  ) {
+    return null;
+  }
   return context.checker.getTypeOfSymbol(symbol);
 }
 
@@ -161,6 +171,19 @@ function getSourceTypeForPattern(
   }
 
   return null;
+}
+
+function hasConditionalInitializer(node: AST.AnyNode): boolean {
+  if (node.kind === SyntaxKind.SourceFile) return false;
+  const parent = node.parent;
+  if (parent.kind === SyntaxKind.VariableDeclaration && parent.initializer) {
+    return (
+      parent.initializer.kind === SyntaxKind.ConditionalExpression
+      || (parent.initializer.kind === SyntaxKind.BinaryExpression
+        && isLogicalExpression(parent.initializer.operatorToken))
+    );
+  }
+  return hasConditionalInitializer(parent);
 }
 
 function report(

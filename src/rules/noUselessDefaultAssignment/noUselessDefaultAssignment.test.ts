@@ -209,6 +209,7 @@ test("noUselessDefaultAssignment", () => {
       declare const tuple: [string];
       const [a, b = 'default'] = tuple;
     `,
+      `const { a = 'default' } = Math.random() > 0.5 ? (Math.random() > 0.5 ? { a: 'Hello' } : {}) : {};`,
     ],
     invalid: [
       {
