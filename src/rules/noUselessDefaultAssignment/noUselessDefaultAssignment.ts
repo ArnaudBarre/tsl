@@ -87,6 +87,13 @@ export const noUselessDefaultAssignment = defineRule(() => ({
         const params = signatures[0].getParameters();
         const paramSymbol = params.at(paramIndex);
         if (!paramSymbol) return;
+        if (
+          paramSymbol.valueDeclaration
+          && ts.isParameter(paramSymbol.valueDeclaration)
+          && paramSymbol.valueDeclaration.dotDotDotToken != null
+        ) {
+          return;
+        }
         if ((paramSymbol.flags & ts.SymbolFlags.Optional) === 0) {
           const paramType = context.checker.getTypeOfSymbol(paramSymbol);
           if (!canBeUndefined(context, paramType)) {

@@ -219,6 +219,13 @@ test("noUselessDefaultAssignment", () => {
         console.log(theme)
       }
     `,
+      // https://github.com/typescript-eslint/typescript-eslint/issues/11911
+      `
+      const run = (cb: (...args: unknown[]) => void) => cb();
+      const cb = (p: boolean = true) => null;
+      run(cb);
+      run((p: boolean = true) => null);
+    `,
     ],
     invalid: [
       {
