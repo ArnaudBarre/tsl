@@ -273,7 +273,13 @@ export default defineConfig({
 
 ## Core rules
 
-Currently, the list of core rules are the type-aware lint rules I use from typescript-eslint. If you think more rules should be added, please open an issue, but to reduce the surface, only non-styling type-aware rules will be accepted. Here is the list of [typescript-eslint type aware rules](https://typescript-eslint.io/rules/?=typeInformation) with their status:
+### Exclusive rules
+
+- unusedExport: Detect unused exports
+
+### From typescript-eslint
+
+Currently, the ported rules are the type-aware lint rules I use from typescript-eslint. If you think more rules should be added, please open an issue, but to reduce the surface, only non-styling type-aware rules will be accepted. Here is the list of [typescript-eslint type aware rules](https://typescript-eslint.io/rules/?=typeInformation) with their status:
 
 - await-thenable: ✅ Implemented
 - consistent-return: 🛑 Implementation not planned, you can use `noImplicitReturns` compilerOption

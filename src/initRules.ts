@@ -29,6 +29,7 @@ const run = <T>(cb: () => T) => cb();
 
 export const initRules = async (
   getProgram: () => ts.Program,
+  getLanguageService: () => ts.LanguageService,
   config: Config,
   showTiming: boolean,
 ) => {
@@ -97,6 +98,9 @@ export const initRules = async (
           sourceFile: undefined as unknown as SourceFile,
           get program() {
             return getProgram();
+          },
+          get languageService() {
+            return getLanguageService();
           },
           get checker() {
             return getProgram().getTypeChecker() as unknown as Checker;
