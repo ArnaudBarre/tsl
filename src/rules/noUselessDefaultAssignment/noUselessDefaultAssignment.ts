@@ -148,7 +148,10 @@ function getSourceTypeForPattern(
       parent.parent as unknown as ts.SignatureDeclaration,
     )!;
     const params = signature.getParameters();
-    return context.checker.getTypeOfSymbol(params[paramIndex]);
+    const signatureIndex = signature.thisParameter
+      ? paramIndex - 1
+      : paramIndex;
+    return context.checker.getTypeOfSymbol(params[signatureIndex]);
   }
 
   if (parent.kind === SyntaxKind.BindingElement) {

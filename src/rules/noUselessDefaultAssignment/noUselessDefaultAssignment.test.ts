@@ -210,6 +210,15 @@ test("noUselessDefaultAssignment", () => {
       const [a, b = 'default'] = tuple;
     `,
       `const { a = 'default' } = Math.random() > 0.5 ? (Math.random() > 0.5 ? { a: 'Hello' } : {}) : {};`,
+      // https://github.com/typescript-eslint/typescript-eslint/issues/12026
+      `
+      export async function mainAction(
+        this: unknown,
+        { theme = '@vuepress/theme-default' }: { theme?: string},
+      ): Promise<void> {
+        console.log(theme)
+      }
+    `,
     ],
     invalid: [
       {
