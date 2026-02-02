@@ -1,8 +1,54 @@
 # Changelog
 
-## Unreleased
+## 1.1.0
 
-- Deprecate `context.rawChecker`. Types overrides from `context.checker` have been updated so it can be passed to other libraries. Thanks @JoshuaKGoldberg for challenging this!
+### Project-wide rules (experimental)
+
+Rules can now implement an `aggregate` function that will be called once for all files that have been linted. This allows to implement rules that require cross-file analysis, like detecting circular dependencies.
+
+```ts
+import { type AST, core, defineConfig } from "tsl";
+
+type ImportsData = {
+  imports: { path: string; node: AST.ImportDeclaration }[];
+};
+
+export default defineConfig({
+  rules: [
+    ...core.all(),
+    {
+      name: "org/noCircularDependencies",
+      createData: (): ImportsData => ({ imports: [] }),
+      visitor: {
+        ImportDeclaration(context, node) {
+          context.data.imports.push({ path: toAbsolutePath(node), node });
+        },
+      },
+      aggregate(context, files) {
+        //                ^ { sourceFile: AST.SourceFile; data: ImportsData }[]
+        for (const circularEntry of getCircularDependencies(files)) {
+          context.report({
+            message: "Circular dependency detected",
+            sourceFile: circularEntry.sourceFile,
+            node: circularEntry.data.imports[circularEntry.importIndex].node,
+          });
+        }
+      },
+    },
+  ],
+});
+```
+
+`enableProjectWideRulesInIDE` is an experimental new option to enable project-wide reports in the IDE (default to false). The IDE implementation is still a work in progress, and memory leaks or performance issues may occur.
+
+`core/unusedExport` is a new project-wide rule available with this release.
+
+### Deprecate `context.rawChecker`
+
+Types overrides of `context.checker` have been updated so it can be passed to other libraries. `context.rawChecker` is therefore not needed anymore and has been deprecated. Thanks @JoshuaKGoldberg for challenging this!
+
+### Other
+
 - Port fixes from typescript-eslint up to v8.54.0
 
 ## 1.0.28

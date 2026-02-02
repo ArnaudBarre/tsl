@@ -74,7 +74,7 @@ export const loadConfig = async (
   };
 };
 
-export const findConfigPath = (program: ts.Program) => {
+const findConfigPath = (program: ts.Program) => {
   let dir = program.getCurrentDirectory();
   const { root } = path.parse(dir);
   let configPath: string | undefined = undefined;

@@ -392,7 +392,7 @@ export function getOperatorPrecedence(
   }
 }
 
-export function getBinaryOperatorPrecedence(kind: SyntaxKind): number {
+function getBinaryOperatorPrecedence(kind: SyntaxKind): number {
   switch (kind) {
     case SyntaxKind.MinusToken:
     case SyntaxKind.PlusToken:

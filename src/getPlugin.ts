@@ -1,9 +1,14 @@
 import { type FSWatcher, watch } from "node:fs";
-import type { CodeFixAction, Diagnostic, LanguageService } from "typescript";
-import type { SourceFile } from "./ast.ts";
-import { initRules } from "./initRules.ts";
+import type {
+  CodeFixAction,
+  Diagnostic,
+  LanguageService,
+  Program,
+} from "typescript";
+import type ts from "typescript";
+import { initRules, type Report } from "./initRules.ts";
 import { loadConfig } from "./loadConfig.ts";
-import type { Suggestion } from "./types.ts";
+import type { AST, Suggestion } from "./types.ts";
 
 const UNUSED_COMMENT_CODE = "unusedComment";
 
@@ -17,8 +22,10 @@ export const getPlugin = async (
   cleanUp(): void;
 }> => {
   const watchedFiles = new Map<string, FSWatcher>();
-  let lint: Awaited<ReturnType<typeof initRules>>["lint"];
+  let initRulesResult: Awaited<ReturnType<typeof initRules>>;
   let diagnosticCategory: Diagnostic["category"];
+  let enableProjectWideRulesInIDE = false;
+  let readyForAggregate = false;
 
   const load = async () => {
     const start = performance.now();
@@ -36,22 +43,26 @@ export const getPlugin = async (
         watchedFiles.set(configFile, watch(configFile, load));
       }
     }
-    const result = await initRules(
+    initRulesResult = await initRules(
       () => languageService.getProgram()!,
       config ?? { rules: [] },
       false,
     );
-    lint = result.lint;
     diagnosticCategory =
       config?.diagnosticCategory === "error"
         ? ts.DiagnosticCategory.Error
         : ts.DiagnosticCategory.Warning;
+    readyForAggregate = false;
+    enableProjectWideRulesInIDE = config?.enableProjectWideRulesInIDE ?? false;
     (ts as any).codefix.registerCodeFix({
-      errorCodes: [UNUSED_COMMENT_CODE, ...Array.from(result.allRules)],
+      errorCodes: [
+        UNUSED_COMMENT_CODE,
+        ...Array.from(initRulesResult.allRules),
+      ],
       getCodeActions: () => undefined,
     });
     log(
-      `tsl: Config with ${result.allRules.size} rules loaded in ${(
+      `tsl: Config with ${initRulesResult.allRules.size} rules loaded in ${(
         performance.now() - start
       ).toFixed(0)}ms`,
     );
@@ -64,19 +75,32 @@ export const getPlugin = async (
     end: number;
   };
 
+  const aggregateStatusByProgram = new WeakMap<
+    Program,
+    { count: number; lintedFiles: Set<string> }
+  >();
+  const aggregateResultsByProgram = new WeakMap<
+    Program,
+    Map<ts.SourceFile, Report[]>
+  >();
   const runLint = (fileName: string) => {
     const diagnostics: Diagnostic[] = [];
     const fileSuggestions: FileSuggestion[] = [];
     const result = { diagnostics, fileSuggestions };
 
     if (fileName.includes("/node_modules/")) return result;
-    const sourceFile = languageService.getProgram()?.getSourceFile(fileName);
+    const program = languageService.getProgram();
+    if (!program) {
+      log("tsl: No program");
+      return result;
+    }
+    const sourceFile = program.getSourceFile(fileName);
     if (!sourceFile) {
       log("tsl: No sourceFile");
       return result;
     }
 
-    lint(sourceFile as unknown as SourceFile, (report) => {
+    const onReport = (report: Report) => {
       switch (report.type) {
         case "rule": {
           const { message, rule, suggestions } = report;
@@ -148,7 +172,48 @@ export const getPlugin = async (
           break;
         }
       }
-    });
+    };
+
+    initRulesResult.lint(sourceFile as unknown as AST.SourceFile, onReport);
+
+    if (enableProjectWideRulesInIDE) {
+      // Aggregate if all source files have been linted once
+      if (!readyForAggregate) {
+        let aggregateStatus = aggregateStatusByProgram.get(program);
+        if (!aggregateStatus) {
+          let count = 0;
+          for (const it of program.getSourceFiles()) {
+            if (!it.fileName.includes("/node_modules/")) count++;
+          }
+          aggregateStatus = { count, lintedFiles: new Set() };
+          aggregateStatusByProgram.set(program, aggregateStatus);
+        }
+        aggregateStatus.lintedFiles.add(fileName);
+        if (aggregateStatus.count >= aggregateStatus.lintedFiles.size) {
+          log("tsl: Ready for aggregate");
+          readyForAggregate = true;
+        }
+      }
+      if (readyForAggregate) {
+        let aggregateReports = aggregateResultsByProgram.get(program);
+        if (!aggregateReports) {
+          aggregateReports = initRulesResult.aggregate();
+          aggregateResultsByProgram.set(program, aggregateReports);
+        }
+        const reportsForFile = aggregateReports.get(sourceFile);
+        if (reportsForFile) {
+          for (const report of reportsForFile) onReport(report);
+        }
+      }
+    }
+
+    const unusedIgnoreReports = initRulesResult
+      .getUnusedIgnoreComments({ includeProjectWideRules: readyForAggregate })
+      .get(sourceFile);
+    if (unusedIgnoreReports) {
+      for (const report of unusedIgnoreReports) onReport(report);
+    }
+
     return result;
   };
 
