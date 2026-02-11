@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.29
 
 - Deprecate `context.rawChecker`. Types overrides from `context.checker` have been updated so it can be passed to other libraries. Thanks @JoshuaKGoldberg for challenging this!
 - Port fixes from typescript-eslint up to v8.54.0

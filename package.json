@@ -1,7 +1,7 @@
 {
   "name": "tsl",
   "description": "An extension of tsc for type-aware linting",
-  "version": "1.0.28",
+  "version": "1.0.29",
   "license": "MIT",
   "author": "Arnaud Barré (https://github.com/ArnaudBarre)",
   "private": true,
