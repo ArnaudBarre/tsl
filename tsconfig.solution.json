@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.json" },
+    { "path": "./tsconfig.dist.json" }
+  ],
+  "compilerOptions": {
+    "plugins": [{ "name": "dev-plugin" }]
+  }
+}

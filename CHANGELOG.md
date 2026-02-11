@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Initial support for TS config references ([#6](https://github.com/ArnaudBarre/tsl/pull/6)). TS config solutions will work fine, but more complex graph may not work.
+
 ## 1.0.29
 
 - Deprecate `context.rawChecker`. Types overrides from `context.checker` have been updated so it can be passed to other libraries. Thanks @JoshuaKGoldberg for challenging this!
