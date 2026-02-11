@@ -1,6 +1,7 @@
 {
   "include": ["dist"],
   "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.cache/tsconfig.dist.tsbuildinfo",
     "target": "ES2023",
     "module": "nodeNext",
     "lib": ["ES2023"],
