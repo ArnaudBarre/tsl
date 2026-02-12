@@ -27,7 +27,7 @@
     ]
   },
   "peerDependencies": {
-    "typescript": "~5.8.3 || ~5.9.2"
+    "typescript": "~5.8.3 || ~5.9.2 || ~6.0.0"
   },
   "dependencies": {
     "esbuild": "^0.24 || ^0.25 || ^0.26 || ^0.27",
@@ -45,6 +45,6 @@
     "prettier": "^3.5.3",
     "publint": "^0.3.12",
     "tsdown": "^0.12.5",
-    "typescript": "~5.9.2"
+    "typescript": "~6.0.0-dev.20251119"
   }
 }
