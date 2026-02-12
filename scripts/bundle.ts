@@ -4,13 +4,13 @@ import { build } from "tsdown";
 import packageJSON from "../package.json";
 
 await build({
-  define: { __VERSION__: `"${packageJSON.version}"` },
   entry: ["src/index.ts", "src/ruleTester.ts"],
   dts: { emitDtsOnly: true },
 });
 
 await build({
   clean: false,
+  define: { __VERSION__: `"${packageJSON.version}"` },
   entry: [
     "src/index.ts",
     "src/ruleTester.ts",
