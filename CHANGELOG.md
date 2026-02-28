@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Fix `--version` CLI flag
+- Port fixes from typescript-eslint up to v8.55.0
 
 ## 1.0.29
 

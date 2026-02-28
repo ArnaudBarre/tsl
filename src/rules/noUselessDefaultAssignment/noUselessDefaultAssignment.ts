@@ -105,26 +105,55 @@ export const noUselessDefaultAssignment = defineRule(() => ({
   },
 }));
 
+function getPropertyName(key: AST.PropertyName): string | null {
+  switch (key.kind) {
+    case SyntaxKind.Identifier:
+    case SyntaxKind.StringLiteral:
+    case SyntaxKind.NumericLiteral:
+    case SyntaxKind.NoSubstitutionTemplateLiteral:
+      return key.text;
+    case SyntaxKind.ComputedPropertyName:
+      if (
+        key.expression.kind === SyntaxKind.StringLiteral
+        || key.expression.kind === SyntaxKind.NoSubstitutionTemplateLiteral
+      ) {
+        return key.expression.text;
+      }
+      return null;
+    default:
+      return null;
+  }
+}
+
 function getTypeOfProperty(
   context: Context,
   node: AST.BindingElement,
 ): ts.Type | null {
-  const sourceType = getSourceTypeForPattern(context, node.parent);
+  const objectPattern = node.parent;
+  const sourceType = getSourceTypeForPattern(context, objectPattern);
   if (!sourceType) return null;
-  const name = node.propertyName ?? node.name;
-  const key =
-    name.kind === SyntaxKind.StringLiteral
-    || name.kind === SyntaxKind.Identifier
-      ? name.text
-      : null;
-  if (!key) return null;
-  const symbol = sourceType.getProperty(key);
-  if (!symbol) return null;
+  const nameNode = node.propertyName ?? node.name;
   if (
-    symbol.flags & ts.SymbolFlags.Optional
-    && hasConditionalInitializer(node.parent)
+    nameNode.kind === SyntaxKind.ObjectBindingPattern
+    || nameNode.kind === SyntaxKind.ArrayBindingPattern
   ) {
     return null;
+  }
+  const propertyName = getPropertyName(nameNode);
+  if (!propertyName) return null;
+  const symbol = sourceType.getProperty(propertyName);
+  if (!symbol) return null;
+  if (symbol.flags & ts.SymbolFlags.Optional) {
+    const parent = objectPattern.parent;
+    if (
+      parent.kind === SyntaxKind.VariableDeclaration
+      && parent.initializer
+      && hasConditionalInitializer(objectPattern)
+    ) {
+      if (!hasPropertyInAllBranches(parent.initializer, propertyName)) {
+        return null;
+      }
+    }
   }
   return context.checker.getTypeOfSymbol(symbol);
 }
@@ -194,6 +223,34 @@ function hasConditionalInitializer(node: AST.AnyNode): boolean {
     );
   }
   return hasConditionalInitializer(parent);
+}
+
+function hasPropertyInAllBranches(
+  expression: AST.Expression,
+  propertyName: string,
+): boolean {
+  if (expression.kind === SyntaxKind.ObjectLiteralExpression) {
+    return expression.properties.some((prop) => {
+      switch (prop.kind) {
+        case SyntaxKind.PropertyAssignment:
+        case SyntaxKind.MethodDeclaration:
+        case SyntaxKind.GetAccessor:
+          return getPropertyName(prop.name) === propertyName;
+        case SyntaxKind.ShorthandPropertyAssignment:
+          return prop.name.text === propertyName;
+        case SyntaxKind.SetAccessor: // Werdily, as the typelevel it's enough, but not at runtime: https://bsky.app/profile/arnaud-barre.bsky.social/post/3mfwxv3ufa22j
+        case SyntaxKind.SpreadAssignment:
+          return false;
+      }
+    });
+  }
+  if (expression.kind === SyntaxKind.ConditionalExpression) {
+    return (
+      hasPropertyInAllBranches(expression.whenTrue, propertyName)
+      && hasPropertyInAllBranches(expression.whenFalse, propertyName)
+    );
+  }
+  return false;
 }
 
 function report(

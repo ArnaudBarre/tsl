@@ -210,6 +210,26 @@ test("noUselessDefaultAssignment", () => {
       const [a, b = 'default'] = tuple;
     `,
       `const { a = 'default' } = Math.random() > 0.5 ? (Math.random() > 0.5 ? { a: 'Hello' } : {}) : {};`,
+      // https://github.com/typescript-eslint/typescript-eslint/issues/11980 - ternary: default not useless when property missing in some branches
+      `const { a = 'baz' } = cond ? {} : { a: 'bar' };`,
+      `const { a = 'baz' } = cond ? foo : { a: 'bar' };`,
+      `const { a = 'baz' } = cond ? { a: 'foo', ...extra } : { a: 'bar' };`,
+      `const { a = 'baz' } = cond ? { ...foo } : { a: 'bar' };`,
+      `const { a = 'baz' } = foo && { a: 'bar' };`,
+      `const { a = 'baz' } = cond ? { [\`a\${1}\`]: 'foo' } : { a: 'bar' };`,
+      `const { a = 'baz' } = cond ? foo && { a: 'bar' } : { a: 'baz' };`,
+      `
+      const key = Math.random() > 0.5 ? 'a' : 'b';
+      const { a = 'baz' } = cond ? { [key]: 'foo' } : { [key]: 'bar' };
+      `,
+      `
+      const obj: unknown = { a: 'bar' };
+      const { a = 'baz' } = cond ? obj : { a: 'bar' };
+      `,
+      `
+      const sym = Symbol('a');
+      const { a = 'baz' } = cond ? { [sym]: 'foo' } : { [sym]: 'bar' };
+      `,
       // https://github.com/typescript-eslint/typescript-eslint/issues/12026
       `
       export async function mainAction(
@@ -600,6 +620,147 @@ test("noUselessDefaultAssignment", () => {
         function f(
           /* comment */ x? /* comment 2 */ : /* comment 3 */ SomeType,
         ) {}
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      // https://github.com/typescript-eslint/typescript-eslint/issues/11980 - ternary: report when property in all branches
+      {
+        code: `
+        const { a = 'baz' } = Math.random() < 0.5 ? { a: 'foo' } : { a: 'bar' };
+      `,
+        errors: [
+          {
+            message: messages.uselessDefaultProperty,
+            line: 2,
+            column: 21,
+            endColumn: 26,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        const { a } = Math.random() < 0.5 ? { a: 'foo' } : { a: 'bar' };
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+        const { a = 'baz' } =
+        Math.random() < 0.5
+        ? { a: 'foo' }
+        : Math.random() > 0.2
+        ? { a: 'bar' }
+        : { a: 'qux' };
+      `,
+        errors: [
+          {
+            message: messages.uselessDefaultProperty,
+            line: 2,
+            column: 21,
+            endColumn: 26,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        const { a } =
+        Math.random() < 0.5
+        ? { a: 'foo' }
+        : Math.random() > 0.2
+        ? { a: 'bar' }
+        : { a: 'qux' };
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+        const { a = 'baz' } = cond ? { ['a']: 'foo' } : { ['a']: 'bar' };
+      `,
+        errors: [
+          {
+            message: messages.uselessDefaultProperty,
+            line: 2,
+            column: 21,
+            endColumn: 26,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        const { a } = cond ? { ['a']: 'foo' } : { ['a']: 'bar' };
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+        const { a = 'baz' } = cond ? { a() {} } : { a: 'bar' };
+      `,
+        errors: [
+          {
+            message: messages.uselessDefaultProperty,
+            line: 2,
+            column: 21,
+            endColumn: 26,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        const { a } = cond ? { a() {} } : { a: 'bar' };
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+        const { a = 'b' } = Math.random() < 0.5 ? { [\`a\`]: 'a' } : { a: 'b' };
+      `,
+        errors: [
+          {
+            message: messages.uselessDefaultProperty,
+            line: 2,
+            column: 21,
+            endColumn: 24,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        const { a } = Math.random() < 0.5 ? { [\`a\`]: 'a' } : { a: 'b' };
+      `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+        const { a = "2" } = Math.random() > 0.5
+          ? { get a() { return "foo"; } }
+          : { a: "bar" };
+      `,
+        errors: [
+          {
+            message: messages.uselessDefaultProperty,
+            line: 2,
+            column: 21,
+            endColumn: 24,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        const { a } = Math.random() > 0.5
+          ? { get a() { return "foo"; } }
+          : { a: "bar" };
       `,
               },
             ],
