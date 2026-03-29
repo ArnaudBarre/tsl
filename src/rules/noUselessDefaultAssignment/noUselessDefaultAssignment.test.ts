@@ -246,6 +246,10 @@ test("noUselessDefaultAssignment", () => {
       run(cb);
       run((p: boolean = true) => null);
     `,
+      `
+      const foos: { bar?: number }[] = [];
+      foos.flatMap(({ bar = 42 }) => bar);
+    `,
     ],
     invalid: [
       {
@@ -762,6 +766,29 @@ test("noUselessDefaultAssignment", () => {
           ? { get a() { return "foo"; } }
           : { a: "bar" };
       `,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        code: `
+        const foos: { bar: number }[] = [];
+        foos.flatMap(({ bar = 42 }) => bar);
+       `,
+        errors: [
+          {
+            message: messages.uselessDefaultProperty,
+            line: 3,
+            column: 31,
+            endColumn: 33,
+            suggestions: [
+              {
+                message: messages.fix,
+                output: `
+        const foos: { bar: number }[] = [];
+        foos.flatMap(({ bar }) => bar);
+       `,
               },
             ],
           },

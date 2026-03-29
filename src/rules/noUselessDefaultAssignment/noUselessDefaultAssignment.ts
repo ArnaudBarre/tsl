@@ -179,15 +179,14 @@ function getSourceTypeForPattern(
     && (isFunction(parent.parent)
       || parent.parent.kind === SyntaxKind.MethodDeclaration)
   ) {
-    const paramIndex = parent.parent.parameters.indexOf(parent);
+    const paramIndex = parent.parent.parameters
+      .filter((p) => p.name.getText() !== "this")
+      .indexOf(parent);
     const signature = context.checker.getSignatureFromDeclaration(
       parent.parent as unknown as ts.SignatureDeclaration,
     )!;
     const params = signature.getParameters();
-    const signatureIndex = signature.thisParameter
-      ? paramIndex - 1
-      : paramIndex;
-    return context.checker.getTypeOfSymbol(params[signatureIndex]);
+    return context.checker.getTypeOfSymbol(params[paramIndex]);
   }
 
   if (parent.kind === SyntaxKind.BindingElement) {
