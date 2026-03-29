@@ -2690,6 +2690,24 @@ const baz = foo?.bar;
           },
         ],
       },
+      {
+        code: `
+declare const a: ({ id: string } & { name: string }) | null;
+a && a.name;`,
+        errors: [
+          {
+            message: messages.preferOptionalChain,
+            suggestions: [
+              {
+                message: messages.optionalChainSuggest,
+                output: `
+declare const a: ({ id: string } & { name: string }) | null;
+a?.name;`,
+              },
+            ],
+          },
+        ],
+      },
       ...getBaseCases({ operator: "&&" }),
       // it should ignore parts of the expression that aren't part of the expression chain
       ...getBaseCases({

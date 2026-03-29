@@ -459,7 +459,9 @@ function isValidFalseBooleanCheckType(
   options: ParsedOptions,
 ): boolean {
   const type = context.checker.getTypeAtLocation(node);
-  const types = context.utils.unionConstituents(type);
+  const types = context.utils
+    .unionConstituents(type)
+    .flatMap((type) => context.utils.intersectionConstituents(type));
 
   if (
     disallowFalseyLiteral
