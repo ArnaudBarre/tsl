@@ -8,7 +8,10 @@ import {
 } from "ts-api-utils";
 import ts, { SyntaxKind } from "typescript";
 import { defineRule, getTypeName } from "../_utils/index.ts";
-import { isIdentifierFromDefaultLibrary } from "../_utils/isBuiltinSymbolLike.ts";
+import {
+  isIdentifierFromDefaultLibrary,
+  isSymbolFromDefaultLibrary,
+} from "../_utils/isBuiltinSymbolLike.ts";
 import type { AST, Context } from "../../types.ts";
 
 export const messages = {
@@ -399,9 +402,10 @@ function isSymbolToPrimitiveMethod(context: Context, node: ts.Declaration) {
     && node.name.expression.expression.text === "Symbol"
     && ts.isIdentifier(node.name.expression.name)
     && node.name.expression.name.text === "toPrimitive"
-    && context.checker
-      .getSymbolAtLocation(node.name.expression.expression)
-      ?.valueDeclaration?.getSourceFile().hasNoDefaultLib
+    && isSymbolFromDefaultLibrary(
+      context.program,
+      context.checker.getSymbolAtLocation(node.name.expression.expression),
+    )
   );
 }
 

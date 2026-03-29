@@ -82,7 +82,7 @@ export function isIdentifierFromDefaultLibrary(
   );
 }
 
-function isSymbolFromDefaultLibrary(
+export function isSymbolFromDefaultLibrary(
   program: ts.Program,
   symbol: ts.Symbol | undefined,
 ): boolean {

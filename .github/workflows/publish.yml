@@ -19,7 +19,7 @@ jobs:
       - run: npm install -g npm@latest
       - uses: oven-sh/setup-bun@v2
       - run: bun install
-      - run: bun run ci
+      - run: bun run check
       - run: npm publish
         working-directory: dist
       - uses: ArnaudBarre/github-release@v1
