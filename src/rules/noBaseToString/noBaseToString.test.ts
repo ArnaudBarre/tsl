@@ -532,6 +532,23 @@ declare const error: MyError;
 error.toString();
         `,
       },
+      `
+class Foo {
+  toString(): string;
+  toString(radix: number): string;
+  toString(radix?: number): string {
+    return radix ? radix.toString() : 'Foo';
+  }
+}
+'' + new Foo();
+      `,
+      `
+declare namespace Foo {
+  function toString(): string;
+  function toString(radix: number): string;
+}
+'' + Foo;
+      `,
     ],
     invalid: [
       {
@@ -1421,6 +1438,15 @@ a.toString();
         `,
         errors: [
           { message: messages.baseToString({ certainty: "may", name: "a" }) },
+        ],
+      },
+      {
+        code: `
+declare const a: { [K in "toString"]: () => string };
+a.toString();
+        `,
+        errors: [
+          { message: messages.baseToString({ certainty: "will", name: "a" }) },
         ],
       },
     ],
