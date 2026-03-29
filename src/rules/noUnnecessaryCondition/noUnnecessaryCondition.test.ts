@@ -390,6 +390,14 @@ while (true) {}
 while (false) {}
 while (1) {}
 while (0) {}
+for (; true;) {}
+for (; false;) {}
+for (; 1;) {}
+for (; 0;) {}
+do {} while (true);
+do {} while (false);
+do {} while (1);
+do {} while (0);
       `,
       },
       `

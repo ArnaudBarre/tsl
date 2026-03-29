@@ -156,17 +156,6 @@ export const noUnnecessaryCondition = defineRule(
           );
         },
         WhileStatement(context, node) {
-          if (
-            options.allowConstantLoopConditions === "only-allowed-literals"
-            && (node.expression.kind === SyntaxKind.TrueKeyword
-              || node.expression.kind === SyntaxKind.FalseKeyword
-              || (node.expression.kind === SyntaxKind.NumericLiteral
-                && (node.expression.text === "0"
-                  || node.expression.text === "1")))
-          ) {
-            return;
-          }
-
           checkIfLoopIsNecessaryConditional(context, options, node.expression);
         },
       },
@@ -476,6 +465,16 @@ function checkIfLoopIsNecessaryConditional(
   options: ParsedOptions,
   testNode: AST.Expression,
 ): void {
+  if (
+    options.allowConstantLoopConditions === "only-allowed-literals"
+    && (testNode.kind === SyntaxKind.TrueKeyword
+      || testNode.kind === SyntaxKind.FalseKeyword
+      || (testNode.kind === SyntaxKind.NumericLiteral
+        && (testNode.text === "0" || testNode.text === "1")))
+  ) {
+    return;
+  }
+
   if (
     options.allowConstantLoopConditions === "always"
     && isTrueLiteralType(context.utils.getConstrainedTypeAtLocation(testNode))
