@@ -5,7 +5,7 @@
 - Add TS v6 to peer dependencies range
 - Initial support for TS config references ([#6](https://github.com/ArnaudBarre/tsl/pull/6)). TS config solutions will work fine, but more complex graph may not work.
 - Fix `--version` CLI flag
-- Port fixes from typescript-eslint up to v8.55.0
+- Port fixes from typescript-eslint up to v8.57.2
 
 ## 1.0.29
 

@@ -1,3 +1,4 @@
+import { isTypeParameter } from "ts-api-utils";
 import ts, { SyntaxKind, TypeFlags } from "typescript";
 import {
   defineRule,
@@ -96,7 +97,10 @@ export const noUselessDefaultAssignment = defineRule(() => ({
         }
         if ((paramSymbol.flags & ts.SymbolFlags.Optional) === 0) {
           const paramType = context.checker.getTypeOfSymbol(paramSymbol);
-          if (!canBeUndefined(context, paramType)) {
+          if (
+            !isTypeParameter(paramType)
+            && !canBeUndefined(context, paramType)
+          ) {
             report(context, node, messages.uselessDefaultParameter);
           }
         }

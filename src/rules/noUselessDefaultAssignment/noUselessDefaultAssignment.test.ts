@@ -250,6 +250,24 @@ test("noUselessDefaultAssignment", () => {
       const foos: { bar?: number }[] = [];
       foos.flatMap(({ bar = 42 }) => bar);
     `,
+      `
+      type FetchFn<TParams> =
+        Partial<TParams> extends TParams
+          ? (params?: TParams) => void
+          : (params: TParams) => void;
+
+      function createFetcher<TParams>() {
+        type Params = TParams;
+
+        const fn: FetchFn<TParams> = (
+          params: Partial<Params> = {} as Partial<Params>,
+        ) => {
+          console.log(params);
+        };
+
+        return fn;
+      }
+    `,
     ],
     invalid: [
       {
