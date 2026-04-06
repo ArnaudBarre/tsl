@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add esbuild@0.28 to dependency range
+
 ## 1.0.30
 
 - Add TS v6 to peer dependencies range
