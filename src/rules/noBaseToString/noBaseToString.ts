@@ -14,14 +14,27 @@ import {
 } from "../_utils/isBuiltinSymbolLike.ts";
 import type { AST, Context } from "../../types.ts";
 
-export const messages = {
-  baseArrayJoin: (params: { name: string; certainty: Certainty }) =>
-    `Using \`join()\` for ${params.name} ${params.certainty} use Object's default stringification format ('[object Object]') when stringified.`,
-  baseToString: (params: { name: string; certainty: Certainty }) =>
-    `'${params.name}' ${params.certainty} use Object's default stringification format ('[object Object]') when stringified.`,
+const defaultStringifications = {
+  object: "Object's default stringification format ('[object Object]')",
+  symbol: "Symbol's default stringification format ('Symbol()')",
 };
 
-type Certainty = "always" | "will" | "may";
+export const messages = {
+  baseArrayJoin: (params: {
+    name: string;
+    certainty: Exclude<Certainty, { kind: "always" }>;
+  }) =>
+    `Using \`join()\` for ${params.name} ${params.certainty.kind} use ${defaultStringifications[params.certainty.on]} when stringified.`,
+  baseToString: (params: {
+    name: string;
+    certainty: Exclude<Certainty, { kind: "always" }>;
+  }) =>
+    `'${params.name}' ${params.certainty.kind} use ${defaultStringifications[params.certainty.on]} when stringified.`,
+};
+
+type Certainty =
+  | { kind: "always" }
+  | { kind: "will" | "may"; on: keyof typeof defaultStringifications };
 
 export type NoBaseToStringOptions = {
   /**
@@ -100,7 +113,7 @@ function checkExpression(
     type ?? context.checker.getTypeAtLocation(node),
     new Set(),
   );
-  if (certainty === "always") {
+  if (certainty.kind === "always") {
     return;
   }
 
@@ -123,7 +136,7 @@ function checkExpressionForArrayJoin(
   type: ts.Type,
 ): void {
   const certainty = collectJoinCertainty(context, options, type, new Set());
-  if (certainty === "always") return;
+  if (certainty.kind === "always") return;
   context.report({
     node,
     message: messages.baseArrayJoin({ name: node.getText(), certainty }),
@@ -135,30 +148,36 @@ function collectUnionTypeCertainty(
   collectSubTypeCertainty: (type: ts.Type) => Certainty,
 ): Certainty {
   const certainties = type.types.map((t) => collectSubTypeCertainty(t));
-  if (certainties.every((certainty) => certainty === "will")) {
-    return "will";
+  let mixed = false;
+  let warn = false;
+  let hasObject = false;
+
+  for (const certainty of certainties) {
+    if (certainty.kind !== "will") mixed = true;
+    if (certainty.kind !== "always") {
+      warn = true;
+      hasObject = certainty.on === "object";
+    }
   }
 
-  if (certainties.every((certainty) => certainty === "always")) {
-    return "always";
-  }
+  if (!warn) return { kind: "always" };
 
-  return "may";
+  return { kind: mixed ? "may" : "will", on: hasObject ? "object" : "symbol" };
 }
 
 function collectIntersectionTypeCertainty(
   type: ts.IntersectionType,
   collectSubTypeCertainty: (type: ts.Type) => Certainty,
 ): Certainty {
+  let hasObject = false;
   for (const subType of type.types) {
     const subtypeUsefulness = collectSubTypeCertainty(subType);
-
-    if (subtypeUsefulness === "always") {
-      return "always";
+    if (subtypeUsefulness.kind === "always") {
+      return { kind: "always" };
     }
+    if (subtypeUsefulness.on === "object") hasObject = true;
   }
-
-  return "will";
+  return { kind: "will", on: hasObject ? "object" : "symbol" };
 }
 
 function collectTupleCertainty(
@@ -171,15 +190,16 @@ function collectTupleCertainty(
   const certainties = typeArgs.map((t) =>
     collectToStringCertainty(context, options, t, visited),
   );
-  if (certainties.some((certainty) => certainty === "will")) {
-    return "will";
-  }
+  const willCertaintiy = certainties.find(
+    (certainty) => certainty.kind === "will",
+  );
+  if (willCertaintiy) return willCertaintiy;
+  const mayCertainty = certainties.find(
+    (certainty) => certainty.kind === "may",
+  );
+  if (mayCertainty) return mayCertainty;
 
-  if (certainties.some((certainty) => certainty === "may")) {
-    return "may";
-  }
-
-  return "always";
+  return { kind: "always" };
 }
 
 function collectArrayCertainty(
@@ -222,7 +242,7 @@ function collectJoinCertainty(
     return collectArrayCertainty(context, options, type, visited);
   }
 
-  return "always";
+  return { kind: "always" };
 }
 
 function getBaseTypesForType(
@@ -272,7 +292,7 @@ function collectToStringCertainty(
 ): Certainty {
   if (visited.has(type)) {
     // don't report if this is a self referencing array or tuple type
-    return "always";
+    return { kind: "always" };
   }
 
   if (isTypeParameter(type)) {
@@ -281,7 +301,9 @@ function collectToStringCertainty(
       return collectToStringCertainty(context, options, constraint, visited);
     }
     // unconstrained generic means `unknown`
-    return options.checkUnknown ? "may" : "always";
+    return options.checkUnknown
+      ? { kind: "may", on: "object" }
+      : { kind: "always" };
   }
 
   // the Boolean type definition missing toString()
@@ -289,11 +311,15 @@ function collectToStringCertainty(
     type.flags & ts.TypeFlags.Boolean
     || type.flags & ts.TypeFlags.BooleanLiteral
   ) {
-    return "always";
+    return { kind: "always" };
+  }
+
+  if (type.flags & ts.TypeFlags.ESSymbolLike) {
+    return { kind: "will", on: "symbol" };
   }
 
   if (isIgnoredTypeOrBase(context, options, type)) {
-    return "always";
+    return { kind: "always" };
   }
 
   if (type.isIntersection()) {
@@ -330,16 +356,16 @@ function collectToStringCertainty(
     case undefined:
       // unknown
       if (options.checkUnknown && type.flags === ts.TypeFlags.Unknown) {
-        return "may";
+        return { kind: "may", on: "object" };
       }
       // e.g. any
-      return "always";
+      return { kind: "always" };
 
     case true:
-      return "will";
+      return { kind: "will", on: "object" };
 
     case false:
-      return "always";
+      return { kind: "always" };
   }
 }
 

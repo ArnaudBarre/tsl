@@ -554,19 +554,34 @@ declare namespace Foo {
       {
         code: "({}).toString();",
         errors: [
-          { message: messages.baseToString({ certainty: "will", name: "{}" }) },
+          {
+            message: messages.baseToString({
+              certainty: { kind: "will", on: "object" },
+              name: "{}",
+            }),
+          },
         ],
       },
       {
         code: "({}).toLocaleString();",
         errors: [
-          { message: messages.baseToString({ certainty: "will", name: "{}" }) },
+          {
+            message: messages.baseToString({
+              certainty: { kind: "will", on: "object" },
+              name: "{}",
+            }),
+          },
         ],
       },
       {
         code: "String({});",
         errors: [
-          { message: messages.baseToString({ certainty: "will", name: "{}" }) },
+          {
+            message: messages.baseToString({
+              certainty: { kind: "will", on: "object" },
+              name: "{}",
+            }),
+          },
         ],
       },
       {
@@ -577,7 +592,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "someObjectOrString",
             }),
           },
@@ -591,7 +606,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "someObjectOrString",
             }),
           },
@@ -605,7 +620,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "someObjectOrObject",
             }),
           },
@@ -619,7 +634,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "someObjectOrObject",
             }),
           },
@@ -632,7 +647,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "[{}, {}]",
             }),
           },
@@ -646,7 +661,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "array",
             }),
           },
@@ -662,7 +677,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "[new A(), 'str']",
             }),
           },
@@ -679,7 +694,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "array",
             }),
           },
@@ -696,7 +711,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "array",
             }),
           },
@@ -716,7 +731,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "array",
             }),
           },
@@ -733,7 +748,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "array",
             }),
           },
@@ -750,7 +765,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "tuple",
             }),
           },
@@ -767,7 +782,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "tuple",
             }),
           },
@@ -784,7 +799,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "tuple",
             }),
           },
@@ -801,7 +816,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "tuple",
             }),
           },
@@ -818,7 +833,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "tuple",
             }),
           },
@@ -833,7 +848,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "array",
             }),
           },
@@ -849,7 +864,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "array",
             }),
           },
@@ -862,7 +877,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "[{}, {}]",
             }),
           },
@@ -876,7 +891,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "array",
             }),
           },
@@ -892,7 +907,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "[new A(), 'str']",
             }),
           },
@@ -908,7 +923,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "array" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "array",
+            }),
           },
         ],
       },
@@ -922,7 +940,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "array" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "array",
+            }),
           },
         ],
       },
@@ -940,7 +961,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "array",
             }),
           },
@@ -956,7 +977,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "array" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "array",
+            }),
           },
         ],
       },
@@ -971,7 +995,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "tuple",
             }),
           },
@@ -988,7 +1012,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "tuple",
             }),
           },
@@ -1004,7 +1028,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "tuple" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "tuple",
+            }),
           },
         ],
       },
@@ -1018,7 +1045,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "tuple" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "tuple",
+            }),
           },
         ],
       },
@@ -1033,7 +1063,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "tuple",
             }),
           },
@@ -1047,7 +1077,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "array" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "array",
+            }),
           },
         ],
       },
@@ -1060,7 +1093,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "array" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "array",
+            }),
           },
         ],
       },
@@ -1071,7 +1107,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "[{}, {}]",
             }),
           },
@@ -1085,7 +1121,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "array",
             }),
           },
@@ -1101,7 +1137,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "[new A(), 'str']",
             }),
           },
@@ -1117,7 +1153,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "array" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "array",
+            }),
           },
         ],
       },
@@ -1131,7 +1170,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "array" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "array",
+            }),
           },
         ],
       },
@@ -1149,7 +1191,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "array",
             }),
           },
@@ -1165,7 +1207,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "array" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "array",
+            }),
           },
         ],
       },
@@ -1180,7 +1225,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "tuple",
             }),
           },
@@ -1197,7 +1242,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "tuple",
             }),
           },
@@ -1213,7 +1258,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "tuple" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "tuple",
+            }),
           },
         ],
       },
@@ -1227,7 +1275,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "tuple" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "tuple",
+            }),
           },
         ],
       },
@@ -1242,7 +1293,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "tuple",
             }),
           },
@@ -1256,7 +1307,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "array" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "array",
+            }),
           },
         ],
       },
@@ -1269,7 +1323,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "array" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "array",
+            }),
           },
         ],
       },
@@ -1283,7 +1340,7 @@ declare namespace Foo {
         errors: [
           {
             message: messages.baseToString({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "array[0]",
             }),
           },
@@ -1298,7 +1355,10 @@ declare namespace Foo {
       `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "may", name: "value" }),
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "value",
+            }),
           },
         ],
       },
@@ -1309,7 +1369,12 @@ declare const foo: Bar | string;
 foo.toString();
       `,
         errors: [
-          { message: messages.baseToString({ certainty: "may", name: "foo" }) },
+          {
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "foo",
+            }),
+          },
         ],
       },
       {
@@ -1323,7 +1388,7 @@ foo.toString();
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "will",
+              certainty: { kind: "will", on: "object" },
               name: "foo([{ foo: 'foo' }])",
             }),
           },
@@ -1340,7 +1405,7 @@ foo.toString();
         errors: [
           {
             message: messages.baseArrayJoin({
-              certainty: "may",
+              certainty: { kind: "may", on: "object" },
               name: "foo([{ foo: 'foo' }, 'bar'])",
             }),
           },
@@ -1354,7 +1419,12 @@ declare const v: Value;
 String(v);
       `,
         errors: [
-          { message: messages.baseToString({ certainty: "may", name: "v" }) },
+          {
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "v",
+            }),
+          },
         ],
       },
       {
@@ -1365,7 +1435,12 @@ declare const v: Value;
 String(v);
       `,
         errors: [
-          { message: messages.baseToString({ certainty: "may", name: "v" }) },
+          {
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "v",
+            }),
+          },
         ],
       },
       {
@@ -1376,7 +1451,12 @@ declare const v: Value;
 String(v);
       `,
         errors: [
-          { message: messages.baseToString({ certainty: "will", name: "v" }) },
+          {
+            message: messages.baseToString({
+              certainty: { kind: "will", on: "object" },
+              name: "v",
+            }),
+          },
         ],
       },
       {
@@ -1385,7 +1465,12 @@ declare const v: { foo: string }[][];
 v.join();
       `,
         errors: [
-          { message: messages.baseArrayJoin({ certainty: "will", name: "v" }) },
+          {
+            message: messages.baseArrayJoin({
+              certainty: { kind: "will", on: "object" },
+              name: "v",
+            }),
+          },
         ],
       },
       {
@@ -1396,7 +1481,12 @@ function foo<T>(x: T) {
       `,
         options: { checkUnknown: true },
         errors: [
-          { message: messages.baseToString({ certainty: "may", name: "x" }) },
+          {
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "x",
+            }),
+          },
         ],
       },
       {
@@ -1405,7 +1495,12 @@ declare const x: unknown;
 x.toString();
       `,
         errors: [
-          { message: messages.baseToString({ certainty: "may", name: "x" }) },
+          {
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "x",
+            }),
+          },
         ],
         options: { checkUnknown: true },
       },
@@ -1418,7 +1513,10 @@ a.toString();
         `,
         errors: [
           {
-            message: messages.baseToString({ certainty: "will", name: "a" }),
+            message: messages.baseToString({
+              certainty: { kind: "will", on: "object" },
+              name: "a",
+            }),
           },
         ],
       },
@@ -1428,7 +1526,12 @@ declare const a: { [Symbol.toPrimitive](): string } | { other: true; }
 a.toString();
         `,
         errors: [
-          { message: messages.baseToString({ certainty: "may", name: "a" }) },
+          {
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "a",
+            }),
+          },
         ],
       },
       {
@@ -1437,7 +1540,12 @@ declare const a: { valueOf(): string } | { other: true };
 a.toString();
         `,
         errors: [
-          { message: messages.baseToString({ certainty: "may", name: "a" }) },
+          {
+            message: messages.baseToString({
+              certainty: { kind: "may", on: "object" },
+              name: "a",
+            }),
+          },
         ],
       },
       {
@@ -1446,7 +1554,26 @@ declare const a: { [K in "toString"]: () => string };
 a.toString();
         `,
         errors: [
-          { message: messages.baseToString({ certainty: "will", name: "a" }) },
+          {
+            message: messages.baseToString({
+              certainty: { kind: "will", on: "object" },
+              name: "a",
+            }),
+          },
+        ],
+      },
+      {
+        code: `
+const s = Symbol('description');
+s.toString();
+        `,
+        errors: [
+          {
+            message: messages.baseToString({
+              certainty: { kind: "will", on: "symbol" },
+              name: "s",
+            }),
+          },
         ],
       },
     ],

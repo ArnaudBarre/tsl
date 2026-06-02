@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add esbuild@0.28 to dependency range
+- `noBaseToString`: Warn when using Symbol's default stringification format ('Symbol()')
 
 ## 1.0.30
 
